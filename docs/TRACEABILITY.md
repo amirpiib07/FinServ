@@ -23,7 +23,7 @@ This matrix maps every functional requirement and roadmap capability to its phas
 | **P0-DOC-07** | Phase 0 | Risks & External Dependencies Register | `docs/RISKS_AND_DEPENDENCIES.md` | None (Specification) | Document review | `IMPLEMENTED` |
 | **P0-DOC-08** | Phase 0 | Progress Tracking & Execution Plan | `docs/PROGRESS.md` | None (Specification) | Document review | `IMPLEMENTED` |
 | **P1-BE-01** | Phase 1 | Spring Boot 3.x project setup & build | `backend/pom.xml` | Spring Boot 3.3.x, JDK 21+ | `mvn clean compile` | `NOT STARTED` |
-| **P1-BE-02** | Phase 1 | Flyway migration engine & 24 core tables schema | `backend/src/main/resources/db/migration` | Flyway, MySQL `schema_version` (`V1__init_core_schema.sql`, `V2__seed_reference_data.sql`) | Migration integration test | `NOT STARTED` |
+| **P1-BE-02** | Phase 1 | Flyway migration engine & 24 core tables schema | `backend/src/main/resources/db/migration` | Flyway, MySQL (`V1_1` through `V1_8`, `V2`) | Migration integration test | `NOT STARTED` |
 | **P1-BE-03** | Phase 1 | Core JPA Entities & Base Models (24 tables, RESTRICT FKs, Encrypted PII) | `com.finserv.common.model`, `com.finserv.modules.*.entity` | JPA / Hibernate, MySQL | Entity mapping test | `NOT STARTED` |
 | **P1-BE-04** | Phase 1 | Centralized RFC 7807 Exception Handling | `com.finserv.common.exception` | Spring Web MVC | MockMvc exception test | `NOT STARTED` |
 | **P1-BE-05** | Phase 1 | Health Check, Actuator & OpenAPI/Swagger | `com.finserv.config.OpenApiConfig` | Spring Actuator, Springdoc | `GET /actuator/health`, `/swagger-ui.html` | `NOT STARTED` |
@@ -36,15 +36,15 @@ This matrix maps every functional requirement and roadmap capability to its phas
 | **P4-AUTH-02** | Phase 4 | Stateless JWT login & refresh token rotation | `com.finserv.security` | `POST /api/v1/auth/login`, `refresh_tokens` | Token issue & rotate tests | `NOT STARTED` |
 | **P4-AUTH-03** | Phase 4 | Account lockout & session management | `com.finserv.modules.auth.service` | `users.failed_login_attempts` | 5-failure lockout test | `NOT STARTED` |
 | **P4-AUTH-04** | Phase 4 | Frontend auth state & protected routes | `frontend/src/context/AuthContext.tsx` | Local storage, JWT interceptor | Route guard test | `NOT STARTED` |
-| **P5-KYC-01** | Phase 5 | Progressive 6-step registration journey | `frontend/src/features/onboarding/` | `onboarding_applications`, `customer_declarations` | Step progression tests | `NOT STARTED` |
+| **P5-KYC-01** | Phase 5 | Progressive 6-step onboarding with encrypted drafts | `frontend/src/features/onboarding/` | `onboarding_applications`, `customer_declarations` | Step progression tests | `NOT STARTED` |
 | **P5-KYC-02** | Phase 5 | Contact OTP verification (simulated) | `com.finserv.modules.kyc` | `POST /api/v1/kyc/verify-otp`, `otp_challenges` | OTP expiry test | `NOT STARTED` |
-| **P5-KYC-03** | Phase 5 | KYC document upload & encrypted metadata | `com.finserv.modules.kyc` | `POST /api/v1/kyc/documents`, `kyc_documents` | File upload test | `NOT STARTED` |
-| **P5-KYC-04** | Phase 5 | Tiered KYC state machine & maker-checker review | `com.finserv.modules.kyc.service` | `customers.kyc_status`, `onboarding_applications` | Status transition tests | `NOT STARTED` |
+| **P5-KYC-03** | Phase 5 | Provisional KYC document upload & approval backfill | `com.finserv.modules.kyc` | `POST /api/v1/kyc/documents`, `kyc_documents` | File upload test | `NOT STARTED` |
+| **P5-KYC-04** | Phase 5 | Tiered KYC with separate verifier and approver | `com.finserv.modules.kyc.service` | `customers.kyc_status`, `onboarding_applications` | Status transition tests | `NOT STARTED` |
 | **P6-CRM-01** | Phase 6 | Customer 360 profile management | `com.finserv.modules.customer` | `GET /api/v1/customers/me`, `customers` | Profile fetch test | `NOT STARTED` |
 | **P6-BRN-02** | Phase 6 | Branch directory & routing codes | `com.finserv.modules.branch` | `branches` | Branch lookup test | `NOT STARTED` |
 | **P6-EMP-03** | Phase 6 | Staff management & branch scoping | `com.finserv.modules.branch.service` | `employees`, `branches` | Staff scope test | `NOT STARTED` |
 | **P7-ACC-01** | Phase 7 | Account application & maker-checker opening engine | `com.finserv.modules.account` | `POST /api/v1/accounts`, `account_applications`, `accounts` | Account creation test | `NOT STARTED` |
-| **P7-ACC-02** | Phase 7 | 14-digit ISO 7064 Mod 97-10 account number generator | `com.finserv.modules.account.util` | Branch + Product + Sequence + Check-Digit | Generation collision test | `NOT STARTED` |
+| **P7-ACC-02** | Phase 7 | 14-digit ISO 7064 Mod 11,10 account number generator | `com.finserv.modules.account.util` | Branch + Product + Sequence + 1 Check-Digit | Generation collision test | `NOT STARTED` |
 | **P7-ACC-03** | Phase 7 | Account lifecycle (Active, Dormant, Frozen) | `com.finserv.modules.account.service` | `accounts.status` | Freeze/unfreeze test | `NOT STARTED` |
 | **P8-BEN-01** | Phase 8 | Beneficiary addition with verification status | `com.finserv.modules.beneficiary` | `POST /api/v1/beneficiaries`, `beneficiaries` | Beneficiary validation test | `NOT STARTED` |
 | **P8-BEN-02** | Phase 8 | Beneficiary cooling-off enforcement | `com.finserv.modules.beneficiary.service` | `beneficiaries.cooling_off_until` | Cooling-off limit test | `NOT STARTED` |

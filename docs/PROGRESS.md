@@ -116,17 +116,17 @@ Upon user approval (`APPROVE PHASE`), the following sequential plan will be exec
 3. **Application Properties & Profile Setup**:
    - Configure `application.yml` and `application-dev.yml` to inject DB URL, username, and password dynamically from `backend/.env`.
    - Set `spring.jpa.hibernate.ddl-auto=validate`.
-4. **Flyway Migrations (24 Core Foundation Tables)**:
-   - Create `V1__init_core_schema.sql` implementing the 24 core baseline tables:
-     1. Identity & Auth: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
-     2. Onboarding, Customer & KYC: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
-     3. Organization & Staff: `branches`, `employees`
-     4. General Ledger: `gl_chart_of_accounts`, `gl_journal_entries`, `gl_ledger_postings`
-     5. Products & Accounts: `account_products`, `account_applications`, `accounts`, `account_holds`
-     6. Transactions & Idempotency: `idempotency_records`, `transactions`
-     7. Dual-Authorization & Sequences: `approval_requests`, `number_sequences`
-     8. Audit: `audit_logs`
-   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: 5 initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), 10 standard GL chart of accounts, 4 standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), initial headquarters branch (`1001`), and baseline counters in `number_sequences`.
+4. **Flyway Migrations (24 Core Foundation Tables Across Ordered Scripts)**:
+   - Split core schema into ordered Flyway migration scripts respecting foreign key dependencies:
+     1. `V1_1__init_identity_schema.sql`: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
+     2. `V1_2__init_onboarding_and_customer_schema.sql`: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
+     3. `V1_3__init_organization_schema.sql`: `branches`, `employees`
+     4. `V1_4__init_products_and_accounts_schema.sql`: `gl_chart_of_accounts`, `account_products`, `account_applications`, `accounts`, `account_holds`
+     5. `V1_5__init_ledger_schema.sql`: `gl_journal_entries`, `gl_ledger_postings`
+     6. `V1_6__init_transactions_and_idempotency_schema.sql`: `idempotency_records`, `transactions`
+     7. `V1_7__init_audit_and_approvals_schema.sql`: `approval_requests`, `number_sequences`, `audit_logs`
+     8. `V1_8__init_immutability_triggers.sql`: `BEFORE UPDATE/DELETE` triggers blocking mutations on `audit_logs`, `gl_journal_entries`, `gl_ledger_postings`
+   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: 5 initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), internal system daemon user, 10 standard GL chart of accounts, 4 standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), initial headquarters branch (`1001`), and baseline counters in `number_sequences`.
 5. **Core JPA Entities & Audit Listeners**:
    - Implement `BaseEntity`, `AuditableEntity`, and JPA Auditing configuration.
    - Implement JPA entity mappings for core entities with `ON DELETE RESTRICT` semantics and encrypted PII converter attributes.
