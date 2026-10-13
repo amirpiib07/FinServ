@@ -1,0 +1,61 @@
+# ==========================================
+# FINServ Root .gitignore
+# ==========================================
+
+# Secrets and Environment Variables (Strictly Never Commit)
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+!*.env.example
+
+# Java / Maven / Gradle
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+build/
+.gradle/
+bin/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+.vite/
+
+# IDE and Editor Files
+.idea/
+*.iml
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Logs & Temporary Files
+logs/
+*.log
+tmp/
+temp/
+scratch/
