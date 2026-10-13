@@ -116,16 +116,17 @@ Upon user approval (`APPROVE PHASE`), the following sequential plan will be exec
 3. **Application Properties & Profile Setup**:
    - Configure `application.yml` and `application-dev.yml` to inject DB URL, username, and password dynamically from `backend/.env`.
    - Set `spring.jpa.hibernate.ddl-auto=validate`.
-4. **Flyway Migrations (22 Core Foundation Tables)**:
-   - Create `V1__init_core_schema.sql` implementing the 22 core baseline tables:
+4. **Flyway Migrations (24 Core Foundation Tables)**:
+   - Create `V1__init_core_schema.sql` implementing the 24 core baseline tables:
      1. Identity & Auth: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
      2. Onboarding, Customer & KYC: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
      3. Organization & Staff: `branches`, `employees`
      4. General Ledger: `gl_chart_of_accounts`, `gl_journal_entries`, `gl_ledger_postings`
      5. Products & Accounts: `account_products`, `account_applications`, `accounts`, `account_holds`
      6. Transactions & Idempotency: `idempotency_records`, `transactions`
-     7. Audit: `audit_logs`
-   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), 10 standard GL chart of accounts, standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), and initial headquarters branch.
+     7. Dual-Authorization & Sequences: `approval_requests`, `number_sequences`
+     8. Audit: `audit_logs`
+   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: 5 initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), 10 standard GL chart of accounts, 4 standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), initial headquarters branch (`1001`), and baseline counters in `number_sequences`.
 5. **Core JPA Entities & Audit Listeners**:
    - Implement `BaseEntity`, `AuditableEntity`, and JPA Auditing configuration.
    - Implement JPA entity mappings for core entities with `ON DELETE RESTRICT` semantics and encrypted PII converter attributes.

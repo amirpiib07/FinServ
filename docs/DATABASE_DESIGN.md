@@ -4,14 +4,28 @@
 
 All relational definitions for FINServ enforce strict enterprise financial invariants:
 1. **Engine & Charset**: InnoDB storage engine; `utf8mb4` character set with `utf8mb4_unicode_ci` collation.
-2. **UUID Storage Standard**: Uniformly stored as `CHAR(36) CHARACTER SET ascii COLLATE ascii_bin` across all tables for cross-platform JPA compatibility and zero byte-endian conversion overhead.
-3. **Sequential UUIDv7 Usage**: High-throughput, time-series tables (`transactions`, `gl_journal_entries`, `gl_ledger_postings`, `audit_logs`) use time-ordered **UUIDv7** to guarantee chronological B-Tree index locality, eliminating index fragmentation.
-4. **Monetary Precision**: All currency balances and transaction figures use `DECIMAL(15, 2)` or `DECIMAL(19, 4)` for sub-cent interest accrual. **Float and Double are strictly forbidden.**
-5. **Time & Audit Invariants**: All timestamps stored in UTC using microsecond precision `DATETIME(6)`.
-6. **Optimistic Locking**: State-sensitive entities (e.g., `accounts`) carry a `version BIGINT NOT NULL DEFAULT 0` column.
+2. **Timezone Invariants (Strict UTC)**:
+   - MySQL Server: Server must be configured with `default_time_zone = '+00:00'`.
+   - JDBC Connection: `serverTimezone=UTC&forceConnectionTimeZoneToSession=true`.
+   - Spring Boot / Hibernate: `spring.jpa.properties.hibernate.jdbc.time_zone=UTC`.
+   - All schema timestamp columns use microsecond-precision `DATETIME(6)`.
+3. **UUID Storage Standard**: Uniformly stored as `CHAR(36) CHARACTER SET ascii COLLATE ascii_bin` across all tables for cross-platform JPA compatibility and zero byte-endian conversion overhead.
+4. **Sequential UUIDv7 Strategy**: High-throughput, time-series tables (`transactions`, `gl_journal_entries`, `gl_ledger_postings`, `audit_logs`) use time-ordered **UUIDv7** (RFC 9562). Generated at the application layer via `com.fasterxml.uuid:java-uuid-generator:5.1.0` (`Generators.timeBasedEpochGenerator()`) or Hibernate 6.5+ `@UuidGenerator(style = UuidGenerator.Style.TIME)`. This guarantees chronological B-Tree index locality and eliminates clustering page splits.
+5. **Monetary Precision & Rounding**:
+   - Precision: All currency balances and transaction figures use `DECIMAL(15, 2)` or `DECIMAL(19, 4)` for sub-cent interest accrual. **Float and Double are strictly forbidden.**
+   - Rounding Mode: Java domain math exclusively uses `RoundingMode.HALF_EVEN` (Banker's Rounding) to prevent systematic statistical bias.
+6. **Optimistic Locking**: State-sensitive entities (`accounts`) carry a `version BIGINT NOT NULL DEFAULT 0` column.
 7. **Strict Referencing (No Cascades on Financial/KYC Data)**: `ON DELETE CASCADE` and `SET NULL` are strictly prohibited on all financial, ledger, KYC, and audit tables. All referential integrity foreign keys enforce `ON DELETE RESTRICT`.
 8. **Zero Destructive Deletions**: Financial records, accounts, customer histories, and audit records are never physically deleted. They utilize soft-deletion or status transitions (`CLOSED`, `DEACTIVATED`).
-9. **Field-Level PII Encryption**: Sensitive identifiers (`tax_identifier`, `document_number`) are encrypted at rest with authenticated AES-256-GCM. Deterministic blind index HMAC-SHA256 hash columns are used for unique lookups.
+9. **Field-Level PII Encryption at Rest**:
+   - Sensitive identifiers (`tax_identifier`, `document_number`) are encrypted using authenticated AES-256-GCM.
+   - Master encryption keys are sourced exclusively from environment variables / KMS (`APP_ENCRYPTION_KEY`), never stored in database or code.
+   - Tables carry a `key_version INT NOT NULL DEFAULT 1` to support zero-downtime key rotation.
+   - Deterministic blind index HMAC-SHA256 hash columns are used for exact-match uniqueness queries.
+10. **Dual Database Users Security Model**:
+    - **Migration User (`finserv_migration`@'localhost')**: Possesses DDL privileges (`CREATE`, `ALTER`, `DROP`, `INDEX`, `REFERENCES`) and DML for running Flyway schema migrations.
+    - **Application User (`finserv_app`@'localhost')**: Possesses restricted DML (`SELECT`, `INSERT`, `UPDATE` on operational tables). `UPDATE` and `DELETE` are permanently revoked on immutable tables (`audit_logs`, `gl_journal_entries`, `gl_ledger_postings`).
+    - Grants are configured via an administrative script (`database/admin/01_init_users_and_permissions.sql`), not inside Flyway migrations.
 
 ---
 
@@ -26,6 +40,9 @@ erDiagram
     USERS ||--o{ ONBOARDING_APPLICATIONS : submits
     USERS ||--o| CUSTOMERS : profile
     USERS ||--o| EMPLOYEES : staff_record
+    
+    USERS ||--o{ APPROVAL_REQUESTS : maker_of
+    USERS ||--o{ APPROVAL_REQUESTS : checker_of
     
     ONBOARDING_APPLICATIONS ||--o{ CUSTOMER_DECLARATIONS : contains
     CUSTOMERS ||--o{ ADDRESSES : resides_at
@@ -64,6 +81,7 @@ erDiagram
     TRANSACTIONS ||--o{ TRANSACTION_DISPUTES : challenged_in
     
     AUDIT_LOGS ||--o| AUDIT_LOGS : hash_chain
+    NUMBER_SEQUENCES ||--o| NUMBER_SEQUENCES : row_locked_counters
 ```
 
 ---
@@ -128,29 +146,34 @@ CREATE TABLE user_roles (
 ```
 
 #### `refresh_tokens`
-Rotating refresh tokens for JWT session management.
+Rotating refresh tokens supporting token families and replay compromise detection.
 ```sql
 CREATE TABLE refresh_tokens (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    token_family_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     token_hash VARCHAR(255) NOT NULL,
+    replaced_by_token_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
     expires_at DATETIME(6) NOT NULL,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
     CONSTRAINT uq_refresh_tokens_hash UNIQUE (token_hash),
-    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_refresh_tokens_replaced FOREIGN KEY (replaced_by_token_id) REFERENCES refresh_tokens(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id, revoked);
+CREATE INDEX idx_refresh_tokens_family ON refresh_tokens(token_family_id);
 ```
 
 #### `otp_challenges`
-Tracks single-use contact verification codes for registration and progressive onboarding.
+Tracks single-use contact verification codes with explicit purpose tagging.
 ```sql
 CREATE TABLE otp_challenges (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    purpose VARCHAR(30) NOT NULL DEFAULT 'REGISTRATION',
     contact_type VARCHAR(10) NOT NULL,
     target_destination VARCHAR(100) NOT NULL,
     otp_hash VARCHAR(255) NOT NULL,
@@ -162,6 +185,7 @@ CREATE TABLE otp_challenges (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_otp_challenges PRIMARY KEY (id),
     CONSTRAINT fk_otp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_otp_purpose CHECK (purpose IN ('REGISTRATION', 'LOGIN_2FA', 'PASSWORD_RESET', 'BENEFICIARY_ADDITION', 'HIGH_VALUE_TXN')),
     CONSTRAINT chk_otp_type CHECK (contact_type IN ('EMAIL', 'PHONE')),
     CONSTRAINT chk_otp_status CHECK (status IN ('PENDING', 'VERIFIED', 'EXPIRED', 'FAILED')),
     CONSTRAINT chk_otp_attempts CHECK (attempts >= 0 AND attempts <= max_attempts)
@@ -175,7 +199,8 @@ CREATE INDEX idx_otp_user ON otp_challenges(user_id, status);
 ### 3.2 Progressive Onboarding, Customer Profile & KYC (Phase 1 Core)
 
 #### `onboarding_applications`
-Multi-step customer application state machine tracking progress before account activation.
+Multi-step customer application state machine tracking progress before official customer profile creation.
+*Rule*: A user may have only **one open application** (`DRAFT`, `SUBMITTED`, `UNDER_REVIEW`). The `customers` record is NOT created during draft; customer data lives in `draft_data_json` until approved.
 ```sql
 CREATE TABLE onboarding_applications (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -183,6 +208,7 @@ CREATE TABLE onboarding_applications (
     application_reference VARCHAR(40) NOT NULL,
     current_step INT NOT NULL DEFAULT 1,
     status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+    draft_data_json JSON NULL,
     submitted_at DATETIME(6) NULL,
     reviewed_by_user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
     reviewed_at DATETIME(6) NULL,
@@ -197,11 +223,11 @@ CREATE TABLE onboarding_applications (
     CONSTRAINT chk_onboarding_status CHECK (status IN ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'))
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_onboarding_status ON onboarding_applications(status);
+CREATE INDEX idx_onboarding_user_status ON onboarding_applications(user_id, status);
 ```
 
 #### `customers`
-Customer 360 personal record. Encrypts tax ID at rest with a SHA-256 HMAC blind index for lookups.
+Customer 360 record, instantiated only upon verification/approval of an onboarding application.
 ```sql
 CREATE TABLE customers (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -216,6 +242,7 @@ CREATE TABLE customers (
     nationality VARCHAR(50) NOT NULL DEFAULT 'INDIAN',
     tax_identifier_encrypted VARCHAR(512) NOT NULL,
     tax_identifier_hash VARCHAR(64) NOT NULL,
+    key_version INT NOT NULL DEFAULT 1,
     kyc_status VARCHAR(30) NOT NULL DEFAULT 'INITIATED',
     kyc_tier VARCHAR(20) NOT NULL DEFAULT 'TIER_1',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -234,13 +261,14 @@ CREATE INDEX idx_customers_kyc_status ON customers(kyc_status);
 ```
 
 #### `customer_declarations`
-Auditable regulatory consents and declarations (FATCA, Terms, PEP, Privacy).
+Auditable regulatory consents and declarations (FATCA, Terms, PEP, Privacy) linked to application or customer.
 ```sql
 CREATE TABLE customer_declarations (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     customer_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
     application_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
     declaration_type VARCHAR(50) NOT NULL,
+    terms_version VARCHAR(20) NOT NULL DEFAULT 'v1.0',
     is_accepted BOOLEAN NOT NULL DEFAULT FALSE,
     accepted_at DATETIME(6) NOT NULL,
     ip_address VARCHAR(45) NOT NULL,
@@ -248,6 +276,7 @@ CREATE TABLE customer_declarations (
     CONSTRAINT pk_customer_declarations PRIMARY KEY (id),
     CONSTRAINT fk_declarations_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
     CONSTRAINT fk_declarations_app FOREIGN KEY (application_id) REFERENCES onboarding_applications(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_declarations_binding CHECK (customer_id IS NOT NULL OR application_id IS NOT NULL),
     CONSTRAINT chk_declarations_type CHECK (declaration_type IN ('FATCA', 'TERMS_AND_CONDITIONS', 'PEP', 'DATA_PRIVACY')),
     CONSTRAINT chk_declarations_accepted CHECK (is_accepted = TRUE)
 ) ENGINE=InnoDB;
@@ -277,7 +306,7 @@ CREATE INDEX idx_addresses_customer ON addresses(customer_id);
 ```
 
 #### `kyc_documents`
-Customer identity verification documents with encrypted document numbers and hash lookups.
+Customer identity verification documents with encrypted document numbers and versioned keys.
 ```sql
 CREATE TABLE kyc_documents (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -285,6 +314,7 @@ CREATE TABLE kyc_documents (
     document_type VARCHAR(40) NOT NULL,
     document_number_encrypted VARCHAR(512) NOT NULL,
     document_number_hash VARCHAR(64) NOT NULL,
+    key_version INT NOT NULL DEFAULT 1,
     file_path VARCHAR(255) NOT NULL,
     mime_type VARCHAR(80) NOT NULL,
     file_size_bytes BIGINT NOT NULL,
@@ -310,11 +340,11 @@ CREATE INDEX idx_kyc_docs_hash ON kyc_documents(document_number_hash);
 ### 3.3 Branch Network & Staff Operations (Phase 1 Core)
 
 #### `branches`
-Physical and logical banking branch offices.
+Physical and logical banking branch offices with 4-digit numeric branch codes.
 ```sql
 CREATE TABLE branches (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    branch_code VARCHAR(20) NOT NULL,
+    branch_code VARCHAR(4) NOT NULL,
     branch_name VARCHAR(100) NOT NULL,
     ifsc_code VARCHAR(20) NOT NULL,
     routing_number VARCHAR(30) NOT NULL,
@@ -330,6 +360,7 @@ CREATE TABLE branches (
     CONSTRAINT uq_branches_code UNIQUE (branch_code),
     CONSTRAINT uq_branches_ifsc UNIQUE (ifsc_code),
     CONSTRAINT fk_branches_manager FOREIGN KEY (manager_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_branches_code_format CHECK (branch_code REGEXP '^[0-9]{4}$'),
     CONSTRAINT chk_branches_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'CLOSED'))
 ) ENGINE=InnoDB;
 ```
@@ -395,6 +426,7 @@ CREATE TABLE gl_chart_of_accounts (
 
 #### `gl_journal_entries`
 Immutable header for balanced accounting vouchers. Uses **UUIDv7**.
+*Reversal Derivation*: Status column is eliminated. A journal is derived as an explicit reversal if `reversal_of_journal_id IS NOT NULL`. Each original journal can be reversed at most once (`UNIQUE(reversal_of_journal_id)`).
 ```sql
 CREATE TABLE gl_journal_entries (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -402,15 +434,14 @@ CREATE TABLE gl_journal_entries (
     transaction_type VARCHAR(40) NOT NULL,
     posting_date DATE NOT NULL,
     description VARCHAR(255) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'POSTED',
     reversal_of_journal_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
     created_by_user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_gl_journal PRIMARY KEY (id),
     CONSTRAINT uq_gl_journal_ref UNIQUE (journal_reference),
+    CONSTRAINT uq_gl_reversal UNIQUE (reversal_of_journal_id),
     CONSTRAINT fk_gl_journal_reversal FOREIGN KEY (reversal_of_journal_id) REFERENCES gl_journal_entries(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_gl_journal_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_gl_journal_status CHECK (status IN ('POSTED', 'REVERSED'))
+    CONSTRAINT fk_gl_journal_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_gl_journal_posting_date ON gl_journal_entries(posting_date);
@@ -418,7 +449,7 @@ CREATE INDEX idx_gl_journal_posting_date ON gl_journal_entries(posting_date);
 
 #### `gl_ledger_postings`
 Individual debit and credit postings forming balanced entries ($\sum \text{Debits} == \sum \text{Credits}$). Uses **UUIDv7**.
-*Design Note on Running Balance*: The column `running_balance_after` is explicitly omitted from posting rows. Storing running balances on individual GL posting rows under high concurrent transfer volume forces serial lock contention on GL accounts, severely degrading write throughput. GL account balances are derived from $\sum \text{Credits} - \sum \text{Debits}$ and tracked via scheduled asynchronous balance snapshots.
+*Design Note on Balance Calculation*: In high-concurrency general ledger accounting, writing a sequential running balance onto each individual posting row creates severe row contention on GL accounts (requiring serializing every transaction across the bank). GL account balances are derived from $\sum (\text{credits}) - \sum (\text{debits})$ and maintained via asynchronous materialized snapshots.
 ```sql
 CREATE TABLE gl_ledger_postings (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -440,6 +471,20 @@ CREATE INDEX idx_gl_postings_journal ON gl_ledger_postings(journal_entry_id);
 CREATE INDEX idx_gl_postings_cust_acc ON gl_ledger_postings(customer_account_id);
 ```
 
+#### Double-Entry Balanced Ledger Invariant Enforcement
+1. **Single Atomic Database Transaction**: Every posting transaction executes inside a single `@Transactional(isolation = Isolation.READ_COMMITTED)` boundary in `LedgerPostingService`.
+2. **In-Flight Balance Sum Check**: Before commit, the service verifies that $\sum \text{Debits} == \sum \text{Credits}$. If `totalDebits.compareTo(totalCredits) != 0`, an unchecked `UnbalancedLedgerException` is thrown, forcing immediate transaction rollback.
+3. **Automated Integration Tests**: Test suite `LedgerIntegrityIntegrationTest` validates that unbalanced postings can never be committed.
+4. **Daily Automated Reconciliation Job**: A scheduled reconciliation query executes at 00:00 UTC, flagging any potential drift:
+   ```sql
+   SELECT journal_entry_id,
+          SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) AS total_debits,
+          SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) AS total_credits
+   FROM gl_ledger_postings
+   GROUP BY journal_entry_id
+   HAVING total_debits <> total_credits;
+   ```
+
 ---
 
 ### 3.5 Banking Products & Customer Accounts (Phase 1 Core)
@@ -449,7 +494,7 @@ Product catalog linking each account type directly to its balance-sheet liabilit
 ```sql
 CREATE TABLE account_products (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    product_code VARCHAR(20) NOT NULL,
+    product_code VARCHAR(2) NOT NULL,
     product_name VARCHAR(80) NOT NULL,
     product_type VARCHAR(30) NOT NULL,
     gl_account_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -463,6 +508,7 @@ CREATE TABLE account_products (
     CONSTRAINT pk_account_products PRIMARY KEY (id),
     CONSTRAINT uq_products_code UNIQUE (product_code),
     CONSTRAINT fk_products_gl FOREIGN KEY (gl_account_id) REFERENCES gl_chart_of_accounts(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_products_code_format CHECK (product_code REGEXP '^[0-9]{2}$'),
     CONSTRAINT chk_products_type CHECK (product_type IN ('SAVINGS', 'CURRENT', 'SALARY', 'STUDENT')),
     CONSTRAINT chk_products_min_balance CHECK (min_balance >= 0.00),
     CONSTRAINT chk_products_interest CHECK (interest_rate_percentage >= 0.00),
@@ -497,20 +543,20 @@ CREATE TABLE account_applications (
 ```
 
 #### `accounts`
-Core customer deposit/checking accounts.
+Core customer deposit/checking accounts. Only exists when approved (`APPLICATION_PENDING` removed).
 ```sql
 CREATE TABLE accounts (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     customer_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     branch_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     product_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-    account_number VARCHAR(24) NOT NULL,
+    account_number VARCHAR(14) NOT NULL,
     currency VARCHAR(3) NOT NULL DEFAULT 'INR',
     current_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     available_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     hold_balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-    status VARCHAR(30) NOT NULL DEFAULT 'APPLICATION_PENDING',
-    opened_at DATETIME(6) NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    opened_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     closed_at DATETIME(6) NULL,
     version BIGINT NOT NULL DEFAULT 0,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -520,9 +566,10 @@ CREATE TABLE accounts (
     CONSTRAINT fk_accounts_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
     CONSTRAINT fk_accounts_branch FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE RESTRICT,
     CONSTRAINT fk_accounts_product FOREIGN KEY (product_id) REFERENCES account_products(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_accounts_status CHECK (status IN ('APPLICATION_PENDING', 'ACTIVE', 'DORMANT', 'FROZEN', 'CLOSED')),
+    CONSTRAINT chk_accounts_number_format CHECK (account_number REGEXP '^[0-9]{14}$'),
+    CONSTRAINT chk_accounts_status CHECK (status IN ('ACTIVE', 'DORMANT', 'FROZEN', 'CLOSED')),
     CONSTRAINT chk_accounts_holds CHECK (hold_balance >= 0.00),
-    CONSTRAINT chk_accounts_avail_calc CHECK (available_balance <= current_balance)
+    CONSTRAINT chk_accounts_avail_balance CHECK (available_balance = current_balance - hold_balance)
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_accounts_customer ON accounts(customer_id);
@@ -578,9 +625,6 @@ CREATE TABLE idempotency_records (
 
 CREATE INDEX idx_idempotency_expires ON idempotency_records(expires_at);
 ```
-*Idempotency Collision Rule*: If a request arrives with an existing `(user_id, idempotency_key)`:
-- If `request_hash` matches: return cached response if `COMPLETED`, or `409 Conflict` if still `IN_PROGRESS`.
-- If `request_hash` does not match: return `409 Conflict` with error code `IDEMPOTENCY_PAYLOAD_MISMATCH`.
 
 #### `transactions`
 Business financial transactions between accounts or external systems. Uses **UUIDv7**.
@@ -609,6 +653,8 @@ CREATE TABLE transactions (
     completed_at DATETIME(6) NULL,
     CONSTRAINT pk_transactions PRIMARY KEY (id),
     CONSTRAINT uq_transactions_ref UNIQUE (transaction_reference),
+    CONSTRAINT uq_transactions_reversal UNIQUE (reversal_of_transaction_id),
+    CONSTRAINT uq_transactions_idempotency UNIQUE (idempotency_record_id),
     CONSTRAINT fk_transactions_from_acc FOREIGN KEY (from_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
     CONSTRAINT fk_transactions_to_acc FOREIGN KEY (to_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
     CONSTRAINT fk_transactions_reversal FOREIGN KEY (reversal_of_transaction_id) REFERENCES transactions(id) ON DELETE RESTRICT,
@@ -622,7 +668,15 @@ CREATE TABLE transactions (
     CONSTRAINT chk_transactions_amount CHECK (amount > 0.00),
     CONSTRAINT chk_transactions_fee CHECK (fee_amount >= 0.00),
     CONSTRAINT chk_transactions_distinct_accounts CHECK (from_account_id IS NULL OR to_account_id IS NULL OR from_account_id <> to_account_id),
-    CONSTRAINT chk_transactions_account_presence CHECK (from_account_id IS NOT NULL OR to_account_id IS NOT NULL)
+    CONSTRAINT chk_transactions_account_presence CHECK (
+        (transaction_type = 'DEPOSIT' AND from_account_id IS NULL AND to_account_id IS NOT NULL) OR
+        (transaction_type = 'WITHDRAWAL' AND from_account_id IS NOT NULL AND to_account_id IS NULL) OR
+        (transaction_type = 'TRANSFER_INTERNAL' AND from_account_id IS NOT NULL AND to_account_id IS NOT NULL) OR
+        (transaction_type = 'TRANSFER_EXTERNAL' AND ((from_account_id IS NOT NULL AND to_account_id IS NULL) OR (from_account_id IS NULL AND to_account_id IS NOT NULL))) OR
+        (transaction_type = 'FEE' AND from_account_id IS NOT NULL AND to_account_id IS NULL) OR
+        (transaction_type = 'INTEREST' AND from_account_id IS NULL AND to_account_id IS NOT NULL) OR
+        (transaction_type = 'REVERSAL' AND (from_account_id IS NOT NULL OR to_account_id IS NOT NULL))
+    )
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_transactions_from_acc ON transactions(from_account_id, created_at);
@@ -632,10 +686,66 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 
 ---
 
-### 3.7 Immutable & Tamper-Evident Audit Logging (Phase 1 Core)
+### 3.7 Dual-Authorization & Sequential Counters (Phase 1 Core)
+
+#### `approval_requests`
+Maker-Checker dual authorization queue for high-risk operations.
+*Rule*: The maker can never approve their own request (`CHECK (checker_user_id IS NULL OR maker_user_id <> checker_user_id)`).
+```sql
+CREATE TABLE approval_requests (
+    id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    maker_user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    checker_user_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id VARCHAR(36) NOT NULL,
+    action_type VARCHAR(40) NOT NULL,
+    payload_json JSON NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    rejection_reason VARCHAR(255) NULL,
+    decided_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_approval_requests PRIMARY KEY (id),
+    CONSTRAINT fk_approvals_maker FOREIGN KEY (maker_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_approvals_checker FOREIGN KEY (checker_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_approvals_maker_checker CHECK (checker_user_id IS NULL OR maker_user_id <> checker_user_id),
+    CONSTRAINT chk_approvals_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'))
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_approvals_status ON approval_requests(status);
+CREATE INDEX idx_approvals_entity ON approval_requests(entity_type, entity_id);
+```
+
+#### `number_sequences`
+Row-locked atomic counters guaranteeing gapless, sequential numbering for customer CIFs and account numbers.
+```sql
+CREATE TABLE number_sequences (
+    name VARCHAR(50) NOT NULL,
+    current_value BIGINT NOT NULL DEFAULT 0,
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_number_sequences PRIMARY KEY (name)
+) ENGINE=InnoDB;
+```
+*Atomic Counter Algorithm*:
+```java
+@Transactional
+public Long getNextSequence(String sequenceName) {
+    NumberSequence seq = entityManager.find(
+        NumberSequence.class, 
+        sequenceName, 
+        LockModeType.PESSIMISTIC_WRITE
+    );
+    seq.setCurrentValue(seq.getCurrentValue() + 1);
+    return seq.getCurrentValue();
+}
+```
+
+---
+
+### 3.8 Immutable & Tamper-Evident Audit Logging (Phase 1 Core)
 
 #### `audit_logs`
 Tamper-evident audit chain. Uses **UUIDv7** and cryptographic hash chaining (`previous_hash` -> `current_hash`).
+*Security Policy*: Password hashes, decrypted PII, and raw secret keys are **strictly forbidden** from appearing in `old_value_json` and `new_value_json`.
 ```sql
 CREATE TABLE audit_logs (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -655,7 +765,7 @@ CREATE TABLE audit_logs (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_audit_logs PRIMARY KEY (id),
     CONSTRAINT fk_audit_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_audit_action CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'OVERRIDE', 'LOGIN'))
+    CONSTRAINT chk_audit_action CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'OVERRIDE', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'APPROVE', 'REJECT'))
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_audit_entity ON audit_logs(entity_type, entity_id);
@@ -663,19 +773,38 @@ CREATE INDEX idx_audit_actor ON audit_logs(actor_user_id, created_at);
 CREATE INDEX idx_audit_created ON audit_logs(created_at);
 ```
 
-#### DB-Level Tamper-Evident Security Grants
-To enforce immutability at the database engine level, the application user `finserv_app` is denied mutation privileges:
+#### Hash Chain Serialization Specification
+To prevent concurrent race conditions on `previous_hash`:
+- An internal singleton lock record `audit_chain_lock` in `number_sequences` is acquired via `SELECT current_value FROM number_sequences WHERE name = 'audit_chain_seq' FOR UPDATE`.
+- The appending service reads the latest `current_hash` under the row-lock, computes:
+  $$\text{current\_hash} = \text{SHA-256}(\text{id} \parallel \text{created\_at} \parallel \text{actor\_user\_id} \parallel \text{action} \parallel \text{entity\_type} \parallel \text{entity\_id} \parallel \text{old\_value\_json} \parallel \text{new\_value\_json} \parallel \text{previous\_hash})$$
+- The record is persisted and the transaction commits, releasing the lock.
+
+#### Database Privileges Script (`database/admin/01_init_users_and_permissions.sql`)
+Executed once by DBA on `localhost`:
 ```sql
-REVOKE UPDATE, DELETE ON finserv_db.audit_logs FROM 'finserv_app'@'%';
-GRANT INSERT, SELECT ON finserv_db.audit_logs TO 'finserv_app'@'%';
+-- Migration User (DDL + Migration DML)
+CREATE USER IF NOT EXISTS 'finserv_migration'@'localhost' IDENTIFIED BY 'MigrationSecurePass!';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, REFERENCES ON finserv_db.* TO 'finserv_migration'@'localhost';
+
+-- Application Runtime User (Restricted DML)
+CREATE USER IF NOT EXISTS 'finserv_app'@'localhost' IDENTIFIED BY 'AppSecurePass!';
+GRANT SELECT, INSERT, UPDATE ON finserv_db.* TO 'finserv_app'@'localhost';
+GRANT DELETE ON finserv_db.refresh_tokens TO 'finserv_app'@'localhost';
+
+-- Immutability Enforcement for App User
+REVOKE UPDATE, DELETE ON finserv_db.audit_logs FROM 'finserv_app'@'localhost';
+REVOKE UPDATE, DELETE ON finserv_db.gl_journal_entries FROM 'finserv_app'@'localhost';
+REVOKE UPDATE, DELETE ON finserv_db.gl_ledger_postings FROM 'finserv_app'@'localhost';
+
+FLUSH PRIVILEGES;
 ```
 
 ---
 
-### 3.8 Beneficiaries & Payees (Deferred to Phase 8)
+### 3.9 Beneficiaries & Payees (Deferred to Phase 8)
 
 #### `beneficiaries`
-Verified transfer recipients.
 ```sql
 CREATE TABLE beneficiaries (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -702,7 +831,7 @@ CREATE INDEX idx_beneficiaries_customer ON beneficiaries(customer_id, is_active)
 
 ---
 
-### 3.9 Notifications & Customer Support (Deferred to Phase 14)
+### 3.10 Notifications & Customer Support (Deferred to Phase 14)
 
 #### `notifications`
 ```sql
@@ -765,7 +894,7 @@ CREATE TABLE transaction_disputes (
 
 ---
 
-### 3.10 Term Deposits (Deferred to Phase 15)
+### 3.11 Term Deposits (Deferred to Phase 15)
 
 #### `term_deposits`
 ```sql
@@ -799,7 +928,7 @@ CREATE TABLE term_deposits (
 
 ---
 
-### 3.11 Lending & Loans Engine (Deferred to Phase 16)
+### 3.12 Lending & Loans Engine (Deferred to Phase 16)
 
 #### `loan_products`
 ```sql
@@ -877,7 +1006,7 @@ CREATE INDEX idx_loan_schedule_due ON loan_amortization_schedules(loan_id, due_d
 
 ---
 
-### 3.12 Cheques & Positive Pay (Deferred to Phase 17)
+### 3.13 Cheques & Positive Pay (Deferred to Phase 17)
 
 #### `cheque_books`
 ```sql
@@ -940,7 +1069,7 @@ CREATE TABLE positive_pay_records (
 
 ---
 
-### 3.13 Bill Payments & Utility Simulators (Deferred to Phase 18)
+### 3.14 Bill Payments & Utility Simulators (Deferred to Phase 18)
 
 #### `billers`
 ```sql
@@ -986,7 +1115,7 @@ CREATE TABLE bill_payments (
 
 ---
 
-### 3.14 Cards & Instant UPI Payments (Simulated / Tokenized, Deferred to Phase 19)
+### 3.15 Cards & Instant UPI Payments (Simulated / Tokenized, Deferred to Phase 19)
 
 *Note on Cards & UPI*: Card operations and UPI payment flows are simulated in FINServ via tokenized state tables without connecting to live bank switches. No CVV hashes or cleartext PANs are persisted.
 
@@ -1044,7 +1173,7 @@ CREATE TABLE upi_profiles (
 
 ---
 
-### 3.15 Risk Controls, Fraud & Compliance (Deferred to Phase 21)
+### 3.16 Risk Controls, Fraud & Compliance (Deferred to Phase 21)
 
 #### `risk_assessments`
 ```sql
@@ -1094,18 +1223,19 @@ CREATE TABLE aml_alerts (
 ## 4. Account & Customer Number Generation Strategy
 
 ### 4.1 Customer Number (CIF) Algorithm
-- **Format**: 10-digit numerical identifier `YYYYSSSSSCD`
+- **Format**: 12-digit fixed numerical identifier `YYYYSSSSSSSCD`
   - `YYYY`: 4-digit customer registration year (e.g. `2026`).
-  - `SSSSS`: 5-digit sequential unique sequence counter padded with leading zeros (`00001` - `99999`).
-  - `CD`: 1 Luhn algorithm (Mod-10) check-digit calculated over the leading 9 digits.
-- **Collision Protection**: Checked against `customers.customer_number` unique index with transactional sequence reservation.
+  - `SSSSSSS`: 7-digit sequential unique sequence counter padded with leading zeros (`0000001` - `9999999`) sourced from `number_sequences.current_value`.
+  - `CD`: 1 Luhn algorithm (Mod-10) check-digit calculated over the leading 11 digits.
+- **Capacity**: Accommodates up to 10,000,000 new customers per calendar year.
 
 ### 4.2 Account Number Algorithm
-- **Format**: 14-digit numerical account number `BBBBPPSSSSSSCD`
-  - `BBBB`: 4-digit numeric branch identification code derived from the branch's IFSC routing number.
-  - `PP`: 2-digit product code (`01` = Regular Savings, `02` = Current/Checking, `03` = Salary, `04` = Student).
-  - `SSSSSS`: 7-digit sequential unique account counter per product branch partition.
-  - `CD`: 1 ISO 7064 Mod 97-10 check-digit preventing transposition and single-digit transmission errors.
+- **Format**: 14-digit fixed numerical account number `BBBBPPSSSSSSCD`
+  - `BBBB`: 4-digit numeric branch identification code matching `branches.branch_code` (e.g. `1001`).
+  - `PP`: 2-digit numeric product code matching `account_products.product_code` (`01` = Regular Savings, `02` = Current/Checking, `03` = Salary, `04` = Student).
+  - `SSSSSS`: 7-digit sequential unique account counter per product branch partition sourced from `number_sequences`.
+  - `CD`: 1 ISO 7064 Mod 97-10 check-digit preventing single-digit errors and adjacent transpositions.
+- **Format Validation**: Enforced at DB level via `CHECK (account_number REGEXP '^[0-9]{14}$')`.
 
 ---
 
@@ -1118,13 +1248,23 @@ CREATE TABLE aml_alerts (
 
 ### 5.2 Maker-Checker Approval Workflow
 - **Status in v1**: **IN SCOPE**.
-- **Enforcement**: Mandatory dual-authorization workflow for all high-risk operational and financial events:
-  1. Manual GL journal vouchers and balance adjustments (`created_by_user_id` != reviewer).
-  2. Single transaction overrides exceeding branch threshold (e.g., transfers > ₹1,00,000 / $1,500).
-  3. Customer KYC approval (`reviewed_by_user_id` on onboarding).
+- **Monetary Threshold**: Configurable via `application.yml` (`finserv.security.maker-checker.threshold-amount-inr: 50000.00`). Transactions above ₹50,000 require dual authorization.
+- **Enforced Operations**:
+  1. Manual GL journal vouchers and balance adjustments (`created_by_user_id` != checker).
+  2. Single transaction overrides exceeding branch threshold (`approval_requests` queue).
+  3. Customer KYC approval (`onboarding_applications.reviewed_by_user_id` != maker).
   4. Account freeze, unfreeze, and closure actions.
-  5. Loan sanctioning and disbursements (`sanctioned_at` and manager reviewer).
-- **Control**: Actions initiated by staff cannot be approved by the same `user_id`.
+  5. Loan sanctioning and disbursements.
+- **Invariance**: An action initiated by a user can NEVER be approved by the same `user_id` (`CHECK (checker_user_id IS NULL OR maker_user_id <> checker_user_id)`).
+
+### 5.3 V2 Seed Contents & Superadmin Bootstrapping
+- **Flyway Seed Script (`V2__seed_reference_data.sql`)**:
+  - 5 System Roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`).
+  - 10 Core General Ledger accounts (10100 through 50100).
+  - 4 Account Products (`01` Savings, `02` Current, `03` Salary, `04` Student) linked to liability GL accounts.
+  - Head Office Branch (Code: `1001`, IFSC: `FINS0001001`).
+  - Baseline counters in `number_sequences` (`customer_cif_seq`, `account_num_seq`, `audit_chain_seq`).
+- **Superadmin Bootstrapping**: Handled strictly via an application-level first-run runner (`AdminBootstrapRunner`), injecting superadmin credentials dynamically from `backend/.env` (`ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`). No plain-text passwords or hashes exist in Flyway migration scripts.
 
 ---
 
@@ -1132,7 +1272,7 @@ CREATE TABLE aml_alerts (
 
 | Phase | Category | Tables Introduced | Migration File Target |
 | :---: | :--- | :--- | :--- |
-| **Phase 1** | **Core Foundation (Baseline)** | `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`, `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`, `branches`, `employees`, `gl_chart_of_accounts`, `account_products`, `account_applications`, `accounts`, `account_holds`, `gl_journal_entries`, `gl_ledger_postings`, `idempotency_records`, `transactions`, `audit_logs` (22 tables) | `V1__init_core_schema.sql`, `V2__seed_reference_data.sql` |
+| **Phase 1** | **Core Foundation (Baseline: 24 Tables)** | `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`, `onboarding_applications`, `customer_declarations`, `customers`, `addresses`, `kyc_documents`, `branches`, `employees`, `gl_chart_of_accounts`, `account_products`, `account_applications`, `accounts`, `account_holds`, `gl_journal_entries`, `gl_ledger_postings`, `idempotency_records`, `transactions`, `approval_requests`, `number_sequences`, `audit_logs` (24 tables) | `V1__init_core_schema.sql`, `V2__seed_reference_data.sql` |
 | **Phase 8** | Beneficiaries & Payees | `beneficiaries` | `V8__create_beneficiaries.sql` |
 | **Phase 14**| Notifications & Support | `notifications`, `support_tickets`, `transaction_disputes` | `V14__create_notifications_and_support.sql` |
 | **Phase 15**| Term Deposits | `term_deposits` | `V15__create_term_deposits.sql` |
