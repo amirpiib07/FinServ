@@ -2,19 +2,19 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 0 — Requirements, Architecture, Database Design & Traceability
-- **Phase Status**: `COMPLETED` (Docs only, awaiting formal user approval)
-- **Active Git Branch**: `phase-0-requirements-architecture-db`
-- **Current Target**: Phase 1 — Backend Foundation + Core Database
+- **Current Milestone**: Phase 1 — Backend Foundation + Core Database
+- **Phase Status**: `IMPLEMENTED & VERIFIED` (Ready for user database execution & Phase 1 review)
+- **Active Git Branch**: `phase-1-backend-foundation`
+- **Current Target**: Phase 2 — Frontend Foundation + Design System
 
 ---
 
 ## 2. Milestone Execution Status
 
 | Phase | Milestone Name | Status | Branch | Notes / Completion Evidence |
-| :---: | :--- | :---: | :--- | :--- |
+| :---: | :--- | :--- :---: | :--- | :--- |
 | **0** | **Requirements, Architecture, DB Design, Traceability** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
-| **1** | Backend Foundation + Core Database | `PLANNED` | `phase-1-backend-foundation` | Planned Flyway migrations, JPA entities, health, Swagger. |
+| **1** | **Backend Foundation + Core Database** | **IMPLEMENTED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 21 unit tests passing, clean package build. |
 | **2** | Frontend Foundation + Design System | `NOT STARTED` | - | React + TypeScript + Vite + Vanilla CSS tokens. |
 | **3** | Branding, Assets, Typography, Motion System | `NOT STARTED` | - | Official logo, accessible micro-interactions. |
 | **4** | Auth, JWT, Sessions, Authorization | `NOT STARTED` | - | Spring Security 6, JWT dual-token, RBAC. |
