@@ -121,7 +121,7 @@ Upon user approval (`APPROVE PHASE`), the following sequential plan will be exec
      1. `V1_1__init_identity_schema.sql`: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
      2. `V1_2__init_onboarding_and_customer_schema.sql`: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
      3. `V1_3__init_organization_schema.sql`: `branches`, `employees`
-     4. `V1_4__init_products_and_accounts_schema.sql`: `gl_chart_of_accounts`, `account_products`, `account_applications`, `accounts`, `account_holds`
+     4. `V1_4__init_products_and_accounts_schema.sql`: `gl_chart_of_accounts`, `account_products`, `accounts`, `account_applications`, `account_holds`
      5. `V1_5__init_ledger_schema.sql`: `gl_journal_entries`, `gl_ledger_postings`
      6. `V1_6__init_transactions_and_idempotency_schema.sql`: `idempotency_records`, `transactions`
      7. `V1_7__init_audit_and_approvals_schema.sql`: `approval_requests`, `number_sequences`, `audit_logs`
