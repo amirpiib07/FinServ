@@ -82,6 +82,12 @@ public class AdminBootstrapRunner implements CommandLineRunner {
             return;
         }
 
+        String phone = "+910000000099";
+        if (userRepository.existsByPhoneNumber(phone)) {
+            log.info("Superadmin bootstrap: User with phone '{}' already exists. Skipping initialization.", phone);
+            return;
+        }
+
         UUID adminId = UuidUtils.generateV4();
         User adminUser = new User(adminId);
         adminUser.setUsername(adminUsername);

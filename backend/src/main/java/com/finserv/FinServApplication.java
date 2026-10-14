@@ -26,9 +26,10 @@ public class FinServApplication {
         File targetFile = dotEnvBackend.exists() ? dotEnvBackend : (dotEnvRoot.exists() ? dotEnvRoot : null);
 
         if (targetFile != null) {
+            File absFile = targetFile.getAbsoluteFile();
             Dotenv dotenv = Dotenv.configure()
-                    .directory(targetFile.getParent() == null ? "." : targetFile.getParent())
-                    .filename(targetFile.getName())
+                    .directory(absFile.getParent())
+                    .filename(absFile.getName())
                     .ignoreIfMissing()
                     .load();
 

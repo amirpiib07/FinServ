@@ -97,7 +97,8 @@ public class AuditLog {
         this.payloadCanonical = payloadCanonical;
         this.previousHash = previousHash;
         this.currentHash = currentHash;
-        this.createdAt = createdAt != null ? createdAt : Instant.now();
+        this.createdAt = createdAt != null ? createdAt.truncatedTo(java.time.temporal.ChronoUnit.MICROS)
+                : Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
     public UUID getId() {

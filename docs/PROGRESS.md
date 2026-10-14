@@ -3,7 +3,7 @@
 ## 1. Project Overview & Current State
 
 - **Current Milestone**: Phase 1 — Backend Foundation + Core Database
-- **Phase Status**: `IMPLEMENTED & VERIFIED` (Ready for user database execution & Phase 1 review)
+- **Phase Status**: `COMPLETED` (Ready for user approval)
 - **Active Git Branch**: `phase-1-backend-foundation`
 - **Current Target**: Phase 2 — Frontend Foundation + Design System
 
@@ -14,7 +14,7 @@
 | Phase | Milestone Name | Status | Branch | Notes / Completion Evidence |
 | :---: | :--- | :--- :---: | :--- | :--- |
 | **0** | **Requirements, Architecture, DB Design, Traceability** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
-| **1** | **Backend Foundation + Core Database** | **IMPLEMENTED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 21 unit tests passing, clean package build. |
+| **1** | **Backend Foundation + Core Database** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing (27 unit + 25 real DB integration), clean package build, Actuator `/actuator/health` UP, Swagger UI verified, Admin bootstrap verified. |
 | **2** | Frontend Foundation + Design System | `NOT STARTED` | - | React + TypeScript + Vite + Vanilla CSS tokens. |
 | **3** | Branding, Assets, Typography, Motion System | `NOT STARTED` | - | Official logo, accessible micro-interactions. |
 | **4** | Auth, JWT, Sessions, Authorization | `NOT STARTED` | - | Spring Security 6, JWT dual-token, RBAC. |
@@ -81,60 +81,62 @@
 
 ---
 
-## 5. How to Run & Verify Phase 0
+---
+
+## 5. How to Run & Verify Phase 1
 
 1. **Verify Git Branch & Status**:
    ```bash
    git branch
    git status
    ```
-   *Expected output*: On branch `phase-0-requirements-architecture-db`, working tree clean.
+   *Expected output*: On branch `phase-1-backend-foundation`.
 
-2. **Verify Specifications in `docs/`**:
-   - Requirements: `docs/REQUIREMENTS.md`
-   - Architecture: `docs/ARCHITECTURE.md`
-   - Database Design: `docs/DATABASE_DESIGN.md`
-   - Traceability Matrix: `docs/TRACEABILITY.md`
-   - Risks & Dependencies: `docs/RISKS_AND_DEPENDENCIES.md`
-   - Progress Log: `docs/PROGRESS.md`
-
-3. **Configure Local DB Credentials for Phase 1**:
-   Copy `backend/.env.example` to `backend/.env` and update `DB_PASSWORD` with your local MySQL password:
+2. **Execute Automated Test Suite (Isolated Scratch Test Database)**:
    ```bash
-   copy backend\.env.example backend\.env
+   cd backend
+   mvn test
    ```
+   *Verification Result*: 52 tests run, 0 failures, 0 errors, 0 skipped.
+   - 27 unit tests (Luhn, ISO 7064 Mod 11,10, AES-256-GCM, Audit canonical string & sensitive payload filter, GlobalExceptionHandler, LogMaskingConverter, AdminBootstrapRunner).
+   - 25 real database integration tests against `finserv_test` (Flyway migration verification on clean database, 24 core tables + triggers, table constraints, Maker-Checker rules, immutable trigger violations, UTC instant roundtrip mapping, audit hash chain integrity & tampering detection, pessimistic row-lock sequence concurrency).
+
+3. **Start Application Against Dev Database**:
+   ```bash
+   cd backend
+   mvn spring-boot:run
+   ```
+   - Automatically applies migrations `V1_1` through `V1_8` + `V2` seed data to `finserv_db`.
+   - Hibernate executes strict schema validation (`ddl-auto=validate`).
+   - Admin bootstrap runner idempotently provisions superadmin.
+
+4. **Verify Live Health & Documentation Endpoints**:
+   - Health Probe: `GET http://localhost:8080/actuator/health` -> `{"status":"UP","groups":["liveness","readiness"]}`
+   - Swagger UI: `GET http://localhost:8080/swagger-ui/index.html` -> HTTP 200
+   - Security Baseline: `GET http://localhost:8080/api/v1/accounts` -> HTTP 403 (Deny by default)
 
 ---
 
-## 6. Exact Implementation Plan for Phase 1 (Backend Foundation + Core Database)
+## 6. Implementation Summary for Phase 1 (Completed)
 
-Upon user approval (`APPROVE PHASE`), the following sequential plan will be executed:
-1. **Branch Checkout**: Create and switch to `phase-1-backend-foundation`.
-2. **Backend Project Initialization**:
-   - Generate `backend/pom.xml` configured for Java 21+ with Spring Boot 3.3.x.
-   - Configure dependencies: Spring Boot Web, Spring Data JPA, Spring Security, Validation, Actuator, Flyway (Core + MySQL), MySQL Connector, Lombok, Springdoc OpenAPI 3.0, JJWT, Dotenv Java.
-3. **Application Properties & Profile Setup**:
-   - Configure `application.yml` and `application-dev.yml` to inject DB URL, username, and password dynamically from `backend/.env`.
-   - Set `spring.jpa.hibernate.ddl-auto=validate`.
-4. **Flyway Migrations (24 Core Foundation Tables Across Ordered Scripts)**:
-   - Split core schema into ordered Flyway migration scripts respecting foreign key dependencies:
-     1. `V1_1__init_identity_schema.sql`: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
-     2. `V1_2__init_onboarding_and_customer_schema.sql`: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
-     3. `V1_3__init_organization_schema.sql`: `branches`, `employees`
-     4. `V1_4__init_products_and_accounts_schema.sql`: `gl_chart_of_accounts`, `account_products`, `accounts`, `account_applications`, `account_holds`
-     5. `V1_5__init_ledger_schema.sql`: `gl_journal_entries`, `gl_ledger_postings`
-     6. `V1_6__init_transactions_and_idempotency_schema.sql`: `idempotency_records`, `transactions`
-     7. `V1_7__init_audit_and_approvals_schema.sql`: `approval_requests`, `number_sequences`, `audit_logs`
-     8. `V1_8__init_immutability_triggers.sql`: `BEFORE UPDATE/DELETE` triggers blocking mutations on `audit_logs`, `gl_journal_entries`, `gl_ledger_postings`
-   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: 5 initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), internal system daemon user, 10 standard GL chart of accounts, 4 standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), initial headquarters branch (`1001`), and baseline counters in `number_sequences`.
-5. **Core JPA Entities & Audit Listeners**:
-   - Implement `BaseEntity`, `AuditableEntity`, and JPA Auditing configuration.
-   - Implement JPA entity mappings for core entities with `ON DELETE RESTRICT` semantics and encrypted PII converter attributes.
-6. **Error Handling Architecture**:
-   - Implement centralized `GlobalExceptionHandler` mapping RFC 7807 problem details to `ApiResponse<T>` and `ErrorResponse`.
-7. **Health, Actuator & OpenAPI Swagger**:
-   - Configure `/actuator/health` and `/actuator/info`.
-   - Configure OpenAPI/Swagger at `/swagger-ui.html` and `/v3/api-docs`.
-8. **Automated Verification & Tests**:
-   - Execute `mvn clean compile test` to verify zero compile or migration failures.
-   - Verify health check and Swagger documentation endpoints.
+All Phase 1 requirements have been implemented and verified with zero deviations from `docs/DATABASE_DESIGN.md`:
+1. **Flyway Migrations (`V1_1`–`V1_8`, `V2`)**:
+   - 24 core tables with strict FK RESTRICT, CHECK constraints, UNIQUE constraints, generated columns, and UTC timestamps.
+   - Engine triggers on `audit_logs`, `gl_journal_entries`, `gl_ledger_postings` enforcing immutability.
+   - Reference seeds: 5 standard roles, internal system daemon user, 10 GL accounts, 4 account products, headquarters branch (1001), sequence counters.
+2. **JPA Entities & Repositories**:
+   - Implemented with UUIDv7 generators for transactions, ledger entries, and audit logs.
+   - `@Version` optimistic locking on accounts.
+   - Insert-only immutable entity mapping for ledger and audit logs.
+3. **Core Infrastructure Services**:
+   - `NumberSequenceService`: `PESSIMISTIC_WRITE` row-locked sequence allocation with lazy annual sequence initialization.
+   - `CustomerNumberGenerator`: 12-digit format with Luhn check digit.
+   - `AccountNumberGenerator`: 14-digit format with ISO 7064 Mod 11,10 check digit.
+   - `FieldEncryptionService`: AES-256-GCM authenticated encryption + HMAC-SHA256 blind indexing.
+   - `AuditService`: Cryptographic hash chain with microsecond timestamp normalization and sensitive payload detection.
+   - `AdminBootstrapRunner`: Idempotent superadmin bootstrapper reading from environment variables only.
+4. **Cross-Cutting**:
+   - `CorrelationIdFilter` + MDC propagation.
+   - `LogMaskingConverter` for masking passwords, PII, and card data.
+   - RFC 7807 `GlobalExceptionHandler` with zero leaked stack traces.
+   - Spring Security deny-by-default baseline.

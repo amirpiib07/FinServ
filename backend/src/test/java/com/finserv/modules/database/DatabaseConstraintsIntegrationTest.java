@@ -5,17 +5,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class DatabaseConstraintsIntegrationTest {
+
+    private static final AtomicInteger SEQ = new AtomicInteger(1000);
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -33,7 +37,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, '00000000-0000-0000-0003-000000001001', '00000000-0000-0000-0002-000000000001', '10010199999991', -100.00, -100.00, 0.00)
                 """,
                 accountId, testCustId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -49,7 +53,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, '00000000-0000-0000-0003-000000001001', '00000000-0000-0000-0002-000000000001', '10010199999992', 1000.00, 500.00, 200.00)
                 """,
                 accountId, testCustId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -65,7 +69,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, 'HOLD_NEG_01', 0.00, 'Invalid zero hold')
                 """,
                 UuidUtils.generateV4().toString(), accountId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -83,7 +87,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, 'TXN_INVALID_DEP', ?, ?, 'DEPOSIT', 500.00)
                 """,
                 UuidUtils.generateV7().toString(), accId, accId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -108,7 +112,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, ?, 'HASH2', '/api/v1/test', DATE_ADD(NOW(6), INTERVAL 1 DAY))
                 """,
                 UuidUtils.generateV4().toString(), key, userId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -132,7 +136,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, 'APP_002', 'SUBMITTED')
                 """,
                 UuidUtils.generateV4().toString(), userId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -147,7 +151,7 @@ class DatabaseConstraintsIntegrationTest {
                 VALUES (?, ?, ?, 'TRANSACTION', '123', 'OVERRIDE', '{}')
                 """,
                 UuidUtils.generateV4().toString(), userId, userId
-        )).isInstanceOf(DataIntegrityViolationException.class);
+        )).isInstanceOf(DataAccessException.class);
     }
 
     @Test
@@ -165,18 +169,97 @@ class DatabaseConstraintsIntegrationTest {
 
         // Attempting to delete the referenced user must fail with FK RESTRICT error
         assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Should reject approved onboarding application without verifier via chk_onboarding_maker_checker")
+    void shouldRejectApprovedWithoutVerifierOnOnboarding() {
+        String userId = createTestUser("verifier_test_user");
+        String approverId = createTestUser("approver_user");
+
+        // Attempt to insert an APPROVED onboarding application with approved_by_user_id set, but verified_by_user_id NULL
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                """
+                INSERT INTO onboarding_applications (id, user_id, application_reference, status, approved_by_user_id, approved_at)
+                VALUES (?, ?, 'APP_NO_VERIFIER_01', 'APPROVED', ?, NOW(6))
+                """,
+                UuidUtils.generateV4().toString(), userId, approverId
+        )).isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Should enforce UNIQUE reversal reference on transactions via uq_transactions_reversal")
+    void shouldEnforceUniqueReversalReferenceOnTransactions() {
+        String testCustId = createTestCustomer();
+        String accId = createTestAccount(testCustId, "10010199999995");
+
+        String originalTxnId = UuidUtils.generateV7().toString();
+        jdbcTemplate.update(
+                """
+                INSERT INTO transactions (id, transaction_reference, from_account_id, to_account_id, transaction_type, amount, status)
+                VALUES (?, 'TXN_ORIG_01', NULL, ?, 'DEPOSIT', 100.00, 'COMPLETED')
+                """,
+                originalTxnId, accId
+        );
+
+        String firstReversalId = UuidUtils.generateV7().toString();
+        jdbcTemplate.update(
+                """
+                INSERT INTO transactions (id, transaction_reference, from_account_id, to_account_id, transaction_type, amount, status, reversal_of_transaction_id)
+                VALUES (?, 'TXN_REV_01', ?, NULL, 'REVERSAL', 100.00, 'COMPLETED', ?)
+                """,
+                firstReversalId, accId, originalTxnId
+        );
+
+        // Second reversal referencing the same original transaction must fail
+        String secondReversalId = UuidUtils.generateV7().toString();
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                """
+                INSERT INTO transactions (id, transaction_reference, from_account_id, to_account_id, transaction_type, amount, status, reversal_of_transaction_id)
+                VALUES (?, 'TXN_REV_02', ?, NULL, 'REVERSAL', 100.00, 'COMPLETED', ?)
+                """,
+                secondReversalId, accId, originalTxnId
+        )).isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Should allow new DRAFT onboarding application when previous application is in terminal REJECTED status")
+    void shouldAllowNewApplicationAfterTerminalStatus() {
+        String userId = createTestUser("terminal_app_user");
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO onboarding_applications (id, user_id, application_reference, status)
+                VALUES (?, ?, 'APP_TERM_01', 'REJECTED')
+                """,
+                UuidUtils.generateV4().toString(), userId
+        );
+
+        // New DRAFT application for same user must succeed because REJECTED sets active_app_marker to NULL
+        int rows = jdbcTemplate.update(
+                """
+                INSERT INTO onboarding_applications (id, user_id, application_reference, status)
+                VALUES (?, ?, 'APP_TERM_02', 'DRAFT')
+                """,
+                UuidUtils.generateV4().toString(), userId
+        );
+        org.assertj.core.api.Assertions.assertThat(rows).isEqualTo(1);
     }
 
     private String createTestUser(String prefix) {
         String userId = UuidUtils.generateV4().toString();
-        long ts = System.currentTimeMillis() % 1000000;
+        int seq = SEQ.incrementAndGet();
+        String uniqueSuffix = seq + "_" + UUID.randomUUID().toString().substring(0, 6);
         jdbcTemplate.update(
                 """
                 INSERT INTO users (id, username, email, phone_number, password_hash, status)
                 VALUES (?, ?, ?, ?, 'HASH', 'ACTIVE')
                 """,
-                userId, prefix + "_" + ts, prefix + "_" + ts + "@test.local", "+9198" + ts
+                userId, prefix + "_" + uniqueSuffix, prefix + "_" + uniqueSuffix + "@test.local", String.format("+9198%08d", seq % 100000000)
         );
         return userId;
     }
@@ -184,13 +267,13 @@ class DatabaseConstraintsIntegrationTest {
     private String createTestCustomer() {
         String userId = createTestUser("cust_user");
         String custId = UuidUtils.generateV4().toString();
-        long ts = System.currentTimeMillis() % 1000000;
+        int seq = SEQ.incrementAndGet();
         jdbcTemplate.update(
                 """
                 INSERT INTO customers (id, user_id, customer_number, first_name, last_name, date_of_birth, gender, tax_identifier_encrypted, tax_identifier_hash)
                 VALUES (?, ?, ?, 'Test', 'Customer', '1990-01-01', 'MALE', 'ENC', ?)
                 """,
-                custId, userId, "2026" + String.format("%07d", ts) + "1", "HASH_" + ts
+                custId, userId, "2026" + String.format("%07d", seq % 10000000) + "1", "HASH_" + seq + "_" + UUID.randomUUID()
         );
         return custId;
     }

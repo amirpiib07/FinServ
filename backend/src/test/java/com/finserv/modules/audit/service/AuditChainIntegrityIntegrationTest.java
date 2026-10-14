@@ -23,6 +23,19 @@ class AuditChainIntegrityIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @org.junit.jupiter.api.BeforeEach
+    void cleanAuditLogs() {
+        jdbcTemplate.execute("DROP TRIGGER IF EXISTS trg_audit_logs_no_delete");
+        jdbcTemplate.execute("DELETE FROM audit_logs");
+        jdbcTemplate.execute("""
+            CREATE TRIGGER trg_audit_logs_no_delete BEFORE DELETE ON audit_logs
+            FOR EACH ROW BEGIN
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Immutable table: DELETE not permitted on audit_logs';
+            END
+        """);
+        jdbcTemplate.update("UPDATE number_sequences SET current_value = 0 WHERE name = 'audit_chain_seq'");
+    }
+
     @Test
     @DisplayName("Should successfully construct unbroken audit hash chain and verify integrity")
     void shouldConstructAndVerifyValidChain() {

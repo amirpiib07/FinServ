@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +35,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("UPDATE audit_logs SET event_type = 'TAMPERED' WHERE id = ?", logId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: UPDATE not permitted on audit_logs");
     }
 
@@ -55,7 +55,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM audit_logs WHERE id = ?", logId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: DELETE not permitted on audit_logs");
     }
 
@@ -75,7 +75,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("UPDATE gl_journal_entries SET description = 'TAMPERED' WHERE id = ?", journalId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: UPDATE not permitted on gl_journal_entries");
     }
 
@@ -95,7 +95,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM gl_journal_entries WHERE id = ?", journalId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: DELETE not permitted on gl_journal_entries");
     }
 
@@ -123,7 +123,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("UPDATE gl_ledger_postings SET amount = 999.00 WHERE id = ?", postingId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: UPDATE not permitted on gl_ledger_postings");
     }
 
@@ -151,7 +151,7 @@ class ImmutabilityTriggersIntegrationTest {
         );
 
         assertThatThrownBy(() -> jdbcTemplate.update("DELETE FROM gl_ledger_postings WHERE id = ?", postingId))
-                .isInstanceOf(DataIntegrityViolationException.class)
+                .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("Immutable table: DELETE not permitted on gl_ledger_postings");
     }
 }

@@ -96,7 +96,7 @@ public class AuditService {
 
         // 5. Build entity with UUIDv7
         UUID id = UuidUtils.generateV7();
-        Instant createdAt = Instant.now();
+        Instant createdAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
 
         // 6. Calculate full-column cryptographic SHA-256 hash
         String currentHash = calculateHash(chainSeq, id, createdAt, eventType, entityType, entityId,
@@ -132,7 +132,8 @@ public class AuditService {
                                        UUID actorUserId, String actorRole, String action,
                                        String ipAddress, String userAgent, String correlationId,
                                        String payloadCanonical, String previousHash) {
-        String rawString = chainSeq + "|" + id + "|" + createdAt.toString() + "|" +
+        Instant normalizedTime = createdAt != null ? createdAt.truncatedTo(java.time.temporal.ChronoUnit.MICROS) : null;
+        String rawString = chainSeq + "|" + id + "|" + (normalizedTime != null ? normalizedTime.toString() : "") + "|" +
                 eventType + "|" + entityType + "|" + entityId + "|" +
                 (actorUserId != null ? actorUserId.toString() : "") + "|" +
                 (actorRole != null ? actorRole : "") + "|" + action + "|" +
