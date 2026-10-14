@@ -41,7 +41,7 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
                 }
             });
 
-            environment.getPropertySources().addLast(new MapPropertySource("dotenvProperties", envMap));
+            environment.getPropertySources().addFirst(new MapPropertySource("dotenvProperties", envMap));
         }
     }
 }
