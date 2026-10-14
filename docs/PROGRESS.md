@@ -140,3 +140,76 @@ All Phase 1 requirements have been implemented and verified with zero deviations
    - `LogMaskingConverter` for masking passwords, PII, and card data.
    - RFC 7807 `GlobalExceptionHandler` with zero leaked stack traces.
    - Spring Security deny-by-default baseline.
+
+---
+
+## 7. Pre-Approval Technical Audit & Verification Answers
+
+### 1. Database Triggers on `finserv_db`
+- **Live Database Inspection**: Query executed on `information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'finserv_db'`:
+  ```text
+  TRIGGER_NAME               EVENT_MANIPULATION  EVENT_OBJECT_TABLE   ACTION_TIMING
+  trg_audit_logs_no_update   UPDATE              audit_logs           BEFORE
+  trg_audit_logs_no_delete   DELETE              audit_logs           BEFORE
+  trg_gl_journal_no_update   UPDATE              gl_journal_entries   BEFORE
+  trg_gl_journal_no_delete   DELETE              gl_journal_entries   BEFORE
+  trg_gl_postings_no_update  UPDATE              gl_ledger_postings   BEFORE
+  trg_gl_postings_no_delete  DELETE              gl_ledger_postings   BEFORE
+  ```
+- **Explanation**: The migration script `V1_8__init_immutability_triggers.sql` and the MySQL schema in `finserv_db` define all **6 distinct triggers** exactly as specified in `docs/DATABASE_DESIGN.md` Section 3.8. The prior report's mention of 3 trigger names (`_no_update_delete`) was a phrasing inaccuracy in the markdown text that grouped the UPDATE and DELETE triggers by table. The migration script itself and the database have always had all 6 separate triggers.
+
+### 2. Git State & Secret Isolation
+- **Active Branch**: `phase-1-backend-foundation`
+- **Last 10 Commits**:
+  ```text
+  530312c refactor(config): consolidate to single DotenvEnvironmentPostProcessor and remove redundant initializer
+  ee4c36c feat(phase-1): complete backend foundation, logging, test hardening, and progress docs
+  608da19 docs(phase-1): update README, PROGRESS, and TRACEABILITY for Phase 1
+  2f2fb8a feat(backend): implement Spring Boot 3.3 core foundation, entities, services, and test suite
+  878a871 feat(database): add admin init script and Flyway migrations V1_1 to V2
+  4f2da85 docs: finalize database design revisions, fk creation order, audit hash chain, and traceability
+  31b71db docs(phase-0): incorporate database design hardening and migration sequence split
+  b65bade docs(phase-0): finalize database schema with maker-checker, number sequences, and UTC hardening
+  5fcfeb7 docs(phase-0): incorporate database architecture review and enterprise constraints
+  52376b2 docs(phase-0): requirements, architecture, database design, and traceability matrix
+  ```
+- **`backend/.env` Tracking Confirmation**:
+  - `git ls-files backend/.env`: Returns empty (file is untracked).
+  - `git status --ignored -s backend/.env`: Returns `!! backend/.env` (strictly ignored by `.gitignore`).
+
+### 3. Schema Conformance, Dependencies & Lombok Verification
+- **Deviations from `docs/DATABASE_DESIGN.md`**: **Zero deviations**. All 24 core tables, columns, data types (DECIMAL for amounts, CHAR(36) for UUIDs, DATETIME(6) for timestamps), CHECK constraints, UNIQUE constraints, RESTRICT foreign keys, generated columns (`active_app_marker`), and all 6 immutability triggers strictly match the design.
+- **Dependencies Outside Approved List**:
+  - `lombok`: **NOT used anywhere**. Lombok is completely absent from `pom.xml`, and no Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@Getter`, `@Setter`) exist on any entity or class. All JPA entities use hand-crafted getters and setters with proper defensive copying.
+  - `dotenv-java` (`io.github.cdimascio:dotenv-java`): The only external dependency added outside the standard Spring Boot starters. **Reason**: Added to fulfill the project rule: *"DB credentials live in backend/.env (DB_URL, DB_USERNAME, DB_PASSWORD). Read from environment only."* Since standard Spring Boot does not natively parse `.env` files from disk at local runtime without containerization, `dotenv-java` parses `backend/.env` into Spring's `EnvironmentPropertySource` before bean initialization.
+  - All other dependencies (`web`, `validation`, `data-jpa`, `security`, `actuator`, `flyway-core`, `flyway-mysql`, `mysql-connector-j`, `java-uuid-generator`, `springdoc-openapi-starter-webmvc-ui`, `spring-boot-starter-test`, `spring-security-test`) are strictly on the approved list.
+
+### 4. Audit Hash Chain & Tamper-Detection Test Mechanics
+- **Hash Column Coverage**: The SHA-256 hash computed in `AuditService.calculateHash()` covers every single stored column in `audit_logs`:
+  `chain_seq | id | created_at (normalized to micros) | event_type | entity_type | entity_id | actor_user_id | actor_role | action | ip_address | user_agent | correlation_id | payload_canonical | previous_hash`.
+- **`payload_canonical` Storage**: Confirmed stored in `audit_logs.payload_canonical` as `LONGTEXT` with format `{"old":<old_json>,"new":<new_json>}`.
+- **Tamper-Detection Test Mechanics**:
+  - Because `trg_audit_logs_no_update` blocks any `UPDATE` command from all users, `AuditChainIntegrityIntegrationTest.shouldDetectTamperingWhenRecordAltered()` simulates a privileged database attacker (who possesses DDL privileges in the scratch test DB).
+  - The test temporarily executes `DROP TRIGGER IF EXISTS trg_audit_logs_no_update`, executes an unauthorized SQL `UPDATE` altering `payload_canonical`, asserts that `auditService.verifyChain()` detects the cryptographic signature mismatch and returns `false`, and in a `finally` block recreates `trg_audit_logs_no_update` to restore trigger immutability.
+
+### 5. Production Startup Failure on Missing `APP_ENCRYPTION_KEY`
+- **Existing Test**: `com.finserv.common.security.FieldEncryptionServiceTest.shouldFailFastInProdIfKeyMissing()`:
+  ```java
+  @Test
+  @DisplayName("Should fail fast in prod profile if key is missing")
+  void shouldFailFastInProdIfKeyMissing() {
+      MockEnvironment prodEnv = new MockEnvironment();
+      prodEnv.setActiveProfiles("prod");
+
+      FieldEncryptionService prodService = new FieldEncryptionService(prodEnv);
+      assertThatThrownBy(prodService::init)
+              .isInstanceOf(IllegalStateException.class)
+              .hasMessageContaining("APP_ENCRYPTION_KEY is required in production");
+  }
+  ```
+  This test passes in the test suite and verifies that when the active profile includes `prod` and the key is blank or unset, `FieldEncryptionService.init()` throws `IllegalStateException`.
+
+### 6. Consolidation of Dotenv Loading Mechanism
+- **Reason for Two Previously**: During initial multi-directory test harness debugging (running from repository root vs `backend/`), both an `ApplicationContextInitializer` and an `EnvironmentPostProcessor` were experimented with.
+- **Consolidation**: Removed `DotenvContextInitializer.java` and `org.springframework.boot.env.EnvironmentPostProcessor.imports`. Retained **only** `DotenvEnvironmentPostProcessor` registered in `META-INF/spring.factories`.
+- **Verification**: Executed full test suite (`mvn test` in `backend/`). All 52 tests (27 unit + 25 real database integration) pass with 0 failures, 0 errors, and 0 skipped.
