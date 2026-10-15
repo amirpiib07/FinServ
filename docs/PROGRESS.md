@@ -2,41 +2,25 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 2 — Frontend Foundation + Design System
-- **Phase Status**: `COMPLETED` (Ready for user approval)
-- **Active Git Branch**: `phase-2-frontend-foundation`
-- **Current Target**: Phase 3 — Branding, Assets, Typography, Motion System
+- **Current Milestone**: Phase 3 — Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC
+- **Phase Status**: `COMPLETED`
+- **Active Git Branch**: `phase-3-auth-kyc-branding`
+- **Current Target**: Complete end-to-end identity, branding, JWT sessions, and progressive customer onboarding/KYC (Backend + Frontend)
 
 ---
 
-## 2. Milestone Execution Status
+## 2. Milestone Execution Status (Consolidated 7-Phase Master Roadmap)
 
 | Phase | Milestone Name | Status | Branch | Notes / Completion Evidence |
 | :---: | :--- | :--- :---: | :--- | :--- |
-| **0** | **Requirements, Architecture, DB Design, Traceability** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
-| **1** | **Backend Foundation + Core Database** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing, Actuator `/actuator/health` UP, Swagger UI verified. |
-| **2** | **Frontend Foundation + Design System** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. |
-| **3** | Branding, Assets, Typography, Motion System | `NOT STARTED` | - | Official logo, accessible micro-interactions. |
-| **4** | Auth, JWT, Sessions, Authorization | `NOT STARTED` | - | Spring Security 6, JWT dual-token, RBAC. |
-| **5** | Progressive Registration, Onboarding, KYC | `NOT STARTED` | - | 6-step progressive wizard, tiered KYC verification. |
-| **6** | Customer, Branch, Employee Management | `NOT STARTED` | - | Customer 360, branch directory, staff scoping. |
-| **7** | Account Applications, Opening, Management | `NOT STARTED` | - | Savings/Current products, Luhn account generator. |
-| **8** | Beneficiaries & Payees | `NOT STARTED` | - | Intra/Inter-bank payee setup, cooling-off rules. |
-| **9** | Deposits, Withdrawals, Transfers, Ledger, Safety | `NOT STARTED` | - | Double-entry ledger, pessimistic locks, idempotency. |
-| **10**| Transaction History, Statements, Receipts | `NOT STARTED` | - | PDF statements, cryptographic digital receipts. |
-| **11**| Customer Dashboard + Core-Banking Navigation | `NOT STARTED` | - | Responsive web client, balance overview, quick pay. |
-| **12**| Employee Portal, Admin Portal, Audit Operations | `NOT STARTED` | - | Teller desk, supervisor overrides, audit logs. |
-| **13**| Core-Banking UI/UX Polish + Responsive QA | `NOT STARTED` | - | WCAG 2.1 AA accessibility, Lighthouse optimization. |
-| **14**| Notifications, Support, Disputes | `NOT STARTED` | - | Webhooks, support tickets, dispute chargebacks. |
-| **15**| FD/RD and Deposit Products | `NOT STARTED` | - | Term deposit creation, compounding, liquidation. |
-| **16**| Loans, EMI, Repayments | `NOT STARTED` | - | Amortization schedule, reducing-balance EMI math. |
-| **17**| Cheques + Additional Services | `NOT STARTED` | - | Cheque book leaf lifecycle, Positive Pay system. |
-| **18**| Bills, Recharge, External Payments | `NOT STARTED` | - | Multi-category biller simulator, auto-pay mandates. |
-| **19**| Cards and UPI Integrations | `NOT STARTED` | - | Virtual cards, card controls, UPI VPA & QR codes. |
-| **20**| Investments, Insurance, Rewards, Offers | `NOT STARTED` | - | Mutual fund SIP, insurance, loyalty cashback. |
-| **21**| Fraud/Risk Controls + Analytics | `NOT STARTED` | - | Velocity checks, risk scoring, AML alerts. |
-| **22**| Full-Stack Integration, Security, Regression | `NOT STARTED` | - | End-to-end integration test suite, OWASP checks. |
-| **23**| Documentation, Final QA, Release Readiness | `NOT STARTED` | - | Release verification, runbooks, limitations report. |
+| **0** | **Architecture & Database Design** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
+| **1** | **Backend Foundation & MySQL Flyway Setup** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing, Actuator `/actuator/health` UP, Swagger UI verified. |
+| **2** | **Frontend Foundation & UI Component Kit** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. Merged to `main`. |
+| **3** | **Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC** | **COMPLETED** | `phase-3-auth-kyc-branding` | Official SVG brand mark ingestion, CSS tokens polish, stateless JWT dual-token auth with rotation and replay attack mitigation, 15-minute lock on 5 failed attempts, demo OTP contact verification, 5-step progressive customer onboarding/KYC wizard with encrypted drafts & blind-index PAN hash, verification pending tracker, route guards (unverified customer redirection). 61 backend tests + 94 frontend tests passing. |
+| **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | `NOT STARTED` | - | Account product applications, 14-digit ISO 7064 Mod 11,10 account numbers, account lifecycle states, intra/inter-bank beneficiaries with cooling-off limits. |
+| **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | `NOT STARTED` | - | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`), pessimistic row locks, strict idempotency filter, cash deposit/withdrawal, funds transfer, statements & cryptographic receipts. |
+| **6** | **Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs)** | `NOT STARTED` | - | Customer 360 dashboard & navigation, branch employee teller desk, manager maker-checker approvals (onboarding KYC approval & account opening), audit console. |
+| **7** | **Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs** | `NOT STARTED` | - | Term deposits overview, virtual debit cards preview, accessible motion polish, full-stack E2E regression, final documentation & runbooks. |
 
 ---
 
@@ -299,4 +283,81 @@ All Phase 2 requirements have been implemented and verified with zero deviations
    mvn test
    ```
    *Expected output*: 52 tests run, 0 failures, 0 errors, 0 skipped.
+
+---
+
+## 10. Phase 3 Execution & Verification Details
+
+### A. Branding, Typography & Motion Tokens
+- Official brand mark ingested: `frontend/public/finserv-logo.svg` and `frontend/public/finserv-mark.svg`.
+- Component: `BrandLogo.tsx` with `size` (`sm`, `md`, `lg`), `variant` (`full`, `mark`), and accessible labels.
+- Once-per-session intro animation: `LogoIntro.tsx` guarded by `sessionStorage.getItem('finserv_logo_intro_seen')`, dismissible via `Escape` key or click, and fully deactivated when `prefers-reduced-motion` is detected.
+- Token refinement in `tokens.css`: Navy/Slate surface palette, Teal/Gold accents, high contrast ratios (WCAG AA conformant), and monospace formatting for numbers.
+
+### B. Authentication, JWT & Session Management
+- **Backend API (`/api/v1/auth/*`)**:
+  - `POST /register`: BCrypt password hashing, unverified status (`PENDING_VERIFICATION`), default `ROLE_CUSTOMER`, initial JWT session, tamper-evident audit logging (`USER_REGISTERED`).
+  - `POST /login`: Username or email authentication, 15-minute account lock upon 5 consecutive failed attempts, audit logging (`LOGIN`, `LOGIN_FAILED`).
+  - `POST /refresh`: Thread-safe refresh token rotation, replay attack detection with full token family revocation and security audit logging.
+  - `POST /logout`: Active refresh token revocation and audit logging (`LOGOUT`).
+  - `GET /me`: Returns authenticated `UserSummary` with current roles and verification status.
+  - Demo OTP Verification (`POST /verify-contact/send`, `POST /verify-contact/confirm`): backed by `otp_challenges` table with rate-limiting, 3-attempt lock, expiry, and local dev simulation logging for end-to-end testing without external SMS provider costs.
+  - JWT Security Filter (`JwtAuthenticationFilter`): extracts Bearer tokens, populates `SecurityContext` with `UserPrincipal`, and enforces role-based access.
+
+### C. Progressive Customer Onboarding & KYC
+- **Backend API (`/api/v1/onboarding/*`)**:
+  - `GET /application`: Fetches or initializes a single open draft onboarding application for the authenticated customer.
+  - `PUT /application/step/{step}`: Step-by-step progress persistence (Steps 1–5) storing draft JSON.
+  - `POST /application/submit`: Atomic `@Transactional` boundary validating all mandatory steps, creating linked records in `customers`, `kyc_documents`, and `customer_declarations`, verifying duplicate PAN prevention (cross-checking customer PAN blind-index hash and active submitted applications), updating status to `SUBMITTED`, and recording audit event `ONBOARDING_APPLICATION_SUBMITTED`.
+- **Frontend Flow (`/onboarding`)**:
+  - Built with the Phase 2 `Stepper` component into 5 progressive steps (NEVER a single giant form):
+    1. *Verification*: Contact OTP challenge for registered email and phone number.
+    2. *Personal*: Name, DOB (enforcing 18+ age validation), gender, marital status, nationality.
+    3. *Declarations*: Residential address, FATCA self-certification, PEP declaration, Terms & Privacy consent.
+    4. *KYC Details*: PAN validation (`[A-Z]{5}[0-9]{4}[A-Z]{1}`) with explanatory legal requirement tooltip, Government ID selection, and mock file upload.
+    5. *Review & Submit*: Summary verification screen with legal affirmation.
+  - Once submitted, transitions directly to the *Verification Pending Status Tracker* screen displaying application reference ID, 3-stage progression indicator, security confidentiality badge, and real-time status polling.
+
+---
+
+## 11. How to Run & Verify Phase 3
+
+1. **Verify Git Branch**:
+   ```bash
+   git branch
+   ```
+   *Expected output*: On branch `phase-3-auth-kyc-branding`.
+
+2. **Run Full Backend Verification Suite**:
+   ```bash
+   cd backend
+   mvn test
+   ```
+   *Expected output*: 61 tests run, 0 failures, 0 errors, BUILD SUCCESS.
+
+3. **Run Full Frontend Verification Suite**:
+   ```bash
+   cd ../frontend
+   npm run lint        # Expected: 0 errors, 0 warnings
+   npm run typecheck   # Expected: 0 errors
+   npm test            # Expected: 15 test files, 94 tests passing
+   npm run build       # Expected: Clean production build with Vite
+   ```
+
+4. **Run Live End-to-End Local Development Environment**:
+   ```bash
+   # Terminal 1: Backend
+   cd backend
+   mvn spring-boot:run
+
+   # Terminal 2: Frontend
+   cd frontend
+   npm run dev
+   ```
+   - Navigate to `http://localhost:5173/register` to create a new banking customer profile.
+   - You will automatically be guided to `http://localhost:5173/onboarding` to complete the 5-step stepper.
+   - Use simulated OTP shown in backend console or on-screen demo banner.
+   - Upon final submission, observe transition to the "Application Under Bank Review" tracker.
+   - Observe protected route guard redirecting unverified customers away from `/app` until verified in Phase 6.
+
 

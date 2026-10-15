@@ -1,8 +1,10 @@
 /**
  * FINServ Master Routing Configuration
  * - Public Layout and Core Banking App Shell
- * - Placeholder pages with "Coming in Phase X" adhering to zero-fake-data policy
- * - Dev-only /design-system route (statically excluded from production builds)
+ * - Auth & Progressive Onboarding Routes (/login, /register, /onboarding)
+ * - ProtectedRoute session and customer verification guards
+ * - Placeholder pages mapped to the consolidated 7-Phase Master Roadmap
+ * - Dev-only /design-system route
  */
 
 import { lazy, Suspense } from 'react';
@@ -13,6 +15,11 @@ import { HomePage } from './HomePage';
 import { PlaceholderPage } from './PlaceholderPage';
 import { NotFoundPage } from '@/components/common/NotFoundPage';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
+import { ProtectedRoute } from './ProtectedRoute';
+
+import { LoginPage } from '@/features/auth/LoginPage';
+import { RegisterPage } from '@/features/auth/RegisterPage';
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 
 // Lazy-load DesignSystemPage conditionally in development only
 const LazyDesignSystemPage = import.meta.env.DEV
@@ -34,13 +41,36 @@ export const router = createBrowserRouter([
         index: true,
         element: <HomePage />,
       },
+      {
+        path: 'login',
+        element: <LoginPage />,
+      },
+      {
+        path: 'register',
+        element: <RegisterPage />,
+      },
     ],
   },
 
-  // Core Banking Application Routes
+  // Progressive Onboarding & KYC (Requires authenticated session)
+  {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute>
+        <OnboardingPage />
+      </ProtectedRoute>
+    ),
+    errorElement: <NotFoundPage />,
+  },
+
+  // Core Banking Application Routes (Requires authenticated session & verified customer)
   {
     path: '/app',
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute requireVerifiedCustomer={true}>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     errorElement: <NotFoundPage />,
     children: [
       {
@@ -48,9 +78,9 @@ export const router = createBrowserRouter([
         element: (
           <PlaceholderPage
             title="Customer Banking Dashboard"
-            phaseNumber={11}
-            phaseName="Customer Dashboard + Core-Banking Navigation"
-            description="Overview of retail deposit balances, quick pay actions, recent transactions, and financial analytics will be rendered after Phase 4 authentication is established."
+            phaseNumber={6}
+            phaseName="Customer Dashboard + Employee/Admin Portal"
+            description="Overview of retail deposit balances, quick pay actions, recent transactions, and financial analytics."
           />
         ),
       },
@@ -58,10 +88,10 @@ export const router = createBrowserRouter([
         path: 'accounts',
         element: (
           <PlaceholderPage
-            title="Account Management"
-            phaseNumber={7}
-            phaseName="Account Applications, Opening, Management"
-            description="Savings & Current accounts, 14-digit ISO 7064 Mod 11,10 account numbers, and account freezing controls."
+            title="Account Applications & Management"
+            phaseNumber={4}
+            phaseName="Accounts (Applications, Opening, Details) & Beneficiary Management"
+            description="Savings & Current accounts, 14-digit ISO 7064 Mod 11,10 account numbers, and beneficiary setup."
           />
         ),
       },
@@ -69,9 +99,9 @@ export const router = createBrowserRouter([
         path: 'transfers',
         element: (
           <PlaceholderPage
-            title="Fund Transfers & Payments"
-            phaseNumber={9}
-            phaseName="Deposits, Withdrawals, Transfers, Ledger, Safety"
+            title="Fund Transfers & Double-Entry Ledger"
+            phaseNumber={5}
+            phaseName="Money Transfers, Deposits/Withdrawals & Double-Entry Ledger"
             description="Double-entry ledger posting, pessimistic row locking, and strict idempotency key replay protection."
           />
         ),
@@ -81,8 +111,8 @@ export const router = createBrowserRouter([
         element: (
           <PlaceholderPage
             title="Fixed & Recurring Deposits"
-            phaseNumber={15}
-            phaseName="FD/RD and Deposit Products"
+            phaseNumber={7}
+            phaseName="Core Add-ons (FD/Cards Overview), UI/Motion Polish & Final Docs"
             description="Term deposit creation, compounding interest calculator, and premature liquidation handling."
           />
         ),
@@ -92,8 +122,8 @@ export const router = createBrowserRouter([
         element: (
           <PlaceholderPage
             title="Debit/Credit Cards & UPI"
-            phaseNumber={19}
-            phaseName="Cards and UPI Integrations"
+            phaseNumber={7}
+            phaseName="Core Add-ons (FD/Cards Overview), UI/Motion Polish & Final Docs"
             description="Virtual card issuance, limit management, ATM/Online security toggles, and UPI VPAs."
           />
         ),
@@ -102,9 +132,9 @@ export const router = createBrowserRouter([
         path: 'statements',
         element: (
           <PlaceholderPage
-            title="Statements & Tax Receipts"
-            phaseNumber={10}
-            phaseName="Transaction History, Statements, Receipts"
+            title="Statements & Receipts"
+            phaseNumber={5}
+            phaseName="Money Transfers, Deposits/Withdrawals & Statements/Receipts"
             description="Paginated transaction ledger, cryptographic digital receipts, and downloadable PDF/CSV statements."
           />
         ),
@@ -113,9 +143,9 @@ export const router = createBrowserRouter([
         path: 'audit',
         element: (
           <PlaceholderPage
-            title="Audit Chain Explorer"
-            phaseNumber={12}
-            phaseName="Employee Portal, Admin Portal, Audit Operations"
+            title="Audit Chain & Operations"
+            phaseNumber={6}
+            phaseName="Customer Dashboard + Employee/Admin Portal & Audit Logs"
             description="Tamper-evident SHA-256 audit log explorer with microsecond timestamps and payload diff viewer."
           />
         ),

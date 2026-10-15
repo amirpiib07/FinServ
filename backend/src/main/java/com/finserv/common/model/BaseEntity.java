@@ -19,10 +19,11 @@ public abstract class BaseEntity implements Serializable {
     private UUID id;
 
     protected BaseEntity() {
+        this.id = com.finserv.common.util.UuidUtils.generateV7();
     }
 
     protected BaseEntity(UUID id) {
-        this.id = id;
+        this.id = id != null ? id : com.finserv.common.util.UuidUtils.generateV7();
     }
 
     public UUID getId() {

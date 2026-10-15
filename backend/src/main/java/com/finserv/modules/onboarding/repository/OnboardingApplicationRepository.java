@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface OnboardingApplicationRepository extends JpaRepository<OnboardingApplication, UUID> {
     Optional<OnboardingApplication> findByApplicationReference(String applicationReference);
     Optional<OnboardingApplication> findByUserIdAndStatusIn(UUID userId, java.util.Collection<String> statuses);
+    java.util.List<OnboardingApplication> findByStatusIn(java.util.Collection<String> statuses);
     boolean existsByApplicationReference(String applicationReference);
 }
