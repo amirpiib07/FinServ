@@ -241,16 +241,23 @@ All Phase 2 requirements have been implemented and verified with zero deviations
    - **Asia/Kolkata Dates (`src/lib/dates.ts`)**: Formats UTC instants for `Asia/Kolkata` (`UTC+05:30`), with strict midnight boundary and relative time support.
    - **Masking (`src/lib/masking.ts`)**: Accounts (`••••••••••0017`), phone numbers (`+91 ••••••3210`), emails (`a••••••••r@domain`), PAN (`•••••••34F`).
    - **Validation (`src/lib/validation.ts`)**: Zod schemas for Indian mobile, email, PAN, IFSC, and currency amounts.
-   - **Idempotency (`src/lib/idempotency.ts`)**: RFC 4122 v4 UUID generator for `X-Idempotency-Key`.
+   - **Idempotency (`src/lib/idempotency.ts`)**: RFC 4122 v4 UUID generator for standard `Idempotency-Key` header (one unique UUID per submit attempt).
 
 5. **Typed API Client & RFC 7807 Error Mapper (`src/lib/api-client.ts`)**:
-   - Request interceptors: `X-Correlation-ID`, `X-Idempotency-Key`, timeout cancellation.
+   - Request interceptors: `X-Correlation-ID`, standard `Idempotency-Key`, timeout cancellation.
+   - Endpoint routing: `/actuator/*` routed directly to the Actuator probe without `/api/v1` prefix.
    - Response interceptors: Maps RFC 7807 Problem Details and network drops into normalized `AppError`.
-   - Live Actuator probe: `GET /actuator/health` displayed in the status widget and `/design-system`.
+   - Live Actuator probe: `GET /actuator/health` displayed in the status widget and `/design-system` (live `status: UP`).
 
 6. **Dev-Only Living Style Guide (`/design-system`)**:
    - Interactive catalog displaying all 25 components, states, forms, validation, and real-time backend health probe.
-   - Conditionally mounted via `import.meta.env.DEV` and 100% tree-shaken from production bundles.
+   - Conditionally mounted via `import.meta.env.DEV` and 100% tree-shaken from production bundles (`DesignSystemPage`: 0, `design-system`: 0, `Living Style Guide`: 0 in `dist/`).
+
+7. **Accessibility, Contrast & Responsive Verification**:
+   - Real-browser axe-core contrast audit on `/design-system` passing with **0 violations** on both Light Theme and Dark Theme.
+   - Mobile navigation drawer upgraded to Radix Dialog: traps keyboard focus inside drawer and restores focus to the menu trigger button on close (verified by automated test `AppLayout.test.tsx`).
+   - High-fidelity Playwright screenshots captured at 360px, 768px, and 1280px for `/`, `/app`, and `/design-system` in `docs/evidence/phase-2/`.
+   - `npm audit` verified with 0 vulnerabilities.
 
 ---
 

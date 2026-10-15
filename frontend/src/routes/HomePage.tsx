@@ -132,11 +132,19 @@ export const HomePage: React.FC = () => {
             </ul>
           </CardContent>
           <CardFooter>
-            <Link to="/design-system" style={{ textDecoration: 'none' }}>
-              <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={14} />}>
-                Explore Components
-              </Button>
-            </Link>
+            {import.meta.env.DEV ? (
+              <Link to="/design-system" style={{ textDecoration: 'none' }}>
+                <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={14} />}>
+                  Explore Components
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/app" style={{ textDecoration: 'none' }}>
+                <Button variant="ghost" size="sm" rightIcon={<ArrowRight size={14} />}>
+                  Open Banking App
+                </Button>
+              </Link>
+            )}
           </CardFooter>
         </Card>
 
