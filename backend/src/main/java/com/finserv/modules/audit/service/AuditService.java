@@ -55,6 +55,28 @@ public class AuditService {
     }
 
     /**
+     * Convenient in-transaction audit log recording with MDC correlation ID and map serialization.
+     */
+    @Transactional
+    public AuditLog logEvent(String eventType, String entityType, UUID entityId,
+                             UUID actorUserId, String actorRole, String action,
+                             Map<String, ?> oldValues, Map<String, ?> newValues) {
+        String correlationId = org.slf4j.MDC.get("correlationId");
+        String oldJson = null;
+        String newJson = null;
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            if (oldValues != null) oldJson = mapper.writeValueAsString(oldValues);
+            if (newValues != null) newJson = mapper.writeValueAsString(newValues);
+        } catch (Exception e) {
+            log.warn("Failed to serialize audit log values", e);
+        }
+        return recordAuditLog(eventType, entityType, entityId != null ? entityId.toString() : null,
+                actorUserId, actorRole, action, "127.0.0.1", "FINServ-Client", correlationId,
+                oldJson, newJson);
+    }
+
+    /**
      * Autonomous audit log recording in a new transaction (REQUIRES_NEW).
      * Used for failed authorization events, security breaches, and lockout tracking
      * so that audit entries persist even if the parent business transaction rolls back.

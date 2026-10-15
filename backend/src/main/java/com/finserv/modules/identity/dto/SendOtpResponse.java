@@ -1,0 +1,74 @@
+package com.finserv.modules.identity.dto;
+
+import java.util.UUID;
+
+public class SendOtpResponse {
+
+    private UUID challengeId;
+    private String contactType;
+    private String targetDestination;
+    private String maskedDestination;
+    private long expiresInSeconds;
+    private String simulatedOtp;
+
+    public SendOtpResponse() {
+    }
+
+    public SendOtpResponse(UUID challengeId, String contactType, String targetDestination,
+                           String maskedDestination, long expiresInSeconds, String simulatedOtp) {
+        this.challengeId = challengeId;
+        this.contactType = contactType;
+        this.targetDestination = targetDestination;
+        this.maskedDestination = maskedDestination;
+        this.expiresInSeconds = expiresInSeconds;
+        this.simulatedOtp = simulatedOtp;
+    }
+
+    public UUID getChallengeId() {
+        return challengeId;
+    }
+
+    public void setChallengeId(UUID challengeId) {
+        this.challengeId = challengeId;
+    }
+
+    public String getContactType() {
+        return contactType;
+    }
+
+    public void setContactType(String contactType) {
+        this.contactType = contactType;
+    }
+
+    public String getTargetDestination() {
+        return targetDestination;
+    }
+
+    public void setTargetDestination(String targetDestination) {
+        this.targetDestination = targetDestination;
+    }
+
+    public String getMaskedDestination() {
+        return maskedDestination;
+    }
+
+    public void setMaskedDestination(String maskedDestination) {
+        this.maskedDestination = maskedDestination;
+    }
+
+    public long getExpiresInSeconds() {
+        return expiresInSeconds;
+    }
+
+    public void setExpiresInSeconds(long expiresInSeconds) {
+        this.expiresInSeconds = expiresInSeconds;
+    }
+
+    public String getSimulatedOtp() {
+        return simulatedOtp;
+    }
+
+    public void setSimulatedOtp(String simulatedOtp) {
+        this.simulatedOtp = simulatedOtp;
+    }
+}

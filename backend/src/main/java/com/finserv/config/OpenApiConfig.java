@@ -21,6 +21,15 @@ public class OpenApiConfig {
                                 .name("FINServ Engineering")
                                 .email("engineering@finserv.local"))
                         .license(new License()
-                                .name("Proprietary - Enterprise Banking Standard")));
+                                .name("Proprietary - Enterprise Banking Standard")))
+                .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement().addList("bearerAuth"))
+                .components(new io.swagger.v3.oas.models.Components()
+                        .addSecuritySchemes("bearerAuth",
+                                new io.swagger.v3.oas.models.security.SecurityScheme()
+                                        .name("bearerAuth")
+                                        .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("Enter your JWT access token")));
     }
 }
