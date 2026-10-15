@@ -68,6 +68,7 @@
   --danger-50: #fef2f2;
   --danger-100: #fee2e2;
   --danger-200: #fecaca;
+  --danger-400: #f87171;
   --danger-500: #ef4444;
   --danger-600: #dc2626;
   --danger-700: #b91c1c;
@@ -98,10 +99,10 @@
 
   /* Typography / Text Colors */
   --text-primary: var(--neutral-900);
-  --text-secondary: var(--neutral-600);
-  --text-tertiary: var(--neutral-400);
+  --text-secondary: var(--neutral-700);
+  --text-tertiary: var(--neutral-600);
   --text-inverse: var(--neutral-0);
-  --text-muted: var(--neutral-500);
+  --text-muted: var(--neutral-600);
 
   /* Borders */
   --border-subtle: var(--neutral-200);
@@ -129,6 +130,7 @@
   --color-warning-text: var(--warning-800);
 
   --color-danger: var(--danger-600);
+  --color-danger-contrast: var(--neutral-0);
   --color-danger-subtle: var(--danger-50);
   --color-danger-border: var(--danger-200);
   --color-danger-text: var(--danger-800);
@@ -240,10 +242,10 @@
   --surface-sunken: var(--neutral-950);
 
   --text-primary: var(--neutral-50);
-  --text-secondary: var(--neutral-300);
-  --text-tertiary: var(--neutral-500);
+  --text-secondary: var(--neutral-200);
+  --text-tertiary: var(--neutral-300);
   --text-inverse: var(--neutral-950);
-  --text-muted: var(--neutral-400);
+  --text-muted: var(--neutral-300);
 
   --border-subtle: var(--neutral-800);
   --border-default: var(--neutral-700);
@@ -267,7 +269,8 @@
   --color-warning-border: var(--warning-800);
   --color-warning-text: var(--warning-200);
 
-  --color-danger: var(--danger-500);
+  --color-danger: var(--danger-400);
+  --color-danger-contrast: var(--neutral-950);
   --color-danger-subtle: rgba(239, 68, 68, 0.15);
   --color-danger-border: var(--danger-800);
   --color-danger-text: var(--danger-200);

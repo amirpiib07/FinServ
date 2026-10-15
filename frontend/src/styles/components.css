@@ -99,7 +99,7 @@
 
 .btn-danger {
   background-color: var(--color-danger);
-  color: var(--neutral-0);
+  color: var(--color-danger-contrast, var(--neutral-0));
 }
 .btn-danger:hover:not(:disabled) {
   background-color: var(--danger-700);

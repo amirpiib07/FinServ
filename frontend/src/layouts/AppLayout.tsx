@@ -3,8 +3,9 @@
  * Desktop sidebar, mobile navigation drawer, top bar, and content breadcrumbs
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import * as Dialog from '@radix-ui/react-dialog';
 import { BrandLogoPlaceholder } from '@/components/common/BrandLogo';
 import { HealthWidget } from '@/features/health/HealthWidget';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -25,6 +26,7 @@ import {
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
 
   const navItems = [
@@ -87,30 +89,30 @@ export const AppLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="mobile-drawer-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
-        >
-          <div
+      {/* Mobile Drawer using Radix Dialog for accessible focus trapping & return */}
+      <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="mobile-drawer-backdrop" />
+          <Dialog.Content
             className="mobile-drawer-content"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
             aria-label="Mobile Navigation Menu"
+            onCloseAutoFocus={e => {
+              e.preventDefault();
+              triggerRef.current?.focus();
+            }}
           >
+            <Dialog.Title className="sr-only">Mobile Navigation Menu</Dialog.Title>
             <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
               <BrandLogoPlaceholder size="sm" />
-              <button
-                type="button"
-                className="btn-icon btn-ghost"
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label="Close navigation menu"
-              >
-                <X size={20} />
-              </button>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="btn-icon btn-ghost"
+                  aria-label="Close navigation menu"
+                >
+                  <X size={20} />
+                </button>
+              </Dialog.Close>
             </div>
 
             <nav className="sidebar-nav">
@@ -133,15 +135,16 @@ export const AppLayout: React.FC = () => {
             <div className="sidebar-footer">
               <HealthWidget compact />
             </div>
-          </div>
-        </div>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Main Content Area */}
       <div className="app-main-wrapper">
         <header className="app-topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
             <button
+              ref={triggerRef}
               type="button"
               className="btn-icon btn-ghost"
               style={{ display: 'inline-flex' }}
