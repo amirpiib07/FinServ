@@ -43,6 +43,9 @@ public class Account extends AuditableEntity {
     @Column(name = "status", length = 30, nullable = false)
     private String status = "ACTIVE";
 
+    @Column(name = "nickname", length = 60)
+    private String nickname;
+
     @Column(name = "opened_at", nullable = false)
     private Instant openedAt = Instant.now();
 
@@ -155,5 +158,13 @@ public class Account extends AuditableEntity {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 }

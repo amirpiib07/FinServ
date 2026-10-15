@@ -20,6 +20,8 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
+import { AccountsPage } from '@/features/accounts/AccountsPage';
+import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage';
 
 // Lazy-load DesignSystemPage conditionally in development only
 const LazyDesignSystemPage = import.meta.env.DEV
@@ -86,14 +88,15 @@ export const router = createBrowserRouter([
       },
       {
         path: 'accounts',
-        element: (
-          <PlaceholderPage
-            title="Account Applications & Management"
-            phaseNumber={4}
-            phaseName="Accounts (Applications, Opening, Details) & Beneficiary Management"
-            description="Savings & Current accounts, 14-digit ISO 7064 Mod 11,10 account numbers, and beneficiary setup."
-          />
-        ),
+        element: <AccountsPage />,
+      },
+      {
+        path: 'accounts/:id',
+        element: <AccountsPage />,
+      },
+      {
+        path: 'beneficiaries',
+        element: <BeneficiariesPage />,
       },
       {
         path: 'transfers',

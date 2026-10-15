@@ -58,7 +58,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
-                                "/api/v1/auth/verify-contact/**"
+                                "/api/v1/auth/verify-contact/**",
+                                "/api/v1/products/**",
+                                "/api/v1/branches/**"
                         ).permitAll()
                         // Baseline: require authentication for everything else (including /api/v1/auth/me, /api/v1/onboarding/**)
                         .anyRequest().authenticated()

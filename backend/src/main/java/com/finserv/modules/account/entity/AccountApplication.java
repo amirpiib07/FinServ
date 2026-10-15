@@ -21,6 +21,10 @@ public class AccountApplication extends BaseEntity {
     @Column(name = "product_id", length = 36, nullable = false)
     private UUID productId;
 
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "branch_id", length = 36)
+    private UUID branchId;
+
     @Column(name = "application_number", length = 30, nullable = false, unique = true)
     private String applicationNumber;
 
@@ -69,6 +73,14 @@ public class AccountApplication extends BaseEntity {
 
     public void setProductId(UUID productId) {
         this.productId = productId;
+    }
+
+    public UUID getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(UUID branchId) {
+        this.branchId = branchId;
     }
 
     public String getApplicationNumber() {

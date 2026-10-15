@@ -22,6 +22,7 @@ import {
   X,
   Building2,
   User,
+  Users,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -32,6 +33,7 @@ export const AppLayout: React.FC = () => {
   const navItems = [
     { to: '/app', label: 'Dashboard', icon: <LayoutDashboard size={18} />, end: true },
     { to: '/app/accounts', label: 'Accounts', icon: <Wallet size={18} /> },
+    { to: '/app/beneficiaries', label: 'Beneficiaries', icon: <Users size={18} /> },
     { to: '/app/transfers', label: 'Transfers', icon: <ArrowLeftRight size={18} /> },
     { to: '/app/deposits', label: 'Deposits (FD/RD)', icon: <PiggyBank size={18} /> },
     { to: '/app/cards', label: 'Cards & UPI', icon: <CreditCard size={18} /> },
