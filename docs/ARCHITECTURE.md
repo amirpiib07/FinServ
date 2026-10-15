@@ -130,7 +130,10 @@ Each module strictly respects clear separation of concerns across 4 discrete lay
 ### 4.1 URL & HTTP Method Rules
 - **Base Prefix**: `/api/v1`
 - **Plural Resources**: `/api/v1/accounts`, `/api/v1/transactions`, `/api/v1/beneficiaries`
-- **Idempotent Mutations**: All mutating operations (`POST`, `PUT`, `PATCH`, `DELETE`) require the `X-Idempotency-Key` header with a unique UUID v4.
+- **Idempotent Mutations**: All mutating operations (`POST`, `PUT`, `PATCH`, `DELETE`) require the standard `Idempotency-Key` header (with legacy `X-Idempotency-Key` accepted as a fallback).
+  - **Key Format**: RFC 4122 UUID v4.
+  - **Generation Policy**: One unique key per submit attempt (regenerated upon distinct user attempts).
+  - **Backend Contract**: Scoped per authenticated user (`UNIQUE(user_id, idempotency_key)` in `idempotency_records`). If a duplicate key is submitted within the 24-hour TTL with an identical SHA-256 payload hash, the backend replays the cached HTTP status and body without re-executing transactions or mutating ledger balances. If payload hash differs, the backend rejects with HTTP 422 (`IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD`). If an operation is currently executing, it returns HTTP 409 (`OPERATION_IN_PROGRESS`).
 - **Traceability**: All requests accept and propagate `X-Correlation-ID`. If omitted by the client, a UUID is injected by the gateway/filter.
 
 ### 4.2 Standard Success Response Envelope

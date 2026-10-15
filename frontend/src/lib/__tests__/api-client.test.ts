@@ -85,7 +85,7 @@ describe('ApiClient (api-client.ts)', () => {
   });
 
   describe('Headers and Interceptors', () => {
-    it('injects X-Correlation-ID and X-Idempotency-Key headers on idempotent calls', async () => {
+    it('injects X-Correlation-ID and Idempotency-Key headers on idempotent calls', async () => {
       const fetchSpy = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -105,8 +105,24 @@ describe('ApiClient (api-client.ts)', () => {
       expect(calledUrl).toBe('/api/v1/transactions/transfer');
       const headers = calledInit?.headers as Headers;
       expect(headers.get('X-Correlation-ID')).toBeDefined();
-      expect(headers.get('X-Idempotency-Key')).toBeDefined();
+      expect(headers.get('Idempotency-Key')).toBeDefined();
       expect(headers.get('Content-Type')).toBe('application/json');
+    });
+
+    it('routes /actuator paths directly without prepending /api/v1', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ status: 'UP' }),
+      });
+      vi.stubGlobal('fetch', fetchSpy);
+
+      await client.get('/actuator/health');
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const calledUrl = fetchSpy.mock.calls[0]![0];
+      expect(calledUrl).toBe('/actuator/health');
     });
   });
 });

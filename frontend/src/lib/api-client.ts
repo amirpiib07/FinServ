@@ -149,8 +149,8 @@ export class ApiClient {
     }
 
     // Interceptor: Attach Idempotency Key for money/mutation calls if requested
-    if (options.idempotent && !headers.has('X-Idempotency-Key')) {
-      headers.set('X-Idempotency-Key', generateIdempotencyKey());
+    if (options.idempotent && !headers.has('Idempotency-Key')) {
+      headers.set('Idempotency-Key', generateIdempotencyKey());
     }
 
     // Interceptor: Auth token attachment stub for Phase 4
@@ -171,9 +171,12 @@ export class ApiClient {
       options.signal.addEventListener('abort', () => controller.abort());
     }
 
-    const url = path.startsWith('http://') || path.startsWith('https://')
-      ? path
-      : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const url =
+      path.startsWith('http://') || path.startsWith('https://')
+        ? path
+        : path.startsWith('/actuator') || path.startsWith('/api')
+          ? path
+          : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
     try {
       const response = await fetch(url, {
