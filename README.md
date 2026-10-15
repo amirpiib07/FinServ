@@ -55,19 +55,94 @@ FINSERV/
 
 ### Prerequisites
 
-- **Java**: OpenJDK / Oracle JDK 21+ (Environment has JDK 26.0.1)
-- **Maven**: 3.9+ (Environment has Maven 3.10.0)
+- **Java**: OpenJDK / Oracle JDK 21+ (Environment has JDK 26.0.1; bytecode compiled with `--release 21`)
+- **Maven**: 3.9+ (Environment has Apache Maven 3.10.0)
 - **Node.js**: v20+ (Environment has v24.20.0)
 - **MySQL**: 8.0+ (Environment has MySQL 8.0.46 Community Server)
 - **Git**: 2.x (Environment has Git 2.54.0)
 
-### Configuration
+---
 
-1. Copy `backend/.env.example` to `backend/.env`:
+### Database Initialization & Permissions Setup
+
+1. **Verify or Configure MySQL Timezone & Trigger Permissions**:
+   The FINServ schema enforces strict UTC timestamps (`DATETIME(6)`) and database triggers.
+   In MySQL (`my.ini` or via MySQL client as root):
+   ```sql
+   SET GLOBAL time_zone = '+00:00';
+   SET GLOBAL log_bin_trust_function_creators = 1;
+   ```
+   To make the timezone persistent across service restarts, add the following under `[mysqld]` in your MySQL configuration file (`my.ini`):
+   ```ini
+   default-time-zone = '+00:00'
+   ```
+
+2. **Execute Admin Setup Script**:
+   Open `database/admin/01_init_users_and_permissions.sql`. Replace the password placeholders (`${FINSERV_MIGRATION_PASSWORD}` and `${FINSERV_APP_PASSWORD}`) with secure passwords, then run it against your MySQL instance as `root`:
+   ```bash
+   mysql -u root -p < database/admin/01_init_users_and_permissions.sql
+   ```
+   This script creates:
+   - Database `finserv_db` (Core application database, UTF-8 MB4 Unicode)
+   - Database `finserv_test_db` (Isolated scratch database for automated integration tests)
+   - User `finserv_migration` (DDL, triggers, references, schema migrations)
+   - User `finserv_app` (Runtime restricted DML: SELECT, INSERT, UPDATE, with explicit DELETE only on `idempotency_records` and `otp_challenges`)
+
+3. **Configure Environment Variables (`backend/.env`)**:
+   Copy `backend/.env.example` to `backend/.env` and update the credentials matching what you configured in Step 2:
    ```bash
    cp backend/.env.example backend/.env
    ```
-2. Configure your local MySQL database connection details in `backend/.env`.
+   Example `backend/.env`:
+   ```ini
+   SERVER_PORT=8080
+   SPRING_PROFILES_ACTIVE=dev
+
+   DB_URL=jdbc:mysql://localhost:3306/finserv_db?useSSL=false&serverTimezone=UTC&connectionTimeZone=UTC&allowPublicKeyRetrieval=true
+   DB_MIGRATION_USERNAME=finserv_migration
+   DB_MIGRATION_PASSWORD=<your_migration_password>
+   DB_USERNAME=finserv_app
+   DB_PASSWORD=<your_app_password>
+
+   APP_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+   ADMIN_USERNAME=superadmin
+   ADMIN_PASSWORD=<your_admin_password>
+   ADMIN_EMAIL=admin@finserv.local
+   ```
+
+---
+
+### Building and Running the Backend
+
+1. **Run All Automated Tests**:
+   Automated integration tests target the isolated `finserv_test_db` scratch database and will never touch `finserv_db`:
+   ```bash
+   cd backend
+   mvn test
+   ```
+   To run unit tests independently without database connectivity:
+   ```bash
+   mvn test -Dtest="*UnitTest,*GeneratorTest,*EncryptionServiceTest,*ExceptionHandlerTest"
+   ```
+
+2. **Build Runnable JAR**:
+   ```bash
+   cd backend
+   mvn clean package -DskipTests
+   ```
+
+3. **Start the Application (Dev Profile)**:
+   ```bash
+   cd backend
+   mvn spring-boot:run
+   ```
+   Flyway will automatically apply ordered migrations `V1_1` through `V1_8` and seed reference data `V2` against `finserv_db`.
+   Hibernate validates the schema against the JPA entity definitions (`spring.jpa.hibernate.ddl-auto=validate`).
+
+4. **Verify Health & API Documentation**:
+   - Actuator Health Check: `GET http://localhost:8080/actuator/health` (Returns `{"status":"UP"}`)
+   - Swagger UI: `http://localhost:8080/swagger-ui.html`
+   - OpenAPI v3 Docs: `http://localhost:8080/v3/api-docs`
 
 ---
 

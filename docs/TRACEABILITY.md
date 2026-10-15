@@ -22,12 +22,13 @@ This matrix maps every functional requirement and roadmap capability to its phas
 | **P0-DOC-06** | Phase 0 | Master Traceability Matrix | `docs/TRACEABILITY.md` | None (Specification) | Document review | `IMPLEMENTED` |
 | **P0-DOC-07** | Phase 0 | Risks & External Dependencies Register | `docs/RISKS_AND_DEPENDENCIES.md` | None (Specification) | Document review | `IMPLEMENTED` |
 | **P0-DOC-08** | Phase 0 | Progress Tracking & Execution Plan | `docs/PROGRESS.md` | None (Specification) | Document review | `IMPLEMENTED` |
-| **P1-BE-01** | Phase 1 | Spring Boot 3.x project setup & build | `backend/pom.xml` | Spring Boot 3.3.x, JDK 21+ | `mvn clean compile` | `NOT STARTED` |
-| **P1-BE-02** | Phase 1 | Flyway migration engine & 24 core tables schema | `backend/src/main/resources/db/migration` | Flyway, MySQL (`V1_1` through `V1_8`, `V2` seeds) | Migration integration test | `NOT STARTED` |
-| **P1-BE-03** | Phase 1 | Core JPA Entities & Base Models (24 tables, RESTRICT FKs, Encrypted PII) | `com.finserv.common.model`, `com.finserv.modules.*.entity` | JPA / Hibernate, MySQL | Entity mapping test | `NOT STARTED` |
-| **P1-BE-04** | Phase 1 | Centralized RFC 7807 Exception Handling | `com.finserv.common.exception` | Spring Web MVC | MockMvc exception test | `NOT STARTED` |
-| **P1-BE-05** | Phase 1 | Health Check, Actuator & OpenAPI/Swagger | `com.finserv.config.OpenApiConfig` | Spring Actuator, Springdoc | `GET /actuator/health`, `/swagger-ui.html` | `NOT STARTED` |
-| **P1-BE-06** | Phase 1 | Strict UTC Timestamp Mapping Integration Test | `com.finserv.common.repository` | MySQL connectionTimeZone=UTC, Instant roundtrip | `UtcDateTimeMappingIntegrationTest` | `NOT STARTED` |
+| **P1-BE-01** | Phase 1 | Spring Boot 3.x project setup & build | `backend/pom.xml` | Spring Boot 3.3.4, JDK 21+ bytecode | `mvn clean package -DskipTests` | `TESTED` |
+| **P1-BE-02** | Phase 1 | Flyway migration engine & 24 core tables schema | `backend/src/main/resources/db/migration` | Flyway, MySQL (`V1_1`–`V1_8`, `V2` seeds) | `FlywayMigrationAndSchemaIntegrationTest` | `TESTED` |
+| **P1-BE-03** | Phase 1 | Core JPA Entities & Base Models (24 tables, RESTRICT FKs, Encrypted PII) | `com.finserv.common.model`, `com.finserv.modules.*.entity` | JPA / Hibernate validate, MySQL | `DatabaseConstraintsIntegrationTest`, `ImmutabilityTriggersIntegrationTest` | `TESTED` |
+| **P1-BE-04** | Phase 1 | Centralized RFC 7807 Exception Handling | `com.finserv.common.exception` | Spring Web MVC | `GlobalExceptionHandlerTest` (3 tests) | `TESTED` |
+| **P1-BE-05** | Phase 1 | Health Check, Actuator & OpenAPI/Swagger | `com.finserv.config.OpenApiConfig`, `SecurityConfig` | Spring Actuator, Springdoc | `SecurityBaselineIntegrationTest` | `TESTED` |
+| **P1-BE-06** | Phase 1 | Strict UTC Timestamp Mapping Integration Test | `com.finserv.modules.database` | MySQL connectionTimeZone=UTC, Instant roundtrip | `UtcDateTimeMappingIntegrationTest` | `TESTED` |
+| **P1-BE-07** | Phase 1 | Infrastructure services (Number sequences, Check digits, Encryption, Audit Hash Chain, Admin Bootstrap) | `com.finserv.modules.sequence`, `com.finserv.common.security`, `com.finserv.modules.audit` | SHA-256 chain, AES-256-GCM, ISO 7064 Mod 11,10, Luhn Mod 10, BCrypt | `AccountNumberGeneratorTest`, `CustomerNumberGeneratorTest`, `FieldEncryptionServiceTest`, `AuditServiceUnitTest`, `AuditChainIntegrityIntegrationTest`, `NumberSequenceConcurrencyIntegrationTest` | `TESTED` |
 | **P2-FE-01** | Phase 2 | React + TypeScript + Vite foundation | `frontend/package.json` | Vite, Node.js | `npm run build` | `NOT STARTED` |
 | **P2-FE-02** | Phase 2 | Custom CSS Design System & Token Architecture | `frontend/src/index.css` | Vanilla CSS tokens | Vitest component tests | `NOT STARTED` |
 | **P2-FE-03** | Phase 2 | Core UI Components (Button, Input, Card, Modal) | `frontend/src/components/ui/` | Design system tokens | Story/render test | `NOT STARTED` |

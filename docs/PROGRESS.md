@@ -2,19 +2,19 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 0 — Requirements, Architecture, Database Design & Traceability
-- **Phase Status**: `COMPLETED` (Docs only, awaiting formal user approval)
-- **Active Git Branch**: `phase-0-requirements-architecture-db`
-- **Current Target**: Phase 1 — Backend Foundation + Core Database
+- **Current Milestone**: Phase 1 — Backend Foundation + Core Database
+- **Phase Status**: `COMPLETED` (Ready for user approval)
+- **Active Git Branch**: `phase-1-backend-foundation`
+- **Current Target**: Phase 2 — Frontend Foundation + Design System
 
 ---
 
 ## 2. Milestone Execution Status
 
 | Phase | Milestone Name | Status | Branch | Notes / Completion Evidence |
-| :---: | :--- | :---: | :--- | :--- |
+| :---: | :--- | :--- :---: | :--- | :--- |
 | **0** | **Requirements, Architecture, DB Design, Traceability** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
-| **1** | Backend Foundation + Core Database | `PLANNED` | `phase-1-backend-foundation` | Planned Flyway migrations, JPA entities, health, Swagger. |
+| **1** | **Backend Foundation + Core Database** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing (27 unit + 25 real DB integration), clean package build, Actuator `/actuator/health` UP, Swagger UI verified, Admin bootstrap verified. |
 | **2** | Frontend Foundation + Design System | `NOT STARTED` | - | React + TypeScript + Vite + Vanilla CSS tokens. |
 | **3** | Branding, Assets, Typography, Motion System | `NOT STARTED` | - | Official logo, accessible micro-interactions. |
 | **4** | Auth, JWT, Sessions, Authorization | `NOT STARTED` | - | Spring Security 6, JWT dual-token, RBAC. |
@@ -81,60 +81,135 @@
 
 ---
 
-## 5. How to Run & Verify Phase 0
+---
+
+## 5. How to Run & Verify Phase 1
 
 1. **Verify Git Branch & Status**:
    ```bash
    git branch
    git status
    ```
-   *Expected output*: On branch `phase-0-requirements-architecture-db`, working tree clean.
+   *Expected output*: On branch `phase-1-backend-foundation`.
 
-2. **Verify Specifications in `docs/`**:
-   - Requirements: `docs/REQUIREMENTS.md`
-   - Architecture: `docs/ARCHITECTURE.md`
-   - Database Design: `docs/DATABASE_DESIGN.md`
-   - Traceability Matrix: `docs/TRACEABILITY.md`
-   - Risks & Dependencies: `docs/RISKS_AND_DEPENDENCIES.md`
-   - Progress Log: `docs/PROGRESS.md`
-
-3. **Configure Local DB Credentials for Phase 1**:
-   Copy `backend/.env.example` to `backend/.env` and update `DB_PASSWORD` with your local MySQL password:
+2. **Execute Automated Test Suite (Isolated Scratch Test Database)**:
    ```bash
-   copy backend\.env.example backend\.env
+   cd backend
+   mvn test
    ```
+   *Verification Result*: 52 tests run, 0 failures, 0 errors, 0 skipped.
+   - 27 unit tests (Luhn, ISO 7064 Mod 11,10, AES-256-GCM, Audit canonical string & sensitive payload filter, GlobalExceptionHandler, LogMaskingConverter, AdminBootstrapRunner).
+   - 25 real database integration tests against `finserv_test` (Flyway migration verification on clean database, 24 core tables + triggers, table constraints, Maker-Checker rules, immutable trigger violations, UTC instant roundtrip mapping, audit hash chain integrity & tampering detection, pessimistic row-lock sequence concurrency).
+
+3. **Start Application Against Dev Database**:
+   ```bash
+   cd backend
+   mvn spring-boot:run
+   ```
+   - Automatically applies migrations `V1_1` through `V1_8` + `V2` seed data to `finserv_db`.
+   - Hibernate executes strict schema validation (`ddl-auto=validate`).
+   - Admin bootstrap runner idempotently provisions superadmin.
+
+4. **Verify Live Health & Documentation Endpoints**:
+   - Health Probe: `GET http://localhost:8080/actuator/health` -> `{"status":"UP","groups":["liveness","readiness"]}`
+   - Swagger UI: `GET http://localhost:8080/swagger-ui/index.html` -> HTTP 200
+   - Security Baseline: `GET http://localhost:8080/api/v1/accounts` -> HTTP 403 (Deny by default)
 
 ---
 
-## 6. Exact Implementation Plan for Phase 1 (Backend Foundation + Core Database)
+## 6. Implementation Summary for Phase 1 (Completed)
 
-Upon user approval (`APPROVE PHASE`), the following sequential plan will be executed:
-1. **Branch Checkout**: Create and switch to `phase-1-backend-foundation`.
-2. **Backend Project Initialization**:
-   - Generate `backend/pom.xml` configured for Java 21+ with Spring Boot 3.3.x.
-   - Configure dependencies: Spring Boot Web, Spring Data JPA, Spring Security, Validation, Actuator, Flyway (Core + MySQL), MySQL Connector, Lombok, Springdoc OpenAPI 3.0, JJWT, Dotenv Java.
-3. **Application Properties & Profile Setup**:
-   - Configure `application.yml` and `application-dev.yml` to inject DB URL, username, and password dynamically from `backend/.env`.
-   - Set `spring.jpa.hibernate.ddl-auto=validate`.
-4. **Flyway Migrations (24 Core Foundation Tables Across Ordered Scripts)**:
-   - Split core schema into ordered Flyway migration scripts respecting foreign key dependencies:
-     1. `V1_1__init_identity_schema.sql`: `roles`, `users`, `user_roles`, `refresh_tokens`, `otp_challenges`
-     2. `V1_2__init_onboarding_and_customer_schema.sql`: `onboarding_applications`, `customers`, `customer_declarations`, `addresses`, `kyc_documents`
-     3. `V1_3__init_organization_schema.sql`: `branches`, `employees`
-     4. `V1_4__init_products_and_accounts_schema.sql`: `gl_chart_of_accounts`, `account_products`, `accounts`, `account_applications`, `account_holds`
-     5. `V1_5__init_ledger_schema.sql`: `gl_journal_entries`, `gl_ledger_postings`
-     6. `V1_6__init_transactions_and_idempotency_schema.sql`: `idempotency_records`, `transactions`
-     7. `V1_7__init_audit_and_approvals_schema.sql`: `approval_requests`, `number_sequences`, `audit_logs`
-     8. `V1_8__init_immutability_triggers.sql`: `BEFORE UPDATE/DELETE` triggers blocking mutations on `audit_logs`, `gl_journal_entries`, `gl_ledger_postings`
-   - Create `V2__seed_reference_data.sql` implementing idempotent dev seed data: 5 initial roles (`ROLE_CUSTOMER`, `ROLE_EMPLOYEE`, `ROLE_MANAGER`, `ROLE_ADMIN`, `ROLE_COMPLIANCE`), internal system daemon user, 10 standard GL chart of accounts, 4 standard banking products (`SAVINGS`, `CURRENT`, `SALARY`, `STUDENT`), initial headquarters branch (`1001`), and baseline counters in `number_sequences`.
-5. **Core JPA Entities & Audit Listeners**:
-   - Implement `BaseEntity`, `AuditableEntity`, and JPA Auditing configuration.
-   - Implement JPA entity mappings for core entities with `ON DELETE RESTRICT` semantics and encrypted PII converter attributes.
-6. **Error Handling Architecture**:
-   - Implement centralized `GlobalExceptionHandler` mapping RFC 7807 problem details to `ApiResponse<T>` and `ErrorResponse`.
-7. **Health, Actuator & OpenAPI Swagger**:
-   - Configure `/actuator/health` and `/actuator/info`.
-   - Configure OpenAPI/Swagger at `/swagger-ui.html` and `/v3/api-docs`.
-8. **Automated Verification & Tests**:
-   - Execute `mvn clean compile test` to verify zero compile or migration failures.
-   - Verify health check and Swagger documentation endpoints.
+All Phase 1 requirements have been implemented and verified with zero deviations from `docs/DATABASE_DESIGN.md`:
+1. **Flyway Migrations (`V1_1`–`V1_8`, `V2`)**:
+   - 24 core tables with strict FK RESTRICT, CHECK constraints, UNIQUE constraints, generated columns, and UTC timestamps.
+   - Engine triggers on `audit_logs`, `gl_journal_entries`, `gl_ledger_postings` enforcing immutability.
+   - Reference seeds: 5 standard roles, internal system daemon user, 10 GL accounts, 4 account products, headquarters branch (1001), sequence counters.
+2. **JPA Entities & Repositories**:
+   - Implemented with UUIDv7 generators for transactions, ledger entries, and audit logs.
+   - `@Version` optimistic locking on accounts.
+   - Insert-only immutable entity mapping for ledger and audit logs.
+3. **Core Infrastructure Services**:
+   - `NumberSequenceService`: `PESSIMISTIC_WRITE` row-locked sequence allocation with lazy annual sequence initialization.
+   - `CustomerNumberGenerator`: 12-digit format with Luhn check digit.
+   - `AccountNumberGenerator`: 14-digit format with ISO 7064 Mod 11,10 check digit.
+   - `FieldEncryptionService`: AES-256-GCM authenticated encryption + HMAC-SHA256 blind indexing.
+   - `AuditService`: Cryptographic hash chain with microsecond timestamp normalization and sensitive payload detection.
+   - `AdminBootstrapRunner`: Idempotent superadmin bootstrapper reading from environment variables only.
+4. **Cross-Cutting**:
+   - `CorrelationIdFilter` + MDC propagation.
+   - `LogMaskingConverter` for masking passwords, PII, and card data.
+   - RFC 7807 `GlobalExceptionHandler` with zero leaked stack traces.
+   - Spring Security deny-by-default baseline.
+
+---
+
+## 7. Pre-Approval Technical Audit & Verification Answers
+
+### 1. Database Triggers on `finserv_db`
+- **Live Database Inspection**: Query executed on `information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'finserv_db'`:
+  ```text
+  TRIGGER_NAME               EVENT_MANIPULATION  EVENT_OBJECT_TABLE   ACTION_TIMING
+  trg_audit_logs_no_update   UPDATE              audit_logs           BEFORE
+  trg_audit_logs_no_delete   DELETE              audit_logs           BEFORE
+  trg_gl_journal_no_update   UPDATE              gl_journal_entries   BEFORE
+  trg_gl_journal_no_delete   DELETE              gl_journal_entries   BEFORE
+  trg_gl_postings_no_update  UPDATE              gl_ledger_postings   BEFORE
+  trg_gl_postings_no_delete  DELETE              gl_ledger_postings   BEFORE
+  ```
+- **Explanation**: The migration script `V1_8__init_immutability_triggers.sql` and the MySQL schema in `finserv_db` define all **6 distinct triggers** exactly as specified in `docs/DATABASE_DESIGN.md` Section 3.8. The prior report's mention of 3 trigger names (`_no_update_delete`) was a phrasing inaccuracy in the markdown text that grouped the UPDATE and DELETE triggers by table. The migration script itself and the database have always had all 6 separate triggers.
+
+### 2. Git State & Secret Isolation
+- **Active Branch**: `phase-1-backend-foundation`
+- **Last 10 Commits**:
+  ```text
+  530312c refactor(config): consolidate to single DotenvEnvironmentPostProcessor and remove redundant initializer
+  ee4c36c feat(phase-1): complete backend foundation, logging, test hardening, and progress docs
+  608da19 docs(phase-1): update README, PROGRESS, and TRACEABILITY for Phase 1
+  2f2fb8a feat(backend): implement Spring Boot 3.3 core foundation, entities, services, and test suite
+  878a871 feat(database): add admin init script and Flyway migrations V1_1 to V2
+  4f2da85 docs: finalize database design revisions, fk creation order, audit hash chain, and traceability
+  31b71db docs(phase-0): incorporate database design hardening and migration sequence split
+  b65bade docs(phase-0): finalize database schema with maker-checker, number sequences, and UTC hardening
+  5fcfeb7 docs(phase-0): incorporate database architecture review and enterprise constraints
+  52376b2 docs(phase-0): requirements, architecture, database design, and traceability matrix
+  ```
+- **`backend/.env` Tracking Confirmation**:
+  - `git ls-files backend/.env`: Returns empty (file is untracked).
+  - `git status --ignored -s backend/.env`: Returns `!! backend/.env` (strictly ignored by `.gitignore`).
+
+### 3. Schema Conformance, Dependencies & Lombok Verification
+- **Deviations from `docs/DATABASE_DESIGN.md`**: **Zero deviations**. All 24 core tables, columns, data types (DECIMAL for amounts, CHAR(36) for UUIDs, DATETIME(6) for timestamps), CHECK constraints, UNIQUE constraints, RESTRICT foreign keys, generated columns (`active_app_marker`), and all 6 immutability triggers strictly match the design.
+- **Dependencies Outside Approved List**:
+  - `lombok`: **NOT used anywhere**. Lombok is completely absent from `pom.xml`, and no Lombok annotations (`@Data`, `@EqualsAndHashCode`, `@Getter`, `@Setter`) exist on any entity or class. All JPA entities use hand-crafted getters and setters with proper defensive copying.
+  - `dotenv-java` (`io.github.cdimascio:dotenv-java`): The only external dependency added outside the standard Spring Boot starters. **Reason**: Added to fulfill the project rule: *"DB credentials live in backend/.env (DB_URL, DB_USERNAME, DB_PASSWORD). Read from environment only."* Since standard Spring Boot does not natively parse `.env` files from disk at local runtime without containerization, `dotenv-java` parses `backend/.env` into Spring's `EnvironmentPropertySource` before bean initialization.
+  - All other dependencies (`web`, `validation`, `data-jpa`, `security`, `actuator`, `flyway-core`, `flyway-mysql`, `mysql-connector-j`, `java-uuid-generator`, `springdoc-openapi-starter-webmvc-ui`, `spring-boot-starter-test`, `spring-security-test`) are strictly on the approved list.
+
+### 4. Audit Hash Chain & Tamper-Detection Test Mechanics
+- **Hash Column Coverage**: The SHA-256 hash computed in `AuditService.calculateHash()` covers every single stored column in `audit_logs`:
+  `chain_seq | id | created_at (normalized to micros) | event_type | entity_type | entity_id | actor_user_id | actor_role | action | ip_address | user_agent | correlation_id | payload_canonical | previous_hash`.
+- **`payload_canonical` Storage**: Confirmed stored in `audit_logs.payload_canonical` as `LONGTEXT` with format `{"old":<old_json>,"new":<new_json>}`.
+- **Tamper-Detection Test Mechanics**:
+  - Because `trg_audit_logs_no_update` blocks any `UPDATE` command from all users, `AuditChainIntegrityIntegrationTest.shouldDetectTamperingWhenRecordAltered()` simulates a privileged database attacker (who possesses DDL privileges in the scratch test DB).
+  - The test temporarily executes `DROP TRIGGER IF EXISTS trg_audit_logs_no_update`, executes an unauthorized SQL `UPDATE` altering `payload_canonical`, asserts that `auditService.verifyChain()` detects the cryptographic signature mismatch and returns `false`, and in a `finally` block recreates `trg_audit_logs_no_update` to restore trigger immutability.
+
+### 5. Production Startup Failure on Missing `APP_ENCRYPTION_KEY`
+- **Existing Test**: `com.finserv.common.security.FieldEncryptionServiceTest.shouldFailFastInProdIfKeyMissing()`:
+  ```java
+  @Test
+  @DisplayName("Should fail fast in prod profile if key is missing")
+  void shouldFailFastInProdIfKeyMissing() {
+      MockEnvironment prodEnv = new MockEnvironment();
+      prodEnv.setActiveProfiles("prod");
+
+      FieldEncryptionService prodService = new FieldEncryptionService(prodEnv);
+      assertThatThrownBy(prodService::init)
+              .isInstanceOf(IllegalStateException.class)
+              .hasMessageContaining("APP_ENCRYPTION_KEY is required in production");
+  }
+  ```
+  This test passes in the test suite and verifies that when the active profile includes `prod` and the key is blank or unset, `FieldEncryptionService.init()` throws `IllegalStateException`.
+
+### 6. Consolidation of Dotenv Loading Mechanism
+- **Reason for Two Previously**: During initial multi-directory test harness debugging (running from repository root vs `backend/`), both an `ApplicationContextInitializer` and an `EnvironmentPostProcessor` were experimented with.
+- **Consolidation**: Removed `DotenvContextInitializer.java` and `org.springframework.boot.env.EnvironmentPostProcessor.imports`. Retained **only** `DotenvEnvironmentPostProcessor` registered in `META-INF/spring.factories`.
+- **Verification**: Executed full test suite (`mvn test` in `backend/`). All 52 tests (27 unit + 25 real database integration) pass with 0 failures, 0 errors, and 0 skipped.
