@@ -1,0 +1,205 @@
+/**
+ * FINServ Responsive App Shell & Layout Styles
+ */
+
+/* =========================================================================
+   Public Layout
+   ========================================================================= */
+.public-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-canvas);
+}
+
+.public-header {
+  height: 64px;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.public-header-inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.public-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.public-nav-link {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast) var(--ease-default),
+              background-color var(--duration-fast) var(--ease-default);
+}
+.public-nav-link:hover {
+  color: var(--brand-primary);
+  background-color: var(--surface-subtle);
+}
+
+.public-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--surface-card);
+  padding: var(--spacing-8) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* =========================================================================
+   App Shell (Core-Banking Layout)
+   ========================================================================= */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--surface-canvas);
+}
+
+/* Desktop Sidebar */
+.app-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background-color: var(--surface-card);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: width var(--duration-normal) var(--ease-default);
+  z-index: var(--z-sticky);
+}
+
+.sidebar-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-5);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: var(--spacing-3);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--spacing-4) var(--spacing-3);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.nav-section-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-1);
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.sidebar-nav-item:hover {
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-item.active {
+  background-color: var(--brand-subtle);
+  color: var(--brand-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar-footer {
+  padding: var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--surface-sunken);
+}
+
+/* Main Content Area */
+.app-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevents flex overflow */
+}
+
+.app-topbar {
+  height: 64px;
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-6);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--spacing-6);
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Mobile Navigation Drawer */
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-modal-backdrop);
+}
+
+.mobile-drawer-content {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 280px;
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.2s ease-out reverse;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .app-sidebar {
+    display: none;
+  }
+  .app-topbar {
+    padding: 0 var(--spacing-4);
+  }
+  .app-content {
+    padding: var(--spacing-4);
+  }
+}

@@ -146,6 +146,38 @@ FINSERV/
 
 ---
 
+### Building and Running the Frontend
+
+1. **Environment Setup (`frontend/.env`)**:
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+   Default `VITE_API_BASE_URL=/api/v1` routes through the Vite proxy to `http://localhost:8080`.
+
+2. **Run Lint, Type-Check & Unit/A11y Tests**:
+   ```bash
+   npm run lint        # ESLint 9 checks
+   npm run type-check   # TypeScript strict checks (noUncheckedIndexedAccess)
+   npm test            # 80 Vitest unit and jest-axe accessibility tests
+   ```
+
+3. **Start Frontend Dev Server**:
+   ```bash
+   npm run dev
+   ```
+   - Public Layout: `http://localhost:5173/`
+   - Core Banking Layout: `http://localhost:5173/app`
+   - Living Design System: `http://localhost:5173/design-system` (Dev-only, live Actuator probe)
+
+4. **Production Build**:
+   ```bash
+   npm run build
+   ```
+   Compiles clean production assets to `frontend/dist/`. Dev-only design system routes and components are statically dead-code eliminated from the bundle.
+
+---
+
 ## 📜 Development Status
 
 Development progresses strictly through phased milestone iterations (Phase 0 through Phase 23). Detailed tracking is maintained in [docs/PROGRESS.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/PROGRESS.md) and [docs/TRACEABILITY.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/TRACEABILITY.md).

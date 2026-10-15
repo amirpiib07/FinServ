@@ -2,10 +2,10 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 1 — Backend Foundation + Core Database
+- **Current Milestone**: Phase 2 — Frontend Foundation + Design System
 - **Phase Status**: `COMPLETED` (Ready for user approval)
-- **Active Git Branch**: `phase-1-backend-foundation`
-- **Current Target**: Phase 2 — Frontend Foundation + Design System
+- **Active Git Branch**: `phase-2-frontend-foundation`
+- **Current Target**: Phase 3 — Branding, Assets, Typography, Motion System
 
 ---
 
@@ -14,8 +14,8 @@
 | Phase | Milestone Name | Status | Branch | Notes / Completion Evidence |
 | :---: | :--- | :--- :---: | :--- | :--- |
 | **0** | **Requirements, Architecture, DB Design, Traceability** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
-| **1** | **Backend Foundation + Core Database** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing (27 unit + 25 real DB integration), clean package build, Actuator `/actuator/health` UP, Swagger UI verified, Admin bootstrap verified. |
-| **2** | Frontend Foundation + Design System | `NOT STARTED` | - | React + TypeScript + Vite + Vanilla CSS tokens. |
+| **1** | **Backend Foundation + Core Database** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing, Actuator `/actuator/health` UP, Swagger UI verified. |
+| **2** | **Frontend Foundation + Design System** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. |
 | **3** | Branding, Assets, Typography, Motion System | `NOT STARTED` | - | Official logo, accessible micro-interactions. |
 | **4** | Auth, JWT, Sessions, Authorization | `NOT STARTED` | - | Spring Security 6, JWT dual-token, RBAC. |
 | **5** | Progressive Registration, Onboarding, KYC | `NOT STARTED` | - | 6-step progressive wizard, tiered KYC verification. |
@@ -213,3 +213,83 @@ All Phase 1 requirements have been implemented and verified with zero deviations
 - **Reason for Two Previously**: During initial multi-directory test harness debugging (running from repository root vs `backend/`), both an `ApplicationContextInitializer` and an `EnvironmentPostProcessor` were experimented with.
 - **Consolidation**: Removed `DotenvContextInitializer.java` and `org.springframework.boot.env.EnvironmentPostProcessor.imports`. Retained **only** `DotenvEnvironmentPostProcessor` registered in `META-INF/spring.factories`.
 - **Verification**: Executed full test suite (`mvn test` in `backend/`). All 52 tests (27 unit + 25 real database integration) pass with 0 failures, 0 errors, and 0 skipped.
+
+---
+
+## 8. Implementation Summary for Phase 2 (Completed)
+
+All Phase 2 requirements have been implemented and verified with zero deviations from the project rules:
+
+1. **Frontend Architecture & Setup**:
+   - React 19 + TypeScript (strict mode with `noUncheckedIndexedAccess: true`) + Vite.
+   - Vite proxy configured to forward `/api` and `/actuator` to `http://localhost:8080`.
+   - Zero secrets: `.env.example` committed with non-sensitive `VITE_API_BASE_URL=/api/v1`.
+   - Minimal justified dependencies: `react-router-dom`, `@tanstack/react-query`, `react-hook-form`, `@hookform/resolvers`, `zod`, `@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-select`, `lucide-react`, `decimal.js`.
+
+2. **Token-Driven Design System (`src/styles/`)**:
+   - Tier 1 Raw Tokens (`src/styles/tokens.css`): Neutrals (slate), Brand placeholder (navy/royal blue), Accent (gold), Semantic feedback (emerald success, amber warning, crimson danger, sky info), typography scale, spacing (4px base), radii, elevation shadows, motion durations/easings, breakpoints.
+   - Tier 2 Semantic Tokens: Surface, text, border, and interaction mappings. Supports instant dark mode (`[data-theme='dark']`) and zero-component-touch brand token swap in Phase 3.
+   - Accessible reset, focus rings, `.sr-only` accessibility classes, and `prefers-reduced-motion` compliance.
+
+3. **Core Accessible UI Components (`src/components/ui/`)**:
+   - 25 accessible components supporting default, hover, focus-visible, disabled, loading, and error states:
+     - `Button`, `IconButton`, `Input`, `PasswordInput` (toggle visibility), `Textarea`, `Select`, `Checkbox`, `Radio`, `RadioGroup`, `Switch`, `FormField` (accessible aria wiring, error alerts), `Card` (compound components), `Badge`, `StatusPill` (10 banking lifecycle statuses), `Modal`, `ConfirmDialog` (Radix Dialog with focus trap), `Tabs` (Radix Tabs with keyboard nav), `Table` (responsive card collapse), `Pagination`, `ToastContainer` / `ToastProvider`, `Skeleton`, `Spinner`, `EmptyState`, `ErrorState` (correlation ID copy), `Stepper` (6-step progressive onboarding), `AmountDisplay` (lakh/crore INR formatting), `Breadcrumbs`.
+   - Automated a11y checks: `jest-axe` audits passing on `Button`, `FormField`, `AmountDisplay`, `Tabs`, `Modal`.
+
+4. **Shared Banking Utilities & Tests (`src/lib/`)**:
+   - **Financial Precision (`src/lib/money.ts`)**: Pure `decimal.js` arithmetic with `ROUND_HALF_EVEN` (Banker's Rounding). Indian numbering format (`formatINR`: ₹ 1,23,45,678.90), paise conversions (`toPaise`, `fromPaise`), zero floating-point operations.
+   - **Asia/Kolkata Dates (`src/lib/dates.ts`)**: Formats UTC instants for `Asia/Kolkata` (`UTC+05:30`), with strict midnight boundary and relative time support.
+   - **Masking (`src/lib/masking.ts`)**: Accounts (`••••••••••0017`), phone numbers (`+91 ••••••3210`), emails (`a••••••••r@domain`), PAN (`•••••••34F`).
+   - **Validation (`src/lib/validation.ts`)**: Zod schemas for Indian mobile, email, PAN, IFSC, and currency amounts.
+   - **Idempotency (`src/lib/idempotency.ts`)**: RFC 4122 v4 UUID generator for `X-Idempotency-Key`.
+
+5. **Typed API Client & RFC 7807 Error Mapper (`src/lib/api-client.ts`)**:
+   - Request interceptors: `X-Correlation-ID`, `X-Idempotency-Key`, timeout cancellation.
+   - Response interceptors: Maps RFC 7807 Problem Details and network drops into normalized `AppError`.
+   - Live Actuator probe: `GET /actuator/health` displayed in the status widget and `/design-system`.
+
+6. **Dev-Only Living Style Guide (`/design-system`)**:
+   - Interactive catalog displaying all 25 components, states, forms, validation, and real-time backend health probe.
+   - Conditionally mounted via `import.meta.env.DEV` and 100% tree-shaken from production bundles.
+
+---
+
+## 9. How to Run & Verify Phase 2
+
+1. **Verify Git Branch**:
+   ```bash
+   git branch
+   ```
+   *Expected output*: On branch `phase-2-frontend-foundation`.
+
+2. **Execute Frontend Verification Suite**:
+   ```bash
+   cd frontend
+   npm run lint        # Expected: 0 errors, 0 warnings
+   npm run type-check   # Expected: 0 errors
+   npm test            # Expected: 11 test suites, 80 tests passing (including jest-axe a11y)
+   npm run build       # Expected: Clean production build
+   ```
+
+3. **Verify Dev-Only Route Tree-Shaking**:
+   ```bash
+   # Confirm /design-system is omitted from production output:
+   grep -rn "Living Style Guide" dist/
+   # Expected output: (empty / 0 matches)
+   ```
+
+4. **Launch Dev Server with Live Backend Proxy**:
+   ```bash
+   npm run dev
+   ```
+   - Open `http://localhost:5173/` for the public app shell.
+   - Open `http://localhost:5173/app` for the core banking app layout with desktop sidebar and mobile drawer.
+   - Open `http://localhost:5173/design-system` for the living component catalog and live Actuator health probe.
+
+5. **Verify Backend Zero Regression**:
+   ```bash
+   cd ../backend
+   mvn test
+   ```
+   *Expected output*: 52 tests run, 0 failures, 0 errors, 0 skipped.
+
