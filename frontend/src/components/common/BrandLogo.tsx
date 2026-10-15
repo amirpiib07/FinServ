@@ -2,82 +2,86 @@
  * FINServ Brand Logo Component
  * Strict Rule: "Official logo will be supplied in docs/brand/. Use the exact file,
  * never redraw it. Use a clearly named placeholder only until it arrives."
- * This placeholder will be replaced in Phase 3 once official assets are ingested.
+ *
+ * Ingested official SVG assets:
+ * - Full Logo: /finserv-logo.svg (docs/brand/finserv-logo.svg)
+ * - Brand Mark: /finserv-mark.svg (docs/brand/finserv-mark.svg)
  */
 
 import React from 'react';
-import { Landmark } from 'lucide-react';
 
 export interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'full' | 'mark';
   showSubtitle?: boolean;
   className?: string;
 }
 
-export const BrandLogoPlaceholder: React.FC<BrandLogoProps> = ({
+export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
+  variant = 'full',
   showSubtitle = true,
   className = '',
 }) => {
-  const iconSizeMap = { sm: 18, md: 24, lg: 32 };
-  const titleSizeMap = {
-    sm: 'var(--font-size-base)',
-    md: 'var(--font-size-lg)',
-    lg: 'var(--font-size-2xl)',
+  const heightMap = {
+    sm: 28,
+    md: 36,
+    lg: 48,
   };
+
+  const markHeight = heightMap[size];
+
+  if (variant === 'mark') {
+    return (
+      <div
+        className={`brand-logo-mark ${className}`.trim()}
+        data-testid="brand-logo-mark"
+        style={{ display: 'inline-flex', alignItems: 'center' }}
+      >
+        <img
+          src="/finserv-mark.svg"
+          alt="FINServ Mark"
+          height={markHeight}
+          width={markHeight}
+          style={{ height: `${markHeight}px`, width: `${markHeight}px`, objectFit: 'contain' }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`brand-logo-placeholder ${className}`.trim()}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-3)' }}
-      data-testid="brand-logo-placeholder"
-      title="FINServ (Official Brand Logo Ingestion in Phase 3)"
+      className={`brand-logo ${className}`.trim()}
+      data-testid="brand-logo"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)' }}
     >
-      <div
-        style={{
-          width: iconSizeMap[size] + 14,
-          height: iconSizeMap[size] + 14,
-          borderRadius: 'var(--radius-md)',
-          backgroundColor: 'var(--brand-primary)',
-          color: 'var(--brand-contrast)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'var(--shadow-sm)',
-          flexShrink: 0,
-        }}
-        aria-hidden="true"
-      >
-        <Landmark size={iconSizeMap[size]} strokeWidth={2.2} />
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <img
+        src="/finserv-logo.svg"
+        alt="FINServ"
+        height={markHeight}
+        style={{ height: `${markHeight}px`, width: 'auto', display: 'block' }}
+      />
+      {showSubtitle && (
         <span
           style={{
-            fontFamily: 'var(--font-family-sans)',
-            fontSize: titleSizeMap[size],
-            fontWeight: 'var(--font-weight-bold)',
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.1,
+            marginLeft: 'var(--spacing-1)',
+            paddingLeft: 'var(--spacing-2)',
+            borderLeft: '1px solid var(--border-subtle)',
+            fontSize: size === 'sm' ? '10px' : '11px',
+            color: 'var(--text-tertiary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            fontWeight: 'var(--font-weight-semibold)',
+            lineHeight: 1,
+            alignSelf: 'center',
           }}
         >
-          FIN<span style={{ color: 'var(--brand-primary)' }}>Serv</span>
+          Core Banking
         </span>
-        {showSubtitle && (
-          <span
-            style={{
-              fontSize: '10px',
-              color: 'var(--text-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontWeight: 'var(--font-weight-semibold)',
-            }}
-          >
-            Core Banking
-          </span>
-        )}
-      </div>
+      )}
     </div>
   );
 };
+
+// Backwards-compatible alias for Phase 2 references
+export const BrandLogoPlaceholder = BrandLogo;

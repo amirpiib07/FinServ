@@ -1,8 +1,8 @@
 /**
  * FINServ Typed HTTP Client
  * - Configured base URL from environment (VITE_API_BASE_URL)
- * - Request interceptors: token stub for Phase 4, X-Correlation-ID propagation, timeout
- * - Response interceptors: X-Correlation-ID header extraction
+ * - Request interceptors: JWT Bearer token attachment, X-Correlation-ID propagation, timeout
+ * - Response interceptors: 401 auto-refresh with single-flight queue, X-Correlation-ID header extraction
  * - Normalized AppError mapping for RFC 7807 problem details and network errors
  */
 
@@ -17,23 +17,109 @@ export interface RequestOptions extends RequestInit {
 }
 
 const DEFAULT_TIMEOUT_MS = 15000;
+const ACCESS_TOKEN_KEY = 'finserv_access_token';
+const REFRESH_TOKEN_KEY = 'finserv_refresh_token';
+
+export function getStoredAccessToken(): string | null {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredRefreshToken(): string | null {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthTokens(accessToken: string, refreshToken: string): void {
+  try {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  } catch {
+    // LocalStorage might not be accessible; safely ignore
+  }
+}
+
+export function clearAuthTokens(): void {
+  try {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } catch {
+    // safely ignore
+  }
+}
 
 export class ApiClient {
   private baseUrl: string;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl ?? (import.meta.env.VITE_API_BASE_URL || '/api/v1');
   }
 
-  /**
-   * Phase 4 Auth Token Stub (to be wired to session storage / memory in Phase 4)
-   */
   private getAuthToken(): string | null {
-    return null;
+    return getStoredAccessToken();
   }
 
   public getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  /**
+   * Thread-safe single-flight refresh token rotation
+   */
+  private async refreshAccessToken(): Promise<string | null> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) {
+      clearAuthTokens();
+      return null;
+    }
+
+    this.refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': generateIdempotencyKey(),
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) {
+          clearAuthTokens();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('finserv:session-expired'));
+          }
+          return null;
+        }
+
+        const data = await response.json();
+        if (data && data.accessToken && data.refreshToken) {
+          setAuthTokens(data.accessToken, data.refreshToken);
+          return data.accessToken as string;
+        }
+
+        clearAuthTokens();
+        return null;
+      } catch {
+        clearAuthTokens();
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
   }
 
   /**
@@ -114,7 +200,9 @@ export class ApiClient {
         break;
       case 409:
         userMessage =
-          'Concurrent modification detected. The record was modified by another operation. Please refresh.';
+          errorCode === 'CONCURRENCY_CONFLICT'
+            ? 'Concurrent modification detected. The record was modified by another operation. Please refresh.'
+            : rawMessage || 'A conflicting record already exists in the system.';
         break;
       case 422:
         userMessage = rawMessage || 'Unable to process transaction due to business validation rules.';
@@ -153,7 +241,7 @@ export class ApiClient {
       headers.set('Idempotency-Key', generateIdempotencyKey());
     }
 
-    // Interceptor: Auth token attachment stub for Phase 4
+    // Interceptor: Auth token attachment
     if (!options.skipAuth) {
       const token = this.getAuthToken();
       if (token && !headers.has('Authorization')) {
@@ -190,6 +278,25 @@ export class ApiClient {
       const responseCorrId = response.headers.get('X-Correlation-ID') || correlationId;
 
       if (!response.ok) {
+        // Interceptor: 401 Token Auto-Refresh
+        if (
+          response.status === 401 &&
+          !options.skipAuth &&
+          !path.includes('/auth/refresh') &&
+          !path.includes('/auth/login') &&
+          !path.includes('/auth/register')
+        ) {
+          const refreshedToken = await this.refreshAccessToken();
+          if (refreshedToken) {
+            const retryHeaders = new Headers(headers);
+            retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
+            return this.request<T>(path, {
+              ...options,
+              headers: retryHeaders,
+            });
+          }
+        }
+
         let body: unknown = null;
         try {
           body = await response.json();
