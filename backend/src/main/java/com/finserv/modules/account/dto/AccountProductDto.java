@@ -1,5 +1,6 @@
 package com.finserv.modules.account.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -9,9 +10,15 @@ public class AccountProductDto {
     private String productName;
     private String productType;
     private String currency;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal minBalance;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal interestRatePercentage;
     private boolean overdraftAllowed;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal overdraftLimit;
     private boolean isActive;
 

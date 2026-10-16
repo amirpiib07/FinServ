@@ -1,5 +1,6 @@
 package com.finserv.modules.account.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -18,8 +19,14 @@ public class AccountDto {
     private String accountNumber;
     private String maskedAccountNumber;
     private String currency;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal currentBalance;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal availableBalance;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal holdBalance;
     private String status;
     private String nickname;

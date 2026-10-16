@@ -1,5 +1,6 @@
 package com.finserv.modules.account.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -13,6 +14,8 @@ public class AccountApplicationDto {
     private String productCode;
     private UUID branchId;
     private String branchName;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal initialDepositAmount;
     private String applicationStatus;
     private String rejectionReason;

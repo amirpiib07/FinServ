@@ -88,7 +88,7 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
     const payload: CreateAccountApplicationPayload = {
       productId: selectedProductId,
       branchId: selectedBranchId,
-      initialDepositAmount: initialDeposit ? parseFloat(initialDeposit) : 0,
+      initialDepositAmount: initialDeposit ? initialDeposit.trim() : '0.00',
       nickname: nickname.trim() || undefined,
       autoActivate: true,
     };

@@ -18,9 +18,10 @@ import {
   Sparkles,
   ArrowUpRight,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 export const AccountsPage: React.FC = () => {
+  const { id: routeAccountId } = useParams<{ id?: string }>();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [applications, setApplications] = useState<AccountApplication[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,6 +31,29 @@ export const AccountsPage: React.FC = () => {
   const [openModalOpen, setOpenModalOpen] = useState<boolean>(false);
   const [selectedForControls, setSelectedForControls] = useState<BankAccount | null>(null);
   const [selectedForDetails, setSelectedForDetails] = useState<BankAccount | null>(null);
+  const [directLoadedAccount, setDirectLoadedAccount] = useState<BankAccount | null>(null);
+  const [closedRouteModal, setClosedRouteModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!routeAccountId) return;
+    if (accounts.some((a) => a.id === routeAccountId)) return;
+    let active = true;
+    void accountService
+      .getAccountById(routeAccountId)
+      .then((acc) => {
+        if (active) setDirectLoadedAccount(acc);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [routeAccountId, accounts]);
+
+  const activeDetailsAccount =
+    selectedForDetails ||
+    (!closedRouteModal && routeAccountId
+      ? accounts.find((a) => a.id === routeAccountId) || directLoadedAccount
+      : null);
 
   const loadData = useCallback(async () => {
     try {
@@ -254,9 +278,12 @@ export const AccountsPage: React.FC = () => {
       />
 
       <AccountDetailsModal
-        account={selectedForDetails}
-        isOpen={!!selectedForDetails}
-        onClose={() => setSelectedForDetails(null)}
+        account={activeDetailsAccount}
+        isOpen={!!activeDetailsAccount}
+        onClose={() => {
+          setSelectedForDetails(null);
+          setClosedRouteModal(true);
+        }}
       />
     </div>
   );

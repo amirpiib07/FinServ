@@ -1,5 +1,6 @@
 package com.finserv.modules.beneficiary.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -14,6 +15,8 @@ public class BeneficiaryDto {
     private String maskedAccountNumber;
     private String ifscCode;
     private String bankName;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal dailyTransferLimit;
     private Instant coolingOffUntil;
     private String verificationStatus;
