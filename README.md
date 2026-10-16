@@ -158,8 +158,8 @@ FINSERV/
 2. **Run Lint, Type-Check & Unit/A11y Tests**:
    ```bash
    npm run lint        # ESLint 9 checks
-   npm run type-check   # TypeScript strict checks (noUncheckedIndexedAccess)
-   npm test            # 80 Vitest unit and jest-axe accessibility tests
+   npm run typecheck   # TypeScript strict checks (noUncheckedIndexedAccess)
+   npm test            # 101 Vitest unit and accessibility tests
    ```
 
 3. **Start Frontend Dev Server**:
