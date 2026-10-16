@@ -312,11 +312,16 @@ export class ApiClient {
       }
 
       const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      if (contentType && contentType.includes('json')) {
         return (await response.json()) as T;
       }
 
-      return (await response.text()) as unknown as T;
+      const text = await response.text();
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        return text as unknown as T;
+      }
     } catch (err) {
       clearTimeout(timeoutId);
       throw this.normalizeError(err, correlationId);
