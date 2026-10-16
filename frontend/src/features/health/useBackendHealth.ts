@@ -16,7 +16,11 @@ export function useBackendHealth() {
         timeoutMs: 5000,
       });
     },
-    refetchInterval: 30000, // Check every 30s
-    retry: 1,
+    refetchInterval: (query) => {
+      // When offline or during initial startup, probe every 3s to auto-detect boot completion
+      return query.state.data?.status === 'UP' ? 30000 : 3000;
+    },
+    retry: 2,
+    retryDelay: 1000,
   });
 }
