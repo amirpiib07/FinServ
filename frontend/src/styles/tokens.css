@@ -89,56 +89,75 @@
      Tier 2: Semantic Tokens (Light Theme Baseline)
      ========================================================================= */
   /* Surfaces */
-  --surface-canvas: var(--neutral-50);
-  --surface-card: var(--neutral-0);
-  --surface-overlay: var(--neutral-0);
-  --surface-subtle: var(--neutral-100);
-  --surface-muted: var(--neutral-200);
-  --surface-raised: var(--neutral-0);
-  --surface-sunken: var(--neutral-100);
+  --surface-canvas: #F4F7FB;
+  --surface-card: #FFFFFF;
+  --surface-overlay: #FFFFFF;
+  --surface-subtle: #F8FAFC;
+  --surface-muted: #F1F5F9;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #F1F5F9;
+  --surface-bg: #F4F7FB;
+  --surface-elevated: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --border-color: rgba(15, 23, 42, 0.08);
 
   /* Typography / Text Colors */
-  --text-primary: var(--neutral-900);
-  --text-secondary: var(--neutral-700);
-  --text-tertiary: var(--neutral-600);
-  --text-inverse: var(--neutral-0);
-  --text-muted: var(--neutral-600);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #64748B;
+  --text-inverse: #FFFFFF;
+  --text-muted: #94A3B8;
 
   /* Borders */
-  --border-subtle: var(--neutral-200);
-  --border-default: var(--neutral-300);
-  --border-strong: var(--neutral-400);
-  --border-focus: var(--brand-500);
-  --border-focus-ring: rgba(59, 130, 246, 0.35);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-default: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --border-focus: #2563EB;
+  --border-focus-ring: rgba(37, 99, 235, 0.25);
 
   /* Brand Semantics */
-  --brand-primary: var(--brand-700);
-  --brand-hover: var(--brand-800);
-  --brand-active: var(--brand-900);
-  --brand-subtle: var(--brand-50);
-  --brand-contrast: var(--neutral-0);
+  --brand-primary: #0B2545;
+  --brand-hover: #133E68;
+  --brand-active: #0A1628;
+  --brand-subtle: #EFF6FF;
+  --brand-contrast: #FFFFFF;
+  --brand-accent: #2EC4B6;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;
+  --color-error-400: #F87171;
+  --color-error-500: #EF4444;
+
+  /* Executive Navy Theme */
+  --navy-sidebar-start: #0A1628;
+  --navy-sidebar-end: #0F2342;
+  --navy-sidebar-border: rgba(255, 255, 255, 0.08);
+  --nav-active-glow: 0 0 16px rgba(46, 196, 182, 0.35);
 
   /* State Feedback Semantics */
-  --color-success: var(--success-600);
-  --color-success-subtle: var(--success-50);
-  --color-success-border: var(--success-200);
-  --color-success-text: var(--success-800);
+  --color-success: #059669;
+  --color-success-subtle: #ECFDF5;
+  --color-success-border: #A7F3D0;
+  --color-success-text: #065F46;
+  --color-success-400: #34D399;
 
-  --color-warning: var(--warning-600);
-  --color-warning-subtle: var(--warning-50);
-  --color-warning-border: var(--warning-200);
-  --color-warning-text: var(--warning-800);
+  --color-warning: #D97706;
+  --color-warning-subtle: #FFFBEB;
+  --color-warning-border: #FDE68A;
+  --color-warning-text: #92400E;
+  --color-warning-400: #FBBF24;
+  --color-warning-500: #F59E0B;
 
-  --color-danger: var(--danger-600);
-  --color-danger-contrast: var(--neutral-0);
-  --color-danger-subtle: var(--danger-50);
-  --color-danger-border: var(--danger-200);
-  --color-danger-text: var(--danger-800);
+  --color-danger: #DC2626;
+  --color-danger-contrast: #FFFFFF;
+  --color-danger-subtle: #FEF2F2;
+  --color-danger-border: #FECACA;
+  --color-danger-text: #991B1B;
 
-  --color-info: var(--info-600);
-  --color-info-subtle: var(--info-50);
-  --color-info-border: var(--info-200);
-  --color-info-text: var(--info-800);
+  --color-info: #0284C7;
+  --color-info-subtle: #F0F9FF;
+  --color-info-border: #BAE6FD;
+  --color-info-text: #075985;
 
   /* =========================================================================
      Typography Scale (Phase 3: Inter & Monospace for Financial Numerals)
@@ -186,21 +205,25 @@
   /* =========================================================================
      Radii Scale
      ========================================================================= */
-  --radius-xs: 3px;
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-2xl: 20px;
   --radius-full: 9999px;
 
   /* =========================================================================
-     Elevation / Shadows
+     Elevation / Soft Multi-Layered Banking Shadows
      ========================================================================= */
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
-  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 6px 16px -2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 10px 25px -3px rgba(15, 23, 42, 0.09), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-elevated: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
   --shadow-overlay: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 
   /* =========================================================================

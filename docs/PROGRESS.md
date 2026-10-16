@@ -462,6 +462,42 @@ All Phase 2 requirements have been implemented and verified with zero deviations
    - Open Beneficiaries page at `http://localhost:5173/app/beneficiaries`:
      - Click "Add Beneficiary", enter details, submit, and confirm with demo OTP `123456`.
      - Observe verified payee card with bank type badge and copyable details.
+---
 
+## 14. Phase 4 UI/UX Visual Overhaul & Evidence
 
+Following the dedicated UI/UX review request, a complete visual and micro-interaction overhaul was executed across the App Shell, Auth, Onboarding, Accounts, and Beneficiaries interfaces with zero backend or logic regressions:
 
+1. **Global Theme, Depth & App Shell (`tokens.css`, `layout.css`, `components.css`, `AppLayout.tsx`)**:
+   - Upgraded surface hierarchy with `#F4F7FB` slate-blue canvas, crisp elevated white surfaces, multi-layered elevation shadows (`--shadow-card-elevated`), and clean subtle borders (`rgba(15, 23, 42, 0.08)`).
+   - Sidebar redesigned in rich Executive Navy gradient (`#0A1628` to `#0F2342`) with glowing active navigation indicators, bank logo mark, and profile footer showing customer KYC status and branch.
+   - Polished top navigation header with quick search/command pill (`⌘K`), environment badge ("LIVE SIMULATION / RBI PILOT"), and interactive user avatar pill.
+
+2. **Luxury Private-Banking Account Cards (`/app/accounts`)**:
+   - Luxury fintech debit/account cards with rich midnight-navy and emerald mesh gradients, geometric SVG radar watermarks, and realistic EMV gold chip illustration.
+   - Crisp tabular balance display (`formatINR`) with sub-rows for current and hold balances.
+   - Frosted account number bar with masked/unmasked toggle (`•••• •••• 1234`) and instant copy buttons with toast feedback.
+   - Relationship overview hero card with Net Available Funds, DICGC insurance guarantee badge, and portfolio metrics.
+   - "Open New Account" product tier comparison selector with interest rates (`% p.a.`), minimum balance requirements, and perk checklists.
+
+3. **Modern Beneficiary Directory (`/app/beneficiaries`)**:
+   - Modern directory grid with colour-coded initials avatars (`AS`, `RV`, `MP`), monospace IFSC badges, Within FinServ vs External Bank tags, and cooling-off alerts.
+   - Instant search and category filter pills (`All Payees`, `Within FinServ`, `Other Banks`, `Pending OTP`).
+   - Clean "Add Beneficiary" and "Verify OTP" modals with clear visual hierarchy and inline icons.
+
+4. **Split-Screen Executive Auth & Onboarding Stepper**:
+   - Desktop split-screen layout for `/login` and `/register`: deep navy FinServ security showcase on the left (256-bit AES encryption, double-entry ledger guarantee, RBI-grade security) paired with an elevated auth card on the right.
+   - Onboarding stepper with time estimate, animated progress track, and 3-stage Verification Status Tracker.
+
+5. **Visual Evidence Gallery (`docs/evidence/phase-4/`)**:
+   - `01-login-desktop.png`: Executive split-screen login layout (1280px).
+   - `02-register-desktop.png`: Executive split-screen registration layout (1280px).
+   - `03-accounts-desktop.png`: Net Funds summary, luxury account cards, and masked toggle (1280px).
+   - `04-open-account-modal-desktop.png`: Product tier comparison modal with perks (1280px).
+   - `05-beneficiaries-desktop.png`: Payee directory with initials avatars and filter pills (1280px).
+   - `06-add-beneficiary-modal-desktop.png`: Modal for intra/inter bank payee creation (1280px).
+   - `07-onboarding-tracker-desktop.png`: Verification tracker for pending KYC review (1280px).
+   - `07b-onboarding-stepper-desktop.png`: 5-step progressive onboarding journey (1280px).
+   - `08-login-mobile.png`: Responsive mobile login view (375px).
+   - `09-accounts-mobile.png`: Responsive mobile account cards & stats view (375px).
+   - `10-beneficiaries-mobile.png`: Responsive mobile payee cards & filters view (375px).

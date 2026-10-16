@@ -150,14 +150,15 @@ export const BeneficiariesPage: React.FC = () => {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 'var(--spacing-4)',
-          backgroundColor: 'var(--color-surface)',
-          padding: 'var(--spacing-4)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-color)',
+          backgroundColor: '#FFFFFF',
+          padding: 'var(--spacing-4) var(--spacing-5)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         {/* Search */}
-        <div style={{ flex: '1 1 280px', position: 'relative' }}>
+        <div style={{ flex: '1 1 320px', position: 'relative' }}>
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -183,15 +184,16 @@ export const BeneficiariesPage: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  background: isActive ? 'var(--color-primary-500)' : 'rgba(255, 255, 255, 0.04)',
-                  color: isActive ? '#fff' : 'var(--text-secondary)',
-                  border: `1px solid ${isActive ? 'var(--color-primary-500)' : 'var(--border-color)'}`,
-                  padding: 'var(--spacing-1) var(--spacing-3)',
+                  background: isActive ? '#0B2545' : 'var(--surface-subtle)',
+                  color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
+                  border: `1px solid ${isActive ? '#0B2545' : 'var(--border-default)'}`,
+                  padding: '6px 14px',
                   borderRadius: 'var(--radius-full)',
                   fontSize: 'var(--font-size-xs)',
-                  fontWeight: 500,
+                  fontWeight: isActive ? 600 : 500,
                   cursor: 'pointer',
-                  transition: 'background-color 0.15s',
+                  boxShadow: isActive ? '0 2px 8px rgba(11, 37, 69, 0.2)' : 'none',
+                  transition: 'all var(--duration-fast) var(--ease-default)',
                 }}
               >
                 {tab.label}

@@ -59,6 +59,23 @@
 }
 
 /* =========================================================================
+   Executive Split-Screen Auth Layout
+   ========================================================================= */
+.auth-split-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+@media (max-width: 960px) {
+  .auth-split-container {
+    flex-direction: column !important;
+  }
+  .auth-brand-showcase {
+    display: none !important;
+  }
+}
+
+/* =========================================================================
    App Shell (Core-Banking Layout)
    ========================================================================= */
 .app-shell {
@@ -67,12 +84,12 @@
   background-color: var(--surface-canvas);
 }
 
-/* Desktop Sidebar */
+/* Desktop Sidebar - Executive Navy Theme */
 .app-sidebar {
-  width: 260px;
+  width: 270px;
   flex-shrink: 0;
-  background-color: var(--surface-card);
-  border-right: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--navy-sidebar-start) 0%, var(--navy-sidebar-end) 100%);
+  border-right: 1px solid var(--navy-sidebar-border);
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -80,20 +97,22 @@
   height: 100vh;
   transition: width var(--duration-normal) var(--ease-default);
   z-index: var(--z-sticky);
+  box-shadow: 4px 0 24px rgba(10, 22, 40, 0.15);
 }
 
 .sidebar-header {
-  height: 64px;
+  height: 70px;
   display: flex;
   align-items: center;
   padding: 0 var(--spacing-5);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--navy-sidebar-border);
   gap: var(--spacing-3);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: var(--spacing-4) var(--spacing-3);
+  padding: var(--spacing-5) var(--spacing-3);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -101,12 +120,12 @@
 }
 
 .nav-section-title {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: var(--spacing-3) var(--spacing-3) var(--spacing-1);
+  letter-spacing: 0.08em;
+  padding: var(--spacing-4) var(--spacing-3) var(--spacing-2);
 }
 
 .sidebar-nav-item {
@@ -115,28 +134,87 @@
   gap: var(--spacing-3);
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.72);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   transition: all var(--duration-fast) var(--ease-default);
+  position: relative;
+  border-left: 3px solid transparent;
 }
 
 .sidebar-nav-item:hover {
-  background-color: var(--surface-subtle);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
 }
 
 .sidebar-nav-item.active {
-  background-color: var(--brand-subtle);
-  color: var(--brand-primary);
+  background: linear-gradient(90deg, rgba(46, 196, 182, 0.16) 0%, rgba(46, 196, 182, 0.04) 100%);
+  color: #FFFFFF;
   font-weight: var(--font-weight-semibold);
+  border-left-color: var(--brand-accent);
+  box-shadow: var(--nav-active-glow);
+}
+
+.sidebar-nav-item.active svg {
+  color: var(--brand-accent);
 }
 
 .sidebar-footer {
   padding: var(--spacing-4);
-  border-top: 1px solid var(--border-subtle);
-  background-color: var(--surface-sunken);
+  border-top: 1px solid var(--navy-sidebar-border);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.sidebar-user-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #2EC4B6 0%, #0B2545 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(46, 196, 182, 0.3);
+}
+
+.sidebar-user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-user-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #34D399;
+  font-weight: var(--font-weight-medium);
 }
 
 /* Main Content Area */
@@ -148,8 +226,10 @@
 }
 
 .app-topbar {
-  height: 64px;
-  background-color: var(--surface-card);
+  height: 70px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -158,12 +238,13 @@
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .app-content {
   flex: 1;
-  padding: var(--spacing-6);
-  max-width: 1400px;
+  padding: var(--spacing-8);
+  max-width: 1440px;
   width: 100%;
   margin: 0 auto;
 }
@@ -172,8 +253,8 @@
 .mobile-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(2px);
+  background-color: rgba(10, 22, 40, 0.7);
+  backdrop-filter: blur(4px);
   z-index: var(--z-modal-backdrop);
 }
 
@@ -182,13 +263,20 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 280px;
-  background-color: var(--surface-card);
-  box-shadow: var(--shadow-xl);
+  width: 290px;
+  background: linear-gradient(180deg, var(--navy-sidebar-start) 0%, var(--navy-sidebar-end) 100%);
+  box-shadow: var(--shadow-2xl, var(--shadow-xl));
   z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   animation: slideInRight 0.2s ease-out reverse;
+  border-right: 1px solid var(--navy-sidebar-border);
+}
+
+@media (min-width: 900px) {
+  .desktop-search-pill {
+    display: flex !important;
+  }
 }
 
 /* Responsive adjustments */
@@ -197,6 +285,7 @@
     display: none;
   }
   .app-topbar {
+    height: 64px;
     padding: 0 var(--spacing-4);
   }
   .app-content {

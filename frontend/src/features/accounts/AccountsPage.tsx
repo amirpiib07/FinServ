@@ -140,41 +140,195 @@ export const AccountsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Balance Summary Banner */}
+      {/* Hero Relationship Summary Ribbon */}
       {!loading && !error && accounts.length > 0 && (
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--spacing-6)',
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: 'var(--spacing-4)',
-            boxShadow: 'var(--shadow-lg)',
           }}
         >
-          <div>
-            <div style={{ fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-300)', fontWeight: 600 }}>
-              Consolidated Net Available Funds
+          {/* Main Total Relationship Balance Tile */}
+          <div
+            style={{
+              gridColumn: 'span 2',
+              background: 'linear-gradient(135deg, #0A192F 0%, #0F2342 60%, #172554 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'var(--spacing-6)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-lg)',
+              position: 'relative',
+              overflow: 'hidden',
+              color: '#FFFFFF',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                right: '-30px',
+                top: '-30px',
+                width: '160px',
+                height: '160px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(46, 196, 182, 0.2) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }}
+            />
+
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 'var(--spacing-2)',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'var(--brand-accent)',
+                    fontWeight: 700,
+                  }}
+                >
+                  Consolidated Net Available Funds
+                </span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '10px',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(52, 211, 153, 0.15)',
+                    color: '#34D399',
+                    fontWeight: 600,
+                    border: '1px solid rgba(52, 211, 153, 0.25)',
+                  }}
+                >
+                  DICGC Insured (₹5 Lakh)
+                </span>
+              </div>
+
+              <div style={{ margin: 'var(--spacing-2) 0', color: '#FFFFFF', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                <AmountDisplay amount={totalAvailable} size="xl" />
+              </div>
+
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.7)' }}>
+                Across {accounts.length} active core-banking account(s) • Real-time ledger settlement
+              </div>
             </div>
-            <div style={{ margin: 'var(--spacing-2) 0' }}>
-              <AmountDisplay amount={totalAvailable} size="xl" />
-            </div>
-            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-              Across {accounts.length} active retail & checking account(s) • Fully insured up to ₹5,00,000 under DICGC
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 'var(--spacing-3)',
+                marginTop: 'var(--spacing-5)',
+                paddingTop: 'var(--spacing-4)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Link to="/app/beneficiaries" style={{ textDecoration: 'none' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    color: '#FFFFFF',
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  Manage Beneficiaries <ArrowUpRight size={14} />
+                </Button>
+              </Link>
+              <Link to="/app/transfers" style={{ textDecoration: 'none' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    color: '#FFFFFF',
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  Quick Transfer <ArrowUpRight size={14} />
+                </Button>
+              </Link>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
-            <Link to="/app/beneficiaries" style={{ textDecoration: 'none' }}>
-              <Button variant="secondary" size="sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Manage Beneficiaries <ArrowUpRight size={14} />
+          {/* Relationship Metrics & Quick Actions */}
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'var(--spacing-5)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'var(--text-tertiary)',
+                  fontWeight: 600,
+                  display: 'block',
+                  marginBottom: 'var(--spacing-2)',
+                }}
+              >
+                Account Portfolio
+              </span>
+              <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {accounts.length}{' '}
+                <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  Active {accounts.length === 1 ? 'Account' : 'Accounts'}
+                </span>
+              </div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                {accounts.filter((a) => a.productType === 'SAVINGS' || a.productName?.toLowerCase().includes('savings')).length} Savings •{' '}
+                {accounts.filter((a) => a.productType === 'CURRENT' || a.productName?.toLowerCase().includes('current')).length} Current
+              </div>
+            </div>
+
+            <div style={{ marginTop: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenModalOpen(true)}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Plus size={14} /> Add Another Account
               </Button>
-            </Link>
+              <Link to="/app/statements" style={{ textDecoration: 'none' }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  style={{ width: '100%', justifyContent: 'center', color: 'var(--text-secondary)' }}
+                >
+                  Download Statements
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}

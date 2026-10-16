@@ -13,7 +13,6 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandLogo } from '@/components/common/BrandLogo';
-import { Card } from '@/components/ui/Card';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -106,53 +105,173 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div
+      className="auth-split-container"
       style={{
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--spacing-4)',
-        backgroundColor: 'var(--surface-bg)',
+        flexDirection: 'row',
+        backgroundColor: 'var(--surface-canvas)',
       }}
     >
-      <div style={{ marginBottom: 'var(--spacing-6)' }}>
-        <Link to="/" aria-label="Go to FINServ Home">
-          <BrandLogo size="lg" />
-        </Link>
-      </div>
-
-      <Card
-        variant="elevated"
+      {/* Left Executive Brand & Security Showcase */}
+      <div
+        className="auth-brand-showcase"
         style={{
-          width: '100%',
-          maxWidth: '520px',
-          padding: 'var(--spacing-6)',
-          backgroundColor: 'var(--surface-elevated)',
-          border: '1px solid var(--border-subtle)',
+          flex: '1 1 45%',
+          background: 'linear-gradient(150deg, #0A1628 0%, #0F2342 55%, #172B4D 100%)',
+          padding: 'var(--spacing-12) var(--spacing-10)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          color: '#FFFFFF',
+          position: 'relative',
+          overflow: 'hidden',
+          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
         }}
       >
-        <div style={{ marginBottom: 'var(--spacing-6)', textAlign: 'center' }}>
-          <h1
-            style={{
-              fontSize: 'var(--font-size-2xl)',
-              fontWeight: 'var(--font-weight-bold)',
-              color: 'var(--text-primary)',
-              margin: '0 0 var(--spacing-2) 0',
-            }}
-          >
-            Create Your Banking Profile
-          </h1>
-          <p
-            style={{
-              fontSize: 'var(--font-size-sm)',
-              color: 'var(--text-secondary)',
-              margin: 0,
-            }}
-          >
-            Step 1 of 2: Create secure banking credentials
-          </p>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-10%',
+            right: '-10%',
+            width: '450px',
+            height: '450px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(46, 196, 182, 0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        <div>
+          <Link to="/" aria-label="Go to FINServ Home" style={{ display: 'inline-block', marginBottom: 'var(--spacing-8)' }}>
+            <BrandLogo size="md" />
+          </Link>
+
+          <div style={{ maxWidth: '460px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'rgba(46, 196, 182, 0.15)',
+                color: 'var(--brand-accent)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 'var(--spacing-4)',
+              }}
+            >
+              <ShieldCheck size={13} />
+              RBI Digital Banking Onboarding
+            </span>
+
+            <h2
+              style={{
+                fontSize: '2rem',
+                fontWeight: 700,
+                lineHeight: 1.25,
+                margin: '0 0 var(--spacing-4) 0',
+                color: '#FFFFFF',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Open Your High-Yield Account in Minutes.
+            </h2>
+            <p
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                color: 'rgba(255, 255, 255, 0.75)',
+                lineHeight: 1.6,
+                margin: '0 0 var(--spacing-8) 0',
+              }}
+            >
+              Create your secure credentials, verify contact ownership with OTP, complete regulatory KYC, and receive your 14-digit ISO 7064 account number.
+            </p>
+
+            {/* Checklist of what's included */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
+                <CheckCircle2 size={16} color="var(--brand-accent)" />
+                <span>Zero balance minimum deposit requirement options</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
+                <CheckCircle2 size={16} color="var(--brand-accent)" />
+                <span>Instant NEFT, RTGS & IMPS transfer rails</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
+                <CheckCircle2 size={16} color="var(--brand-accent)" />
+                <span>DICGC deposit insurance up to ₹5,00,000</span>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 'var(--spacing-4)' }}>
+          Mandatory KYC verified under Prevention of Money Laundering Act (PMLA).
+        </div>
+      </div>
+
+      {/* Right Registration Card Area */}
+      <div
+        style={{
+          flex: '1 1 55%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'var(--spacing-8) var(--spacing-6)',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: '500px' }}>
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'var(--spacing-8)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-elevated)',
+            }}
+          >
+            <div style={{ marginBottom: 'var(--spacing-6)', textAlign: 'left' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-tertiary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  marginBottom: 'var(--spacing-2)',
+                }}
+              >
+                <span>Step 1 of 2: Security Credentials</span>
+              </div>
+              <h1
+                style={{
+                  fontSize: 'var(--font-size-2xl)',
+                  fontWeight: 'var(--font-weight-bold)',
+                  color: 'var(--text-primary)',
+                  margin: '0 0 var(--spacing-1) 0',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Create Your Banking Profile
+              </h1>
+              <p
+                style={{
+                  fontSize: 'var(--font-size-sm)',
+                  color: 'var(--text-secondary)',
+                  margin: 0,
+                }}
+              >
+                Enter your details to initiate your digital banking application
+              </p>
+            </div>
 
         {serverError && (
           <div
@@ -373,7 +492,9 @@ export const RegisterPage: React.FC = () => {
             Sign in here <ArrowRight size={14} />
           </Link>
         </div>
-      </Card>
+      </div>
     </div>
-  );
+  </div>
+</div>
+);
 };

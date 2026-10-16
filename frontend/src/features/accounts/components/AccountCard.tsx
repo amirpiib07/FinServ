@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { BankAccount } from '@/types/account';
-import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { AmountDisplay } from '@/components/ui/AmountDisplay';
@@ -14,6 +13,7 @@ import {
   Settings,
   CreditCard,
   ShieldAlert,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface AccountCardProps {
@@ -55,6 +55,16 @@ export const AccountCard: React.FC<AccountCardProps> = ({
     }
   };
 
+  const isCurrent =
+    account.productCode?.includes('CUR') ||
+    account.productName?.toLowerCase().includes('current');
+
+  const cardGradient = isCurrent
+    ? 'linear-gradient(135deg, #064E3B 0%, #065F46 50%, #022C22 100%)'
+    : 'linear-gradient(135deg, #0A192F 0%, #112240 55%, #0B2545 100%)';
+
+  const cardAccent = isCurrent ? '#34D399' : '#2EC4B6';
+
   const statusVariant: 'success' | 'warning' | 'danger' =
     account.status === 'ACTIVE'
       ? 'success'
@@ -63,8 +73,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       : 'danger';
 
   return (
-    <Card
-      variant="bordered"
+    <div
       className="finserv-account-card"
       style={{
         display: 'flex',
@@ -72,107 +81,238 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         justifyContent: 'space-between',
         padding: 'var(--spacing-6)',
         borderRadius: 'var(--radius-xl)',
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%), var(--color-surface)',
-        border: '1px solid var(--border-color)',
-        boxShadow: 'var(--shadow-md)',
+        background: cardGradient,
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        boxShadow:
+          '0 10px 30px -5px rgba(10, 22, 40, 0.3), 0 0 1px 1px rgba(255, 255, 255, 0.15) inset',
         position: 'relative',
         overflow: 'hidden',
+        color: '#FFFFFF',
+        minHeight: '290px',
+        transition: 'transform var(--duration-fast) var(--ease-default), box-shadow var(--duration-fast) var(--ease-default)',
       }}
     >
-      {/* Card Header: Product type, Nickname, Status badge */}
+      {/* Background Geometric Watermark SVG */}
+      <svg
+        style={{
+          position: 'absolute',
+          right: '-20px',
+          bottom: '-30px',
+          width: '260px',
+          height: '260px',
+          opacity: 0.08,
+          pointerEvents: 'none',
+        }}
+        viewBox="0 0 200 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="100" cy="100" r="90" stroke="#FFFFFF" strokeWidth="2" strokeDasharray="6 6" />
+        <circle cx="100" cy="100" r="70" stroke="#FFFFFF" strokeWidth="1.5" />
+        <circle cx="100" cy="100" r="50" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="4 4" />
+        <circle cx="100" cy="100" r="30" stroke="#FFFFFF" strokeWidth="2" />
+        <path d="M10 100H190M100 10V190" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.5" />
+      </svg>
+
+      {/* Card Top: Brand mark, Chip, and Status Pill */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-3)' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-              <CreditCard size={18} color="var(--color-primary-400)" />
-              <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
-                {account.productName || 'FinServ Retail Account'}
-              </h3>
-            </div>
-            {account.nickname && (
-              <span
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--spacing-4)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+            {/* Metallic Gold EMV Chip Icon */}
+            <div
+              style={{
+                width: '34px',
+                height: '26px',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #F6D365 0%, #FDA085 100%)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.4)',
+                position: 'relative',
+              }}
+            >
+              <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--color-primary-400)',
-                  fontWeight: 500,
-                  display: 'inline-block',
-                  marginTop: 'var(--spacing-1)',
+                  width: '22px',
+                  height: '14px',
+                  border: '1px solid rgba(0,0,0,0.25)',
+                  borderRadius: '2px',
                 }}
-              >
-                &ldquo;{account.nickname}&rdquo;
-              </span>
-            )}
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                color: cardAccent,
+              }}
+            >
+              <CreditCard size={12} />
+              <span>{isCurrent ? 'CURRENT' : 'SAVINGS'}</span>
+            </div>
           </div>
+
           <Badge variant={statusVariant}>{account.status}</Badge>
         </div>
 
-        {/* Account Number with Reveal & Copy */}
+        {/* Product Title and Nickname */}
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
+          <h3
+            style={{
+              fontSize: '1.05rem',
+              fontWeight: 600,
+              margin: 0,
+              color: '#FFFFFF',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {account.productName || 'FinServ Retail Account'}
+          </h3>
+          {account.nickname && (
+            <span
+              style={{
+                fontSize: 'var(--font-size-xs)',
+                color: 'rgba(255, 255, 255, 0.75)',
+                fontWeight: 500,
+                display: 'inline-block',
+                marginTop: '2px',
+              }}
+            >
+              &ldquo;{account.nickname}&rdquo;
+            </span>
+          )}
+        </div>
+
+        {/* Frosted Glass Account Number Bar */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--spacing-3)',
-            backgroundColor: 'rgba(0, 0, 0, 0.25)',
-            padding: 'var(--spacing-2) var(--spacing-3)',
+            gap: 'var(--spacing-2)',
+            backgroundColor: 'rgba(0, 0, 0, 0.28)',
+            backdropFilter: 'blur(10px)',
+            padding: '8px 12px',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            margin: 'var(--spacing-3) 0 var(--spacing-5)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            marginBottom: 'var(--spacing-5)',
           }}
         >
-          <div style={{ flex: 1, fontFamily: 'monospace', fontSize: 'var(--font-size-sm)', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+          <div
+            style={{
+              flex: 1,
+              fontFamily: 'var(--font-family-mono)',
+              fontSize: '13px',
+              letterSpacing: '0.1em',
+              color: '#FFFFFF',
+              fontWeight: 600,
+            }}
+          >
             {revealed ? account.accountNumber : account.maskedAccountNumber}
           </div>
+
           <button
             type="button"
             onClick={() => setRevealed(!revealed)}
             style={{
-              background: 'none',
+              background: 'rgba(255, 255, 255, 0.08)',
               border: 'none',
+              borderRadius: '4px',
               cursor: 'pointer',
-              color: 'var(--text-secondary)',
+              color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
-              padding: 'var(--spacing-1)',
+              padding: '4px 6px',
+              transition: 'background var(--duration-fast)',
             }}
             title={revealed ? 'Hide account number' : 'Reveal full account number'}
             aria-label={revealed ? 'Hide account number' : 'Reveal full account number'}
           >
-            {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
+            {revealed ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
+
           <button
             type="button"
             onClick={handleCopyAcc}
             style={{
-              background: 'none',
+              background: 'rgba(255, 255, 255, 0.08)',
               border: 'none',
+              borderRadius: '4px',
               cursor: 'pointer',
-              color: copiedAcc ? 'var(--color-success-400)' : 'var(--text-secondary)',
+              color: copiedAcc ? '#34D399' : '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
-              padding: 'var(--spacing-1)',
+              padding: '4px 6px',
+              transition: 'background var(--duration-fast)',
             }}
             title="Copy account number"
             aria-label="Copy account number"
           >
-            {copiedAcc ? <Check size={16} /> : <Copy size={16} />}
+            {copiedAcc ? <Check size={15} /> : <Copy size={15} />}
           </button>
         </div>
 
-        {/* Balances Display */}
-        <div style={{ marginBottom: 'var(--spacing-5)' }}>
-          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {/* Available Balance Header & Amount */}
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
+          <div
+            style={{
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.65)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontWeight: 600,
+            }}
+          >
             Available Balance
           </div>
-          <div style={{ margin: 'var(--spacing-1) 0' }}>
+          <div style={{ margin: '4px 0 6px', color: '#FFFFFF', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
             <AmountDisplay amount={account.availableBalance} size="xl" />
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--spacing-4)', marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-4)',
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.75)',
+            }}
+          >
             <div>
-              Current: <strong style={{ color: 'var(--text-secondary)' }}><AmountDisplay amount={account.currentBalance} size="sm" /></strong>
+              Current:{' '}
+              <strong style={{ color: '#FFFFFF' }}>
+                <AmountDisplay amount={account.currentBalance} size="sm" />
+              </strong>
             </div>
             {Number(account.holdBalance) > 0 && (
-              <div style={{ color: 'var(--color-warning-400)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div
+                style={{
+                  color: '#FBBF24',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                }}
+              >
                 <ShieldAlert size={12} />
                 Hold: <AmountDisplay amount={account.holdBalance} size="sm" />
               </div>
@@ -183,23 +323,26 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         {/* Branch & IFSC Info */}
         <div
           style={{
-            borderTop: '1px solid var(--border-color)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
             paddingTop: 'var(--spacing-3)',
             marginBottom: 'var(--spacing-4)',
-            fontSize: 'var(--font-size-xs)',
-            color: 'var(--text-secondary)',
+            fontSize: '11px',
+            color: 'rgba(255, 255, 255, 0.75)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-            <Building size={14} color="var(--text-tertiary)" />
+            <Building size={13} color="rgba(255, 255, 255, 0.6)" />
             <span>{account.branchName || 'Head Office'}</span>
           </div>
+
           {account.ifscCode && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-1)' }}>
-              <span>IFSC: <strong style={{ color: 'var(--text-primary)' }}>{account.ifscCode}</strong></span>
+              <span>
+                IFSC: <strong style={{ color: '#FFFFFF' }}>{account.ifscCode}</strong>
+              </span>
               <button
                 type="button"
                 onClick={handleCopyIfsc}
@@ -207,7 +350,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: copiedIfsc ? 'var(--color-success-400)' : 'var(--text-tertiary)',
+                  color: copiedIfsc ? '#34D399' : 'rgba(255, 255, 255, 0.6)',
                   padding: '2px',
                 }}
                 title="Copy IFSC code"
@@ -221,15 +364,29 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       </div>
 
       {/* Card Actions */}
-      <div style={{ display: 'flex', gap: 'var(--spacing-2)', paddingTop: 'var(--spacing-2)' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 'var(--spacing-2)',
+          paddingTop: 'var(--spacing-2)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        }}
+      >
         {onViewDetails && (
           <Button
             variant="secondary"
             size="sm"
             onClick={() => onViewDetails(account)}
-            style={{ flex: 1 }}
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              color: '#FFFFFF',
+              borderColor: 'rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(8px)',
+              fontWeight: 500,
+            }}
           >
-            Details
+            Details <ArrowUpRight size={13} style={{ marginLeft: '4px' }} />
           </Button>
         )}
         {onEditControls && (
@@ -239,11 +396,15 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             onClick={() => onEditControls(account)}
             title="Account Controls & Preferences"
             aria-label="Account Controls"
+            style={{
+              color: 'rgba(255, 255, 255, 0.85)',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            }}
           >
             <Settings size={16} />
           </Button>
         )}
       </div>
-    </Card>
+    </div>
   );
 };

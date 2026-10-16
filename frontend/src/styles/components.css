@@ -838,7 +838,7 @@
 }
 .amount-positive { color: var(--color-success-text); }
 .amount-negative { color: var(--color-danger); }
-.amount-neutral { color: var(--text-primary); }
+.amount-neutral { color: inherit; }
 
 .amount-symbol {
   font-family: var(--font-family-sans);

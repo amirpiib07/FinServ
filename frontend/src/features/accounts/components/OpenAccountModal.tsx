@@ -148,46 +148,112 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
           {/* Product Comparison Selector */}
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--spacing-2)', color: 'var(--text-primary)' }}>
-              1. Choose Account Product
+              1. Choose Account Product Tier
             </label>
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: 'var(--spacing-3)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: 'var(--spacing-4)',
               }}
             >
               {products.map((p) => {
                 const isSelected = p.id === selectedProductId;
+                const isSavings = p.productType === 'SAVINGS';
                 return (
                   <div
                     key={p.id}
                     onClick={() => setSelectedProductId(p.id)}
                     style={{
                       cursor: 'pointer',
-                      padding: 'var(--spacing-4)',
-                      borderRadius: 'var(--radius-lg)',
-                      border: `2px solid ${isSelected ? 'var(--color-primary-500)' : 'var(--border-color)'}`,
-                      backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'var(--color-surface)',
-                      transition: 'border-color 0.15s, background-color 0.15s',
+                      padding: 'var(--spacing-5)',
+                      borderRadius: 'var(--radius-xl)',
+                      border: isSelected
+                        ? '2px solid var(--brand-accent)'
+                        : '1px solid var(--border-subtle)',
+                      backgroundColor: isSelected
+                        ? 'rgba(46, 196, 182, 0.05)'
+                        : 'var(--surface-card)',
+                      boxShadow: isSelected
+                        ? '0 0 0 1px var(--brand-accent), 0 8px 20px -4px rgba(46, 196, 182, 0.2)'
+                        : 'var(--shadow-card)',
+                      transition: 'all var(--duration-fast) var(--ease-default)',
+                      position: 'relative',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-1)' }}>
-                      <span style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            backgroundColor: isSavings ? 'rgba(5, 150, 105, 0.1)' : 'rgba(37, 99, 235, 0.1)',
+                            color: isSavings ? '#059669' : '#2563EB',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          {p.productType}
+                        </span>
+                        {isSelected && <CheckCircle2 size={18} color="var(--brand-accent)" />}
+                      </div>
+
+                      <div style={{ fontWeight: 700, fontSize: 'var(--font-size-base)', color: 'var(--text-primary)', marginBottom: 'var(--spacing-1)' }}>
                         {p.productName}
-                      </span>
-                      {isSelected && <CheckCircle2 size={16} color="var(--color-primary-500)" />}
-                    </div>
-                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-2)' }}>
-                      Code: {p.productCode} • {p.productType}
-                    </div>
-                    <div style={{ fontSize: 'var(--font-size-xs)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ color: 'var(--color-success-400)', fontWeight: 500 }}>
-                        {p.interestRatePercentage}% p.a. interest
-                      </span>
-                      <span style={{ color: 'var(--text-tertiary)' }}>
-                        Min Balance: <AmountDisplay amount={p.minBalance} size="sm" />
-                      </span>
+                      </div>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-3)' }}>
+                        Code: {p.productCode}
+                      </div>
+
+                      {/* Pricing / Rates ribbon */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 'var(--spacing-2)',
+                          padding: 'var(--spacing-2) var(--spacing-3)',
+                          backgroundColor: 'var(--surface-subtle)',
+                          borderRadius: 'var(--radius-md)',
+                          marginBottom: 'var(--spacing-3)',
+                        }}
+                      >
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>
+                          {p.interestRatePercentage}%
+                        </span>
+                        <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                          p.a. interest
+                        </span>
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            fontSize: '11px',
+                            color: 'var(--text-tertiary)',
+                          }}
+                        >
+                          Min: <AmountDisplay amount={p.minBalance} size="sm" />
+                        </span>
+                      </div>
+
+                      {/* Key Perks Checklist */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle2 size={13} color="#059669" />
+                          <span>Instant 14-digit ISO 7064 account</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle2 size={13} color="#059669" />
+                          <span>Zero fee NEFT / RTGS transfers</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle2 size={13} color="#059669" />
+                          <span>24x7 Core-banking lock & controls</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );

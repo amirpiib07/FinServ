@@ -3,12 +3,13 @@
  * Desktop sidebar, mobile navigation drawer, top bar, and content breadcrumbs
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { BrandLogoPlaceholder } from '@/components/common/BrandLogo';
 import { HealthWidget } from '@/features/health/HealthWidget';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { AuthContext } from '@/context/AuthContext';
 import {
   LayoutDashboard,
   Wallet,
@@ -21,14 +22,17 @@ import {
   Menu,
   X,
   Building2,
-  User,
   Users,
+  Search,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
 
   const navItems = [
     { to: '/app', label: 'Dashboard', icon: <LayoutDashboard size={18} />, end: true },
@@ -55,6 +59,9 @@ export const AppLayout: React.FC = () => {
     }),
   ];
 
+  const displayName = user?.username ? user.username : 'Customer';
+  const userInitials = (user?.username || 'CU').slice(0, 2).toUpperCase();
+
   return (
     <div className="app-shell">
       {/* Desktop Sidebar */}
@@ -65,7 +72,7 @@ export const AppLayout: React.FC = () => {
 
         <nav className="sidebar-nav">
           <div className="nav-section-title">Core Banking</div>
-          {navItems.map(item => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -81,12 +88,34 @@ export const AppLayout: React.FC = () => {
         </nav>
 
         <div className="sidebar-footer">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-2)' }}>
-            <Building2 size={16} color="var(--text-tertiary)" />
-            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
-              Branch 1001 (Head Office)
-            </span>
+          {/* Executive User Profile Card */}
+          <div className="sidebar-user-profile">
+            <div className="sidebar-user-avatar">{userInitials}</div>
+            <div className="sidebar-user-details">
+              <div className="sidebar-user-name" title={displayName}>
+                {displayName}
+              </div>
+              <div className="sidebar-user-status">
+                <CheckCircle2 size={12} color="#34D399" />
+                <span>KYC Verified Tier 1</span>
+              </div>
+            </div>
           </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-2)',
+              padding: '0 var(--spacing-1)',
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.5)',
+            }}
+          >
+            <Building2 size={14} color="rgba(255, 255, 255, 0.5)" />
+            <span>Branch 1001 (Mumbai HQ)</span>
+          </div>
+
           <HealthWidget compact />
         </div>
       </aside>
@@ -98,7 +127,7 @@ export const AppLayout: React.FC = () => {
           <Dialog.Content
             className="mobile-drawer-content"
             aria-label="Mobile Navigation Menu"
-            onCloseAutoFocus={e => {
+            onCloseAutoFocus={(e) => {
               e.preventDefault();
               triggerRef.current?.focus();
             }}
@@ -111,6 +140,7 @@ export const AppLayout: React.FC = () => {
                   type="button"
                   className="btn-icon btn-ghost"
                   aria-label="Close navigation menu"
+                  style={{ color: '#FFFFFF' }}
                 >
                   <X size={20} />
                 </button>
@@ -118,7 +148,7 @@ export const AppLayout: React.FC = () => {
             </div>
 
             <nav className="sidebar-nav">
-              {navItems.map(item => (
+              {navItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -135,6 +165,16 @@ export const AppLayout: React.FC = () => {
             </nav>
 
             <div className="sidebar-footer">
+              <div className="sidebar-user-profile">
+                <div className="sidebar-user-avatar">{userInitials}</div>
+                <div className="sidebar-user-details">
+                  <div className="sidebar-user-name">{displayName}</div>
+                  <div className="sidebar-user-status">
+                    <CheckCircle2 size={12} color="#34D399" />
+                    <span>Verified Customer</span>
+                  </div>
+                </div>
+              </div>
               <HealthWidget compact />
             </div>
           </Dialog.Content>
@@ -150,33 +190,129 @@ export const AppLayout: React.FC = () => {
               type="button"
               className="btn-icon btn-ghost"
               style={{ display: 'inline-flex' }}
-              onClick={() => setMobileMenuOpen(prev => !prev)}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
               <Menu size={20} />
             </button>
 
-            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-secondary)' }}>
-              FINServ Core Banking Portal
-            </span>
+            <div>
+              <span
+                style={{
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 'var(--font-weight-semibold)',
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                FINServ Core Banking Portal
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+          {/* Topbar Search Pill & Environment Badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
+            {/* Quick Command Pill */}
+            <div
+              style={{
+                display: 'none',
+                alignItems: 'center',
+                gap: 'var(--spacing-2)',
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-full)',
+                padding: '6px 14px',
+                fontSize: 'var(--font-size-xs)',
+                color: 'var(--text-tertiary)',
+                cursor: 'pointer',
+              }}
+              className="desktop-search-pill"
+            >
+              <Search size={14} color="var(--text-tertiary)" />
+              <span>Search accounts, payees...</span>
+              <kbd
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                ⌘K
+              </kbd>
+            </div>
+
+            {/* Regulatory Simulation Badge */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(5, 150, 105, 0.08)',
+                border: '1px solid rgba(5, 150, 105, 0.25)',
+                color: '#065F46',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+              }}
+            >
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10B981',
+                  boxShadow: '0 0 6px #10B981',
+                  display: 'inline-block',
+                }}
+              />
+              <span>LIVE SIMULATION / RBI PILOT</span>
+            </div>
+
+            {/* User Pill */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'var(--spacing-2)',
-                padding: 'var(--spacing-1) var(--spacing-3)',
+                padding: '4px 12px 4px 6px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--surface-subtle)',
-                fontSize: 'var(--font-size-xs)',
-                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--surface-card)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-xs)',
               }}
             >
-              <User size={14} />
-              <span>Phase 4 Auth (Guest)</span>
+              <div
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #0B2545 0%, #2EC4B6 100%)',
+                  color: '#FFFFFF',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {userInitials}
+              </div>
+              <span
+                style={{
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {displayName}
+              </span>
             </div>
           </div>
         </header>
