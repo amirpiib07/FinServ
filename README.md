@@ -159,15 +159,17 @@ FINSERV/
    ```bash
    npm run lint        # ESLint 9 checks
    npm run typecheck   # TypeScript strict checks (noUncheckedIndexedAccess)
-   npm test            # 101 Vitest unit and accessibility tests
+   npm test            # 110 Vitest unit, component, and accessibility tests
    ```
 
 3. **Start Frontend Dev Server**:
    ```bash
    npm run dev
    ```
-   - Public Layout: `http://localhost:5173/`
-   - Core Banking Layout: `http://localhost:5173/app`
+   - Authentication: `http://localhost:5173/login`
+   - Core Banking Layout: `http://localhost:5173/app/accounts`
+   - Transfer Studio: `http://localhost:5173/app/transfers`
+   - Digital Passbook & Statements: `http://localhost:5173/app/statements`
    - Living Design System: `http://localhost:5173/design-system` (Dev-only, live Actuator probe)
 
 4. **Production Build**:
@@ -186,7 +188,7 @@ Development progresses strictly through phased milestone iterations following th
 - **Phase 2**: Frontend Foundation & UI Component Kit (`COMPLETED`)
 - **Phase 3**: Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC (`COMPLETED`)
 - **Phase 4**: Accounts (Applications, Opening, Details) & Beneficiary Management (`COMPLETED`)
-- **Phase 5**: Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts (`NOT STARTED`)
+- **Phase 5**: Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts (`COMPLETED`)
 - **Phase 6**: Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs) (`NOT STARTED`)
 - **Phase 7**: Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs (`NOT STARTED`)
 

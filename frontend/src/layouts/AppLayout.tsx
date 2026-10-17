@@ -83,7 +83,7 @@ export const AppLayout: React.FC = () => {
     { to: '/app/transfers', label: 'Fund Transfers', icon: <ArrowLeftRight size={18} /> },
     { to: '/app/deposits', label: 'Term Deposits', icon: <PiggyBank size={18} /> },
     { to: '/app/cards', label: 'Cards & UPI', icon: <CreditCard size={18} /> },
-    { to: '/app/statements', label: 'Statements & Tax', icon: <FileText size={18} /> },
+    { to: '/app/statements', label: 'Passbook & Statements', icon: <FileText size={18} /> },
     { to: '/app/audit', label: 'Audit Security', icon: <ShieldCheck size={18} /> },
   ];
 
