@@ -501,3 +501,47 @@ Following the dedicated UI/UX review request, a complete visual and micro-intera
    - `08-login-mobile.png`: Responsive mobile login view (375px).
    - `09-accounts-mobile.png`: Responsive mobile account cards & stats view (375px).
    - `10-beneficiaries-mobile.png`: Responsive mobile payee cards & filters view (375px).
+
+---
+
+## 15. Luxury Fintech UI, Entry Routing, Dual Theme (Light + Obsidian Dark), Colour Grading & Motion Upgrade
+
+Executed a comprehensive luxury fintech upgrade inspired by Revolut, Mercury, and CRED across the customer application:
+
+1. **Entry Routing & Zero Developer Jargon**:
+   - Replaced root `/` developer showcase with `<RootRedirect />`:
+     - Unauthenticated visitors immediately redirect to `/login` (`<Navigate to="/login" replace />`).
+     - Authenticated customers with incomplete KYC redirect to `/onboarding`.
+     - Fully verified customers redirect directly to `/app/accounts`.
+   - Purged all meta/engineering jargon (`Spring Boot 3.3`, `React 19`, `IEEE 754`, `BigDecimal`, `Radix`) from customer-facing screens in favor of authentic institutional banking copy.
+   - Restricted `/design-system` strictly to direct URL entry in dev mode; removed from all public navigation.
+
+2. **Dual Theme Architecture (Zero-Flicker Light + Obsidian Dark)**:
+   - Zero-flicker initialization script in `<head>` reading `finserv_theme` from `localStorage` with system `prefers-color-scheme` fallback.
+   - Comprehensive `ThemeProvider` and resilient `useTheme` hook with safe fallback for isolated test suites.
+   - Sleek animated Sun/Moon `ThemeToggle` component with 180° rotation and spring physics in Auth headers and App Shell.
+   - Colour Grading Tokens (`tokens.css`):
+     - **Light Mode**: Warm alabaster canvas (`#F4F7FB`), pure crisp white cards (`#FFFFFF`) with multi-layer ambient shadows, deep navy brand (`#0B192C`), interactive royal blue (`#1D4ED8`), and emerald wealth accent (`#10B981`).
+     - **Obsidian Dark Mode**: Deep midnight obsidian canvas (`#060B14`), elevated glassmorphic navy-slate cards (`#0D1627` / `rgba(17, 28, 48, 0.78)` with `backdrop-filter: blur(16px)`), luminous 1px borders (`rgba(255, 255, 255, 0.08)`), glowing emerald (`#34D399`), champagne gold (`#F59E0B`), and electric cyan (`#38BDF8`).
+
+3. **Fluid Motion & Micro-Interactions System**:
+   - CSS animation keyframes: `pageSlideUp` (280ms cubic-bezier), `cardReveal` with stagger utilities (`stagger-1`..`stagger-4`).
+   - Interactive 3D Metallic Bank Cards with perspective sheen, mesh glow sweep, and smooth lift (`translateY(-4px) scale(1.01)`).
+   - Tactile button physics (`active: scale(0.98)`), glowing focus rings, and animated loading indicators.
+   - Contextual financial success animations: custom animated SVG checkmark burst with concentric ripple rings for account opening, KYC submission, and beneficiary verification (strictly post-backend confirmation).
+
+4. **Screen-by-Screen Upgrades**:
+   - `/login` & `/register`: Immersive full-viewport (`100vh`) split-screen layout, 3D Platinum Card preview, official FinServ logo, live security indicators, and top-right ThemeToggle.
+   - `/onboarding`: Dynamic stepper with glowing halo, animated radar sweep verification progress screen, and theme toggle.
+   - `/app/accounts`: Relationship overview ribbon, metallic debit cards (Navy-Cyan for Savings, Obsidian-Emerald for Current), unmask eye toggle, copy toast feedback.
+   - `/app/beneficiaries`: Initials avatars, bank classification badges, search and filter pills, and verified payee success animations.
+
+5. **Automated Verification Evidence (`docs/evidence/phase-4-ui/`)**:
+   - `01-login-light-1440px.png`: Light mode split-screen login.
+   - `02-login-dark-obsidian-1440px.png`: Obsidian dark mode split-screen login.
+   - `03-register-dark-obsidian-1440px.png`: Obsidian dark mode registration.
+   - `04-accounts-dark-obsidian-1440px.png`: Obsidian dark mode accounts dashboard & 3D cards.
+   - `05-accounts-light-1440px.png`: Light mode accounts dashboard & 3D cards.
+   - `06-beneficiaries-light-1440px.png`: Light mode beneficiary management directory.
+   - `07-beneficiaries-dark-obsidian-1440px.png`: Obsidian dark mode beneficiary management directory.
+   - `08-accounts-mobile-375px.png`: Mobile responsive layout at 375px.

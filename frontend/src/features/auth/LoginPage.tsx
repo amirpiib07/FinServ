@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandLogo } from '@/components/common/BrandLogo';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   Database,
   KeyRound,
+  Wifi,
 } from 'lucide-react';
 import type { AppError } from '@/types/api';
 
@@ -35,7 +37,7 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app/accounts';
 
   const {
     register,
@@ -71,7 +73,7 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div
-      className="auth-split-container"
+      className="auth-split-container page-transition-enter"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -79,12 +81,12 @@ export const LoginPage: React.FC = () => {
         backgroundColor: 'var(--surface-canvas)',
       }}
     >
-      {/* Left Executive Brand & Security Showcase (Desktop) */}
+      {/* Left Executive Brand & Platinum Showcase Panel (Desktop) */}
       <div
         className="auth-brand-showcase"
         style={{
-          flex: '1 1 45%',
-          background: 'linear-gradient(150deg, #0A1628 0%, #0F2342 55%, #172B4D 100%)',
+          flex: '1 1 48%',
+          background: 'linear-gradient(145deg, #060D1A 0%, #0A192F 50%, #0F2942 100%)',
           padding: 'var(--spacing-12) var(--spacing-10)',
           display: 'flex',
           flexDirection: 'column',
@@ -95,35 +97,77 @@ export const LoginPage: React.FC = () => {
           borderRight: '1px solid rgba(255, 255, 255, 0.08)',
         }}
       >
-        {/* Subtle Watermark Circles */}
+        {/* Ambient Radial Mesh Background Glows */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-15%',
+            left: '-15%',
+            width: '500px',
+            height: '500px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
         <div
           style={{
             position: 'absolute',
             bottom: '-10%',
             right: '-10%',
-            width: '450px',
-            height: '450px',
+            width: '480px',
+            height: '480px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(46, 196, 182, 0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
 
         <div>
-          <Link to="/" aria-label="Go to FINServ Home" style={{ display: 'inline-block', marginBottom: 'var(--spacing-8)' }}>
-            <BrandLogo size="md" />
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-8)' }}>
+            <Link to="/" aria-label="FINServ Banking Home" style={{ textDecoration: 'none' }}>
+              <BrandLogo size="md" />
+            </Link>
 
-          <div style={{ maxWidth: '460px' }}>
+            {/* Live Network Status Indicator */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#34D399',
+              }}
+            >
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#34D399',
+                  boxShadow: '0 0 8px #34D399',
+                  display: 'inline-block',
+                }}
+              />
+              <span>RBI PILOT • CORE CLEARING LIVE</span>
+            </div>
+          </div>
+
+          <div style={{ maxWidth: '480px' }}>
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '3px 10px',
+                padding: '4px 12px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: 'rgba(46, 196, 182, 0.15)',
-                color: 'var(--brand-accent)',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                color: '#38BDF8',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.06em',
@@ -131,13 +175,13 @@ export const LoginPage: React.FC = () => {
                 marginBottom: 'var(--spacing-4)',
               }}
             >
-              <ShieldCheck size={13} />
-              Enterprise Security Architecture
+              <ShieldCheck size={14} />
+              Enterprise Institutional Security
             </span>
 
             <h2
               style={{
-                fontSize: '2rem',
+                fontSize: 'clamp(1.75rem, 2.5vw, 2.25rem)',
                 fontWeight: 700,
                 lineHeight: 1.25,
                 margin: '0 0 var(--spacing-4) 0',
@@ -155,11 +199,73 @@ export const LoginPage: React.FC = () => {
                 margin: '0 0 var(--spacing-8) 0',
               }}
             >
-              Instant ISO 7064 account openings, immutable double-entry general ledger consistency, and dual-officer authorization workflows.
+              Instant ISO 7064 account openings, immutable double-entry general ledger, and dual-officer authorization workflows.
             </p>
 
+            {/* Stylized FinServ Platinum Card Preview */}
+            <div
+              className="finserv-account-card"
+              style={{
+                maxWidth: '380px',
+                borderRadius: 'var(--radius-xl)',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+                padding: 'var(--spacing-5)',
+                marginBottom: 'var(--spacing-8)',
+                position: 'relative',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="emv-chip">
+                    <div className="emv-chip-line-horizontal" />
+                    <div className="emv-chip-line-vertical" />
+                    <div className="emv-chip-center" />
+                  </div>
+                  <Wifi size={16} color="rgba(255, 255, 255, 0.7)" style={{ transform: 'rotate(90deg)' }} />
+                </div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', color: '#F59E0B', textTransform: 'uppercase' }}>
+                  PLATINUM WEALTH
+                </div>
+              </div>
+
+              <div
+                style={{
+                  fontFamily: 'var(--font-family-mono)',
+                  fontSize: '1.15rem',
+                  letterSpacing: '0.18em',
+                  color: '#FFFFFF',
+                  margin: 'var(--spacing-3) 0',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                }}
+              >
+                •••• &nbsp;•••• &nbsp;•••• &nbsp;8821
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'var(--spacing-4)' }}>
+                <div>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: '0.05em' }}>
+                    Cardholder
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#FFFFFF' }}>
+                    EXECUTIVE DEPOSITOR
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: '0.05em' }}>
+                    Valid Thru
+                  </div>
+                  <div style={{ fontSize: '12px', fontFamily: 'var(--font-family-mono)', color: '#FFFFFF' }}>
+                    12/30
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Trust Badges */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                 <div
                   style={{
@@ -180,7 +286,7 @@ export const LoginPage: React.FC = () => {
                     256-bit AES-GCM Encrypted
                   </div>
                   <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
-                    Hardware-isolated session keys & TLS 1.3 transport security.
+                    Hardware-isolated session keys and TLS 1.3 transport security.
                   </div>
                 </div>
               </div>
@@ -195,7 +301,7 @@ export const LoginPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--brand-accent)',
+                    color: '#38BDF8',
                   }}
                 >
                   <Database size={16} />
@@ -205,7 +311,7 @@ export const LoginPage: React.FC = () => {
                     Double-Entry Verified Ledger
                   </div>
                   <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
-                    Zero floating-point arithmetic with strict mathematical zero-sum balance.
+                    Strict mathematical zero-sum balance and cryptographic idempotency.
                   </div>
                 </div>
               </div>
@@ -220,17 +326,17 @@ export const LoginPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#FBBF24',
+                    color: '#F59E0B',
                   }}
                 >
                   <KeyRound size={16} />
                 </div>
                 <div>
                   <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: '#FFFFFF' }}>
-                    RBI-Grade Security Workflow
+                    Institutional Authorization Workflow
                   </div>
                   <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
-                    Maker-checker dual approvals and automated cooling-off transfer limits.
+                    Dual-officer approvals and cooling-off transfer protection.
                   </div>
                 </div>
               </div>
@@ -243,21 +349,27 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Authentication Card Area */}
+      {/* Right Authentication Area */}
       <div
         style={{
-          flex: '1 1 55%',
+          flex: '1 1 52%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           padding: 'var(--spacing-8) var(--spacing-6)',
+          position: 'relative',
         }}
       >
+        {/* Sleek Theme Toggle in Top Right Corner */}
+        <div style={{ position: 'absolute', top: 'var(--spacing-6)', right: 'var(--spacing-6)' }}>
+          <ThemeToggle variant="glass" size="md" />
+        </div>
+
         <div style={{ width: '100%', maxWidth: '440px' }}>
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--surface-card)',
               borderRadius: 'var(--radius-xl)',
               padding: 'var(--spacing-8)',
               border: '1px solid var(--border-subtle)',
@@ -272,7 +384,7 @@ export const LoginPage: React.FC = () => {
                   gap: '6px',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: 'var(--text-tertiary)',
+                  color: 'var(--brand-accent)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   marginBottom: 'var(--spacing-2)',
@@ -310,10 +422,10 @@ export const LoginPage: React.FC = () => {
                   alignItems: 'flex-start',
                   gap: 'var(--spacing-3)',
                   padding: 'var(--spacing-3) var(--spacing-4)',
-                  backgroundColor: '#FEF2F2',
-                  border: '1px solid #FECACA',
+                  backgroundColor: 'var(--color-danger-subtle)',
+                  border: '1px solid var(--color-danger-border)',
                   borderRadius: 'var(--radius-md)',
-                  color: '#DC2626',
+                  color: 'var(--color-danger)',
                   fontSize: 'var(--font-size-sm)',
                   marginBottom: 'var(--spacing-5)',
                 }}
@@ -369,11 +481,11 @@ export const LoginPage: React.FC = () => {
                 }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Lock size={12} color="#059669" />
+                  <Lock size={12} color="var(--color-success)" />
                   256-bit SSL Session
                 </span>
                 <span style={{ color: 'var(--text-tertiary)' }}>
-                  Self-service recovery in Ph.6
+                  Branch Helpdesk / 24x7 Support
                 </span>
               </div>
 
@@ -403,7 +515,7 @@ export const LoginPage: React.FC = () => {
               <Link
                 to="/register"
                 style={{
-                  color: '#2563EB',
+                  color: 'var(--brand-accent)',
                   fontWeight: 'var(--font-weight-semibold)',
                   display: 'inline-flex',
                   alignItems: 'center',

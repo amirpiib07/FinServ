@@ -150,7 +150,7 @@ export const BeneficiariesPage: React.FC = () => {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 'var(--spacing-4)',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--surface-card)',
           padding: 'var(--spacing-4) var(--spacing-5)',
           borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--border-subtle)',
@@ -184,15 +184,15 @@ export const BeneficiariesPage: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  background: isActive ? '#0B2545' : 'var(--surface-subtle)',
+                  background: isActive ? 'var(--interactive-primary)' : 'var(--surface-subtle)',
                   color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                  border: `1px solid ${isActive ? '#0B2545' : 'var(--border-default)'}`,
+                  border: `1px solid ${isActive ? 'var(--interactive-primary)' : 'var(--border-subtle)'}`,
                   padding: '6px 14px',
                   borderRadius: 'var(--radius-full)',
                   fontSize: 'var(--font-size-xs)',
                   fontWeight: isActive ? 600 : 500,
                   cursor: 'pointer',
-                  boxShadow: isActive ? '0 2px 8px rgba(11, 37, 69, 0.2)' : 'none',
+                  boxShadow: isActive ? '0 2px 10px rgba(29, 78, 216, 0.25)' : 'none',
                   transition: 'all var(--duration-fast) var(--ease-default)',
                 }}
               >
@@ -252,13 +252,14 @@ export const BeneficiariesPage: React.FC = () => {
             gap: 'var(--spacing-5)',
           }}
         >
-          {filteredBeneficiaries.map((b) => (
-            <BeneficiaryCard
-              key={b.id}
-              beneficiary={b}
-              onVerify={(beneficiary) => setSelectedForVerify(beneficiary)}
-              onDelete={(beneficiary) => setSelectedForDelete(beneficiary)}
-            />
+          {filteredBeneficiaries.map((b, index) => (
+            <div key={b.id} className={`stagger-${(index % 4) + 1}`}>
+              <BeneficiaryCard
+                beneficiary={b}
+                onVerify={(beneficiary) => setSelectedForVerify(beneficiary)}
+                onDelete={(beneficiary) => setSelectedForDelete(beneficiary)}
+              />
+            </div>
           ))}
         </div>
       )}

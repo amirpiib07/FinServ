@@ -62,7 +62,7 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
       style={{
         padding: 'var(--spacing-5)',
         borderRadius: 'var(--radius-xl)',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'var(--surface-card)',
         border: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
@@ -178,7 +178,7 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
                   fontFamily: 'var(--font-family-mono)',
                   fontSize: '11px',
                   fontWeight: 600,
-                  backgroundColor: 'rgba(15, 23, 42, 0.06)',
+                  backgroundColor: 'var(--surface-muted)',
                   padding: '1px 5px',
                   borderRadius: '4px',
                   color: 'var(--text-primary)',
@@ -207,14 +207,14 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
               alignItems: 'center',
               gap: 'var(--spacing-2)',
               fontSize: 'var(--font-size-xs)',
-              color: '#B45309',
-              backgroundColor: '#FFFBEB',
-              border: '1px solid #FDE68A',
+              color: 'var(--color-warning-text)',
+              backgroundColor: 'var(--color-warning-subtle)',
+              border: '1px solid var(--color-warning-border)',
               padding: 'var(--spacing-2) var(--spacing-3)',
               borderRadius: 'var(--radius-md)',
             }}
           >
-            <ShieldAlert size={14} color="#D97706" style={{ flexShrink: 0 }} />
+            <ShieldAlert size={14} color="var(--color-warning-500)" style={{ flexShrink: 0 }} />
             <span>Pending OTP verification before transfer activation.</span>
           </div>
         ) : beneficiary.coolingOffUntil && new Date(beneficiary.coolingOffUntil) > new Date() ? (
@@ -224,14 +224,14 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
               alignItems: 'center',
               gap: 'var(--spacing-2)',
               fontSize: '11px',
-              color: '#1D4ED8',
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #BFDBFE',
+              color: 'var(--color-info-text)',
+              backgroundColor: 'var(--color-info-subtle)',
+              border: '1px solid var(--color-info-border)',
               padding: 'var(--spacing-2) var(--spacing-3)',
               borderRadius: 'var(--radius-md)',
             }}
           >
-            <Clock size={13} color="#2563EB" style={{ flexShrink: 0 }} />
+            <Clock size={13} color="var(--color-info-500)" style={{ flexShrink: 0 }} />
             <span>Cooling-off safety window active.</span>
           </div>
         ) : null}
@@ -261,14 +261,14 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
           <span
             style={{
               fontSize: 'var(--font-size-xs)',
-              color: '#059669',
+              color: 'var(--color-success)',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
             }}
           >
-            <Check size={14} color="#059669" /> Ready for Transfer
+            <Check size={14} color="var(--color-success)" /> Ready for Transfer
           </span>
         )}
 

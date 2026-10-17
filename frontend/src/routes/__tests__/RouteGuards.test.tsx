@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '../ProtectedRoute';
 import { RoleRoute } from '../RoleRoute';
+import { RootRedirect } from '../RootRedirect';
 import * as useAuthModule from '@/hooks/useAuth';
 
 vi.mock('@/hooks/useAuth');
@@ -141,5 +142,99 @@ describe('Route Guards', () => {
 
     expect(screen.getByText('Default App Page')).toBeInTheDocument();
     expect(screen.queryByText('Admin Only Console')).not.toBeInTheDocument();
+  });
+
+  describe('RootRedirect', () => {
+    it('redirects unauthenticated user from / to /login', () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        accessToken: null,
+        isLoading: false,
+        isAuthenticated: false,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/login" element={<div>Login Page Target</div>} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Login Page Target')).toBeInTheDocument();
+    });
+
+    it('redirects unverified customer from / to /onboarding', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: 'usr-1',
+          username: 'testuser',
+          email: 'test@example.com',
+          phoneNumber: '+919876543210',
+          roles: ['ROLE_CUSTOMER'],
+          status: 'PENDING_VERIFICATION',
+          emailVerified: true,
+          phoneVerified: false,
+          lastLoginAt: null,
+        },
+        accessToken: 'token-abc',
+        isLoading: false,
+        isAuthenticated: true,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/onboarding" element={<div>Onboarding Target</div>} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Onboarding Target')).toBeInTheDocument();
+    });
+
+    it('redirects active verified customer from / to /app/accounts', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: 'usr-1',
+          username: 'testuser',
+          email: 'test@example.com',
+          phoneNumber: '+919876543210',
+          roles: ['ROLE_CUSTOMER'],
+          status: 'ACTIVE',
+          emailVerified: true,
+          phoneVerified: true,
+          lastLoginAt: null,
+        },
+        accessToken: 'token-abc',
+        isLoading: false,
+        isAuthenticated: true,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/app/accounts" element={<div>Accounts Dashboard Target</div>} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Accounts Dashboard Target')).toBeInTheDocument();
+    });
   });
 });

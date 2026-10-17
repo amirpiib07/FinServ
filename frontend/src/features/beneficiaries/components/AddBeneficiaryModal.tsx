@@ -7,6 +7,7 @@ import type { Beneficiary } from '@/types/beneficiary';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { SuccessAnimation } from '@/components/common/SuccessAnimation';
 import { useToast } from '@/hooks/useToast';
 import { ShieldCheck, KeyRound, ArrowRight } from 'lucide-react';
 
@@ -43,7 +44,7 @@ export const AddBeneficiaryModal: React.FC<AddBeneficiaryModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [createdBeneficiary, setCreatedBeneficiary] = useState<Beneficiary | null>(null);
   const [otpCode, setOtpCode] = useState<string>('123456');
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -122,9 +123,9 @@ export const AddBeneficiaryModal: React.FC<AddBeneficiaryModalProps> = ({
         otpCode: otpCode.trim(),
       });
       toast.success(`Beneficiary "${verified.nickname}" verified successfully!`);
+      setCreatedBeneficiary(verified);
+      setStep('success');
       onSuccess(verified);
-      handleReset();
-      onClose();
     } catch (err: unknown) {
       const appErr = err as { userMessage?: string; message?: string };
       setServerError(appErr.userMessage || appErr.message || 'OTP verification failed. Please try again.');
@@ -142,30 +143,54 @@ export const AddBeneficiaryModal: React.FC<AddBeneficiaryModalProps> = ({
           onClose();
         }
       }}
-      title={step === 'form' ? 'Add New Beneficiary' : 'Verify Beneficiary with OTP'}
+      title={step === 'form' ? 'Add New Beneficiary' : step === 'otp' ? 'Verify Beneficiary with OTP' : 'Verification Complete'}
       description={
         step === 'form'
           ? 'Add an internal FinServ or external bank beneficiary for NEFT / RTGS / IMPS fund transfers.'
-          : `A simulated security verification code was generated for ${createdBeneficiary?.nickname}.`
+          : step === 'otp'
+          ? `A simulated security verification code was generated for ${createdBeneficiary?.nickname}.`
+          : 'Beneficiary has been successfully verified.'
       }
       maxWidth="540px"
     >
-      {serverError && (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid var(--color-error-500)',
-            color: 'var(--color-error-400)',
-            padding: 'var(--spacing-3)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 'var(--font-size-sm)',
-            marginBottom: 'var(--spacing-4)',
-          }}
-        >
-          {serverError}
+      {step === 'success' ? (
+        <div style={{ textAlign: 'center', padding: 'var(--spacing-6) var(--spacing-4)' }}>
+          <SuccessAnimation
+            message="Beneficiary Added & Verified"
+            subMessage={`Transfers to ${createdBeneficiary?.beneficiaryName} (${createdBeneficiary?.maskedAccountNumber}) are now authorized.`}
+            size={80}
+          />
+          <div style={{ marginTop: 'var(--spacing-6)' }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                handleReset();
+                onClose();
+              }}
+              style={{ minWidth: '140px' }}
+            >
+              Done
+            </Button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          {serverError && (
+            <div
+              role="alert"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid var(--color-error-500)',
+                color: 'var(--color-error-400)',
+                padding: 'var(--spacing-3)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--font-size-sm)',
+                marginBottom: 'var(--spacing-4)',
+              }}
+            >
+              {serverError}
+            </div>
+          )}
 
       {step === 'form' ? (
         <form onSubmit={handleSubmit(handleFormSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
@@ -418,6 +443,8 @@ export const AddBeneficiaryModal: React.FC<AddBeneficiaryModalProps> = ({
             </Button>
           </div>
         </form>
+      )}
+        </>
       )}
     </Modal>
   );

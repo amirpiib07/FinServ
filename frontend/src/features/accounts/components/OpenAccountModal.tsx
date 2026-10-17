@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { Spinner } from '@/components/ui/Spinner';
+import { SuccessAnimation } from '@/components/common/SuccessAnimation';
 import { useToast } from '@/hooks/useToast';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 
@@ -32,6 +33,10 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
   const [loadingReferenceData, setLoadingReferenceData] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{
+    applicationNumber: string;
+    status: string;
+  } | null>(null);
 
   const toast = useToast();
 
@@ -100,8 +105,11 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
           ? 'Account opened and activated successfully!'
           : `Account application ${application.applicationNumber} submitted for verification.`
       );
+      setSuccessData({
+        applicationNumber: application.applicationNumber,
+        status: application.applicationStatus,
+      });
       onSuccess();
-      onClose();
     } catch (err: unknown) {
       const appErr = err as { userMessage?: string; message?: string };
       setErrorMessage(appErr.userMessage || appErr.message || 'Failed to submit account application.');
@@ -114,13 +122,40 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
     <Modal
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open && !submitting) onClose();
+        if (!open && !submitting) {
+          setSuccessData(null);
+          onClose();
+        }
       }}
       title="Open New Bank Account"
       description="Select from our high-yield savings and commercial accounts with instant 14-digit ISO 7064 account opening."
       maxWidth="680px"
     >
-      {loadingReferenceData ? (
+      {successData ? (
+        <div style={{ textAlign: 'center', padding: 'var(--spacing-6) var(--spacing-4)' }}>
+          <SuccessAnimation
+            message="Account Opened Successfully"
+            subMessage={
+              successData.status === 'APPROVED'
+                ? `Account application ${successData.applicationNumber} has been approved and activated with instant 14-digit ISO 7064 numbering.`
+                : `Account application ${successData.applicationNumber} has been submitted for verification.`
+            }
+            size={88}
+          />
+          <div style={{ marginTop: 'var(--spacing-6)' }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setSuccessData(null);
+                onClose();
+              }}
+              style={{ minWidth: '160px' }}
+            >
+              View Accounts
+            </Button>
+          </div>
+        </div>
+      ) : loadingReferenceData ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-8)' }}>
           <Spinner size={32} />
           <p style={{ marginTop: 'var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
@@ -324,7 +359,7 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
           </div>
 
           {/* Terms Agreement */}
-          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ backgroundColor: 'var(--surface-subtle)', padding: 'var(--spacing-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
             <Checkbox
               id="termsCheckbox"
               checked={acceptedTerms}

@@ -1,59 +1,98 @@
 /**
- * FINServ Responsive App Shell & Navigation Layout
- * Desktop sidebar, mobile navigation drawer, top bar, and content breadcrumbs
+ * FINServ Responsive App Shell & Navigation Layout — Luxury Core-Banking Architecture
+ * Desktop sidebar, mobile navigation drawer, sticky blurred top bar,
+ * live IST time badge, dynamic greeting, and ThemeToggle.
  */
 
-import React, { useState, useRef, useContext } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useContext, useEffect } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
-import { BrandLogoPlaceholder } from '@/components/common/BrandLogo';
-import { HealthWidget } from '@/features/health/HealthWidget';
+import { BrandLogo } from '@/components/common/BrandLogo';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { AuthContext } from '@/context/AuthContext';
 import {
-  LayoutDashboard,
   Wallet,
+  Users,
   ArrowLeftRight,
   PiggyBank,
   CreditCard,
   FileText,
   ShieldCheck,
-  Palette,
   Menu,
   X,
   Building2,
-  Users,
-  Search,
   CheckCircle2,
+  LogOut,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
 
+  // Live IST Clock
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const istDate = now.toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+      const istTime = now.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+      setCurrentTimeStr(`${istDate} • ${istTime} IST`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Time-of-day greeting
+  const getGreeting = () => {
+    try {
+      const istHour = new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+      ).getHours();
+      if (istHour < 12) return 'Good morning';
+      if (istHour < 17) return 'Good afternoon';
+      return 'Good evening';
+    } catch {
+      return 'Welcome back';
+    }
+  };
+
   const navItems = [
-    { to: '/app', label: 'Dashboard', icon: <LayoutDashboard size={18} />, end: true },
-    { to: '/app/accounts', label: 'Accounts', icon: <Wallet size={18} /> },
+    { to: '/app/accounts', label: 'Accounts & Deposits', icon: <Wallet size={18} /> },
     { to: '/app/beneficiaries', label: 'Beneficiaries', icon: <Users size={18} /> },
-    { to: '/app/transfers', label: 'Transfers', icon: <ArrowLeftRight size={18} /> },
-    { to: '/app/deposits', label: 'Deposits (FD/RD)', icon: <PiggyBank size={18} /> },
+    { to: '/app/transfers', label: 'Fund Transfers', icon: <ArrowLeftRight size={18} /> },
+    { to: '/app/deposits', label: 'Term Deposits', icon: <PiggyBank size={18} /> },
     { to: '/app/cards', label: 'Cards & UPI', icon: <CreditCard size={18} /> },
-    { to: '/app/statements', label: 'Statements', icon: <FileText size={18} /> },
-    { to: '/app/audit', label: 'Audit Chain', icon: <ShieldCheck size={18} /> },
-    ...(import.meta.env.DEV
-      ? [{ to: '/design-system', label: 'Design System (Dev)', icon: <Palette size={18} /> }]
-      : []),
+    { to: '/app/statements', label: 'Statements & Tax', icon: <FileText size={18} /> },
+    { to: '/app/audit', label: 'Audit Security', icon: <ShieldCheck size={18} /> },
   ];
 
   // Derive simple breadcrumbs from pathname
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    ...pathSegments.map((seg, idx) => {
-      const href = '/' + pathSegments.slice(0, idx + 1).join('/');
+    { label: 'Banking Portal', href: '/app/accounts' },
+    ...pathSegments.slice(1).map((seg, idx) => {
+      const href = '/app/' + pathSegments.slice(1, idx + 2).join('/');
       const label = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
       return { label, href };
     }),
@@ -62,21 +101,25 @@ export const AppLayout: React.FC = () => {
   const displayName = user?.username ? user.username : 'Customer';
   const userInitials = (user?.username || 'CU').slice(0, 2).toUpperCase();
 
+  const handleLogout = async () => {
+    await authContext?.logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="app-shell">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — Executive Navy Theme */}
       <aside className="app-sidebar" aria-label="Desktop Core Banking Navigation">
         <div className="sidebar-header">
-          <BrandLogoPlaceholder size="sm" />
+          <BrandLogo size="sm" />
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-title">Core Banking</div>
+          <div className="nav-section-title">Core Banking Services</div>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
               className={({ isActive }) =>
                 `sidebar-nav-item ${isActive ? 'active' : ''}`
               }
@@ -97,9 +140,19 @@ export const AppLayout: React.FC = () => {
               </div>
               <div className="sidebar-user-status">
                 <CheckCircle2 size={12} color="#34D399" />
-                <span>KYC Verified Tier 1</span>
+                <span>KYC Tier 1 Verified</span>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn-icon btn-ghost"
+              title="Sign Out"
+              aria-label="Sign Out"
+              style={{ color: 'rgba(255, 255, 255, 0.6)', padding: '4px' }}
+            >
+              <LogOut size={15} />
+            </button>
           </div>
 
           <div
@@ -109,14 +162,12 @@ export const AppLayout: React.FC = () => {
               gap: 'var(--spacing-2)',
               padding: '0 var(--spacing-1)',
               fontSize: '11px',
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: 'rgba(255, 255, 255, 0.55)',
             }}
           >
-            <Building2 size={14} color="rgba(255, 255, 255, 0.5)" />
-            <span>Branch 1001 (Mumbai HQ)</span>
+            <Building2 size={13} color="rgba(255, 255, 255, 0.55)" />
+            <span>Branch 1001 (Mumbai Fort HQ)</span>
           </div>
-
-          <HealthWidget compact />
         </div>
       </aside>
 
@@ -134,7 +185,7 @@ export const AppLayout: React.FC = () => {
           >
             <Dialog.Title className="sr-only">Mobile Navigation Menu</Dialog.Title>
             <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
-              <BrandLogoPlaceholder size="sm" />
+              <BrandLogo size="sm" />
               <Dialog.Close asChild>
                 <button
                   type="button"
@@ -152,7 +203,6 @@ export const AppLayout: React.FC = () => {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.end}
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `sidebar-nav-item ${isActive ? 'active' : ''}`
@@ -171,11 +221,20 @@ export const AppLayout: React.FC = () => {
                   <div className="sidebar-user-name">{displayName}</div>
                   <div className="sidebar-user-status">
                     <CheckCircle2 size={12} color="#34D399" />
-                    <span>Verified Customer</span>
+                    <span>KYC Tier 1 Verified</span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="btn-icon btn-ghost"
+                  title="Sign Out"
+                  aria-label="Sign Out"
+                  style={{ color: 'rgba(255, 255, 255, 0.6)', padding: '4px' }}
+                >
+                  <LogOut size={15} />
+                </button>
               </div>
-              <HealthWidget compact />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -197,64 +256,60 @@ export const AppLayout: React.FC = () => {
               <Menu size={20} />
             </button>
 
-            <div>
-              <span
-                style={{
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                FINServ Core Banking Portal
+            {/* Dynamic Greeting */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {getGreeting()}, {displayName}
+                </span>
+                <Sparkles size={14} color="#F59E0B" />
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                Private Core Banking Relationship
               </span>
             </div>
           </div>
 
-          {/* Topbar Search Pill & Environment Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-            {/* Quick Command Pill */}
-            <div
-              style={{
-                display: 'none',
-                alignItems: 'center',
-                gap: 'var(--spacing-2)',
-                backgroundColor: 'var(--surface-subtle)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-full)',
-                padding: '6px 14px',
-                fontSize: 'var(--font-size-xs)',
-                color: 'var(--text-tertiary)',
-                cursor: 'pointer',
-              }}
-              className="desktop-search-pill"
-            >
-              <Search size={14} color="var(--text-tertiary)" />
-              <span>Search accounts, payees...</span>
-              <kbd
+          {/* Topbar Actions: Live IST Badge + Theme Toggle + User Pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+            {/* Live IST Date & Time Badge */}
+            {currentTimeStr && (
+              <div
                 style={{
-                  background: '#FFFFFF',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: '4px',
-                  padding: '1px 5px',
-                  fontSize: '10px',
-                  fontWeight: 600,
+                  display: 'none',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'var(--surface-subtle)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '4px 12px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-family-mono)',
                   color: 'var(--text-secondary)',
                 }}
+                className="desktop-search-pill"
               >
-                ⌘K
-              </kbd>
-            </div>
+                <Clock size={12} color="var(--brand-accent)" />
+                <span>{currentTimeStr}</span>
+              </div>
+            )}
 
-            {/* Regulatory Simulation Badge */}
+            {/* Regulatory Protection Pill */}
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: 'rgba(5, 150, 105, 0.08)',
-                border: '1px solid rgba(5, 150, 105, 0.25)',
-                color: '#065F46',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: 'var(--color-success)',
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-full)',
                 fontSize: '11px',
@@ -272,16 +327,19 @@ export const AppLayout: React.FC = () => {
                   display: 'inline-block',
                 }}
               />
-              <span>LIVE SIMULATION / RBI PILOT</span>
+              <span>DICGC INSURED</span>
             </div>
 
-            {/* User Pill */}
+            {/* Sleek Theme Toggle */}
+            <ThemeToggle variant="glass" size="md" />
+
+            {/* User Avatar Pill */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'var(--spacing-2)',
-                padding: '4px 12px 4px 6px',
+                padding: '3px 10px 3px 4px',
                 borderRadius: 'var(--radius-full)',
                 backgroundColor: 'var(--surface-card)',
                 border: '1px solid var(--border-subtle)',
@@ -290,10 +348,10 @@ export const AppLayout: React.FC = () => {
             >
               <div
                 style={{
-                  width: '26px',
-                  height: '26px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #0B2545 0%, #2EC4B6 100%)',
+                  background: 'linear-gradient(135deg, #1D4ED8 0%, #10B981 100%)',
                   color: '#FFFFFF',
                   fontSize: '11px',
                   fontWeight: 700,
@@ -317,7 +375,7 @@ export const AppLayout: React.FC = () => {
           </div>
         </header>
 
-        <main className="app-content">
+        <main className="app-content page-transition-enter">
           <Breadcrumbs items={breadcrumbItems} />
           <Outlet />
         </main>

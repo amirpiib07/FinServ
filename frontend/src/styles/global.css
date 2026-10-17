@@ -12,6 +12,29 @@
 }
 
 /* Custom Scrollbar for modern dashboards */
+html {
+  scrollbar-color: var(--neutral-400) var(--surface-canvas);
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] html {
+  scrollbar-color: rgba(255, 255, 255, 0.2) var(--surface-canvas);
+}
+
+body {
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+  transition: background-color var(--duration-normal) var(--ease-default),
+              color var(--duration-normal) var(--ease-default);
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -26,8 +49,16 @@
   border-radius: var(--radius-full);
 }
 
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--neutral-400);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* Screen-reader-only accessible utility */

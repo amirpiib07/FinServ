@@ -274,7 +274,7 @@ export const AccountsPage: React.FC = () => {
           {/* Relationship Metrics & Quick Actions */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--surface-card)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xl)',
               padding: 'var(--spacing-5)',
@@ -402,13 +402,14 @@ export const AccountsPage: React.FC = () => {
             gap: 'var(--spacing-6)',
           }}
         >
-          {accounts.map((acc) => (
-            <AccountCard
-              key={acc.id}
-              account={acc}
-              onEditControls={(account) => setSelectedForControls(account)}
-              onViewDetails={(account) => setSelectedForDetails(account)}
-            />
+          {accounts.map((acc, index) => (
+            <div key={acc.id} className={`stagger-${(index % 4) + 1}`}>
+              <AccountCard
+                account={acc}
+                onEditControls={(account) => setSelectedForControls(account)}
+                onViewDetails={(account) => setSelectedForDetails(account)}
+              />
+            </div>
           ))}
         </div>
       )}

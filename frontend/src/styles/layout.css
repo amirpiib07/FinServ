@@ -227,9 +227,9 @@
 
 .app-topbar {
   height: 70px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--surface-card-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -239,6 +239,14 @@
   top: 0;
   z-index: var(--z-sticky);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: background-color var(--duration-normal) var(--ease-default),
+              border-color var(--duration-normal) var(--ease-default);
+}
+
+[data-theme='dark'] .app-topbar {
+  background: rgba(6, 11, 20, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .app-content {
@@ -253,8 +261,9 @@
 .mobile-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(10, 22, 40, 0.7);
-  backdrop-filter: blur(4px);
+  background-color: rgba(6, 11, 20, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: var(--z-modal-backdrop);
 }
 
@@ -265,7 +274,7 @@
   left: 0;
   width: 290px;
   background: linear-gradient(180deg, var(--navy-sidebar-start) 0%, var(--navy-sidebar-end) 100%);
-  box-shadow: var(--shadow-2xl, var(--shadow-xl));
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
   z-index: var(--z-modal);
   display: flex;
   flex-direction: column;

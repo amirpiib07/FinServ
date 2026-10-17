@@ -4,6 +4,7 @@ import { beneficiaryService } from '../beneficiaryService';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { SuccessAnimation } from '@/components/common/SuccessAnimation';
 import { useToast } from '@/hooks/useToast';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 
@@ -24,12 +25,14 @@ export const VerifyBeneficiaryModal: React.FC<VerifyBeneficiaryModalProps> = ({
   const [otpCode, setOtpCode] = useState<string>('123456');
   const [verifying, setVerifying] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [verifiedBeneficiary, setVerifiedBeneficiary] = useState<Beneficiary | null>(null);
   const toast = useToast();
 
   if (beneficiary !== prevBeneficiary) {
     setPrevBeneficiary(beneficiary);
     setOtpCode('123456');
     setError(null);
+    setVerifiedBeneficiary(null);
   }
 
   if (!beneficiary) return null;
@@ -49,8 +52,8 @@ export const VerifyBeneficiaryModal: React.FC<VerifyBeneficiaryModalProps> = ({
         otpCode: otpCode.trim(),
       });
       toast.success(`Beneficiary "${verified.nickname}" is now verified.`);
+      setVerifiedBeneficiary(verified);
       onSuccess(verified);
-      onClose();
     } catch (err: unknown) {
       const appErr = err as { userMessage?: string; message?: string };
       setError(appErr.userMessage || appErr.message || 'OTP verification failed. Please try again.');
@@ -63,13 +66,37 @@ export const VerifyBeneficiaryModal: React.FC<VerifyBeneficiaryModalProps> = ({
     <Modal
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open && !verifying) onClose();
+        if (!open && !verifying) {
+          setVerifiedBeneficiary(null);
+          onClose();
+        }
       }}
       title="Verify Beneficiary"
       description={`Enter the security verification code to authorize transfers to ${beneficiary.beneficiaryName}.`}
       maxWidth="440px"
     >
-      <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+      {verifiedBeneficiary ? (
+        <div style={{ textAlign: 'center', padding: 'var(--spacing-6) var(--spacing-4)' }}>
+          <SuccessAnimation
+            message="Beneficiary Verified"
+            subMessage={`Transfers to ${verifiedBeneficiary.beneficiaryName} (${verifiedBeneficiary.maskedAccountNumber}) are now authorized.`}
+            size={80}
+          />
+          <div style={{ marginTop: 'var(--spacing-6)' }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setVerifiedBeneficiary(null);
+                onClose();
+              }}
+              style={{ minWidth: '140px' }}
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
         {error && (
           <div
             role="alert"
@@ -146,6 +173,7 @@ export const VerifyBeneficiaryModal: React.FC<VerifyBeneficiaryModalProps> = ({
           </Button>
         </div>
       </form>
+      )}
     </Modal>
   );
 };
