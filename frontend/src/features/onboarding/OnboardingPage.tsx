@@ -22,7 +22,8 @@ import type { SendOtpResponse, VerifyOtpResponse } from '@/types/auth';
 import type { AppError } from '@/types/api';
 
 import { BrandLogo } from '@/components/common/BrandLogo';
-import { Card } from '@/components/ui/Card';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { SuccessAnimation } from '@/components/common/SuccessAnimation';
 import { Stepper, type StepItem } from '@/components/ui/Stepper';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
@@ -36,7 +37,6 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
-  Clock,
   LogOut,
   HelpCircle,
   RefreshCw,
@@ -64,6 +64,7 @@ export const OnboardingPage: React.FC = () => {
 
   const [application, setApplication] = useState<OnboardingApplication | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [justSubmitted, setJustSubmitted] = useState<boolean>(false);
 
   // Step 1: Contact OTP State
   const [otpRefId, setOtpRefId] = useState<string | null>(null);
@@ -321,6 +322,7 @@ export const OnboardingPage: React.FC = () => {
         {}
       );
       setApplication(submittedApp);
+      setJustSubmitted(true);
     } catch (err) {
       const appErr = err as AppError;
       setErrorMessage(
@@ -348,8 +350,8 @@ export const OnboardingPage: React.FC = () => {
       <div
         style={{
           minHeight: '100vh',
-          backgroundColor: 'var(--surface-bg)',
-          padding: 'var(--spacing-6) var(--spacing-4)',
+          backgroundColor: 'var(--surface-canvas)',
+          padding: 'var(--spacing-8) var(--spacing-4)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -358,44 +360,84 @@ export const OnboardingPage: React.FC = () => {
         <div style={{ width: '100%', maxWidth: '720px', marginBottom: 'var(--spacing-6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <BrandLogo size="md" />
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut size={16} /> Sign Out
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+              <ThemeToggle variant="glass" size="sm" />
+              <Button variant="ghost" size="sm" onClick={() => logout()}>
+                <LogOut size={16} /> Sign Out
+              </Button>
+            </div>
           </div>
         </div>
 
-        <Card
-          variant="elevated"
+        <div
+          className="page-transition-enter"
           style={{
             width: '100%',
             maxWidth: '720px',
             padding: 'var(--spacing-8)',
-            backgroundColor: 'var(--surface-elevated)',
+            backgroundColor: 'var(--surface-card)',
             border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-elevated)',
           }}
         >
+          {justSubmitted && (
+            <div style={{ marginBottom: 'var(--spacing-6)' }}>
+              <SuccessAnimation
+                size={68}
+                message="KYC Dossier Submitted Successfully"
+                subMessage="Your identification records have been cryptographically sealed and queued for automated regulatory screening."
+              />
+            </div>
+          )}
+
           <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-8)' }}>
+            {/* Animated Radar Pulse Status Display */}
+            <div className="radar-pulse-container" aria-hidden="true">
+              <div className="radar-circle radar-circle-1" />
+              <div className="radar-circle radar-circle-2" />
+              <div className="radar-circle radar-circle-3" />
+              <div className="radar-sweep-needle" />
+              <div className="radar-center-blip" />
+            </div>
+
             <div
               style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(46, 196, 182, 0.15)',
-                color: 'var(--brand-accent)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'var(--spacing-4)',
+                gap: '8px',
+                padding: '4px 14px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.28)',
+                color: 'var(--brand-accent)',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 'var(--spacing-3)',
               }}
             >
-              <Clock size={32} />
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--brand-accent)',
+                  boxShadow: '0 0 8px var(--brand-accent)',
+                  display: 'inline-block',
+                }}
+              />
+              Verification In Progress
             </div>
+
             <h1
               style={{
                 fontSize: 'var(--font-size-2xl)',
                 fontWeight: 'var(--font-weight-bold)',
                 color: 'var(--text-primary)',
                 margin: '0 0 var(--spacing-2) 0',
+                letterSpacing: '-0.02em',
               }}
             >
               Application Under Bank Review
@@ -405,8 +447,12 @@ export const OnboardingPage: React.FC = () => {
               <span
                 style={{
                   fontFamily: 'var(--font-family-mono)',
-                  fontWeight: 'var(--font-weight-bold)',
-                  color: 'var(--brand-accent)',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
                 }}
               >
                 {application.applicationReference}
@@ -418,29 +464,60 @@ export const OnboardingPage: React.FC = () => {
           <div
             style={{
               padding: 'var(--spacing-6)',
-              backgroundColor: 'var(--surface-sunken)',
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-lg)',
               marginBottom: 'var(--spacing-6)',
             }}
           >
-            <h3
-              style={{
-                fontSize: 'var(--font-size-sm)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--text-tertiary)',
-                margin: '0 0 var(--spacing-4) 0',
-              }}
-            >
-              Onboarding Progression
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
+              <h3
+                style={{
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'var(--text-tertiary)',
+                  fontWeight: 700,
+                  margin: 0,
+                }}
+              >
+                Onboarding Progression
+              </h3>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#059669',
+                  backgroundColor: '#ECFDF5',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                }}
+              >
+                Maker-Checker Pipeline Active
+              </span>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
               {/* Stage 1 */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
-                <CheckCircle2 size={20} color="var(--color-success)" style={{ marginTop: '2px' }} />
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ECFDF5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: '2px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <CheckCircle2 size={18} color="#059669" />
+                </div>
                 <div>
-                  <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)' }}>
                     Application Submitted
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
@@ -453,23 +530,25 @@ export const OnboardingPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
                 <div
                   style={{
-                    width: '20px',
-                    height: '20px',
+                    width: '24px',
+                    height: '24px',
                     borderRadius: '50%',
-                    backgroundColor: 'var(--brand-accent)',
-                    color: '#0B192C',
+                    backgroundColor: '#0B2545',
+                    color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '12px',
-                    fontWeight: 'bold',
+                    fontWeight: 700,
                     marginTop: '2px',
+                    flexShrink: 0,
+                    boxShadow: '0 0 8px rgba(11, 37, 69, 0.3)',
                   }}
                 >
                   2
                 </div>
                 <div>
-                  <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)' }}>
                     Dual-Authorization Document Verification
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
@@ -479,25 +558,27 @@ export const OnboardingPage: React.FC = () => {
               </div>
 
               {/* Stage 3 */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)', opacity: 0.5 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)', opacity: 0.55 }}>
                 <div
                   style={{
-                    width: '20px',
-                    height: '20px',
+                    width: '24px',
+                    height: '24px',
                     borderRadius: '50%',
-                    backgroundColor: 'var(--border-subtle)',
+                    backgroundColor: 'var(--border-default)',
                     color: 'var(--text-tertiary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '12px',
+                    fontWeight: 600,
                     marginTop: '2px',
+                    flexShrink: 0,
                   }}
                 >
                   3
                 </div>
                 <div>
-                  <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
                     Customer CIF & Savings Account Opening
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
@@ -546,7 +627,7 @@ export const OnboardingPage: React.FC = () => {
               {application.status === 'APPROVED' ? 'Enter Customer Portal' : 'Pending Bank Approval'}
             </Button>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -558,8 +639,8 @@ export const OnboardingPage: React.FC = () => {
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: 'var(--surface-bg)',
-        padding: 'var(--spacing-6) var(--spacing-4)',
+        backgroundColor: 'var(--surface-canvas)',
+        padding: 'var(--spacing-8) var(--spacing-4)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -572,6 +653,7 @@ export const OnboardingPage: React.FC = () => {
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
               Logged in as <strong style={{ color: 'var(--text-primary)' }}>{user?.username}</strong>
             </span>
+            <ThemeToggle variant="glass" size="sm" />
             <Button variant="ghost" size="sm" onClick={() => logout()}>
               <LogOut size={14} /> Sign Out
             </Button>
@@ -579,16 +661,40 @@ export const OnboardingPage: React.FC = () => {
         </div>
       </div>
 
-      <Card
-        variant="elevated"
+      <div
+        className="page-transition-enter"
         style={{
           width: '100%',
           maxWidth: '840px',
-          padding: 'var(--spacing-6)',
-          backgroundColor: 'var(--surface-elevated)',
+          padding: 'var(--spacing-8)',
+          backgroundColor: 'var(--surface-card)',
           border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-elevated)',
         }}
       >
+        {/* Progress Header */}
+        <div style={{ marginBottom: 'var(--spacing-6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-accent)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Step {currentStep} of 5: {ONBOARDING_STEPS[currentStep - 1]?.label}
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+              ~2 mins remaining
+            </span>
+          </div>
+          <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--surface-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${(currentStep / 5) * 100}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #2EC4B6 0%, #0B2545 100%)',
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
+        </div>
+
         <div style={{ marginBottom: 'var(--spacing-8)' }}>
           <Stepper steps={ONBOARDING_STEPS} currentStepIndex={currentStep - 1} />
         </div>
@@ -1308,7 +1414,7 @@ export const OnboardingPage: React.FC = () => {
             </div>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 };

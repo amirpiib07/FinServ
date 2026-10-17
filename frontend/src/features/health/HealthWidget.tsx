@@ -25,16 +25,32 @@ export const HealthWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
 
     if (isError || !data || data.status !== 'UP') {
       return (
-        <Badge variant="danger" withDot>
-          Backend Offline
-        </Badge>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          title="Backend is currently offline or still starting. Click to recheck."
+          aria-label="Backend offline. Click to recheck."
+        >
+          <Badge variant="danger" withDot>
+            Backend Offline
+          </Badge>
+        </button>
       );
     }
 
     return (
-      <Badge variant="success" withDot>
-        Backend UP
-      </Badge>
+      <button
+        type="button"
+        onClick={() => void refetch()}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        title="Backend is online (UP). Click to recheck."
+        aria-label="Backend online. Click to recheck."
+      >
+        <Badge variant="success" withDot>
+          Backend UP
+        </Badge>
+      </button>
     );
   }
 

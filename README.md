@@ -158,8 +158,8 @@ FINSERV/
 2. **Run Lint, Type-Check & Unit/A11y Tests**:
    ```bash
    npm run lint        # ESLint 9 checks
-   npm run type-check   # TypeScript strict checks (noUncheckedIndexedAccess)
-   npm test            # 80 Vitest unit and jest-axe accessibility tests
+   npm run typecheck   # TypeScript strict checks (noUncheckedIndexedAccess)
+   npm test            # 101 Vitest unit and accessibility tests
    ```
 
 3. **Start Frontend Dev Server**:
@@ -185,7 +185,7 @@ Development progresses strictly through phased milestone iterations following th
 - **Phase 1**: Backend Foundation & MySQL Flyway Setup (`COMPLETED`)
 - **Phase 2**: Frontend Foundation & UI Component Kit (`COMPLETED`)
 - **Phase 3**: Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC (`COMPLETED`)
-- **Phase 4**: Accounts (Applications, Opening, Details) & Beneficiary Management (`NOT STARTED`)
+- **Phase 4**: Accounts (Applications, Opening, Details) & Beneficiary Management (`COMPLETED`)
 - **Phase 5**: Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts (`NOT STARTED`)
 - **Phase 6**: Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs) (`NOT STARTED`)
 - **Phase 7**: Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs (`NOT STARTED`)

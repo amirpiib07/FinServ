@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from '../AppLayout';
 
+import { ThemeProvider } from '@/context/ThemeProvider';
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
@@ -12,9 +14,11 @@ const queryClient = new QueryClient({
 function renderWithProviders() {
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/app']}>
-        <AppLayout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={['/app']}>
+          <AppLayout />
+        </MemoryRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

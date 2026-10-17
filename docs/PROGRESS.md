@@ -2,10 +2,10 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 3 — Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC
+- **Current Milestone**: Phase 4 — Accounts (Applications, Opening, Details) & Beneficiary Management
 - **Phase Status**: `COMPLETED`
-- **Active Git Branch**: `phase-3-auth-kyc-branding`
-- **Current Target**: Complete end-to-end identity, branding, JWT sessions, and progressive customer onboarding/KYC (Backend + Frontend)
+- **Active Git Branch**: `phase-4-accounts-beneficiaries`
+- **Current Target**: Awaiting approval to proceed to Phase 5 (Money Transfers, Deposits/Withdrawals, Double-Entry Ledger)
 
 ---
 
@@ -16,8 +16,8 @@
 | **0** | **Architecture & Database Design** | **COMPLETED** | `phase-0-requirements-architecture-db` | All specifications, ERD, and traceability delivered in `docs/`. |
 | **1** | **Backend Foundation & MySQL Flyway Setup** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing, Actuator `/actuator/health` UP, Swagger UI verified. |
 | **2** | **Frontend Foundation & UI Component Kit** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. Merged to `main`. |
-| **3** | **Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC** | **COMPLETED** | `phase-3-auth-kyc-branding` | Official SVG brand mark ingestion, CSS tokens polish, stateless JWT dual-token auth with rotation and replay attack mitigation, 15-minute lock on 5 failed attempts, demo OTP contact verification, 5-step progressive customer onboarding/KYC wizard with encrypted drafts & blind-index PAN hash, verification pending tracker, route guards (unverified customer redirection). 61 backend tests + 94 frontend tests passing. |
-| **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | `NOT STARTED` | - | Account product applications, 14-digit ISO 7064 Mod 11,10 account numbers, account lifecycle states, intra/inter-bank beneficiaries with cooling-off limits. |
+| **3** | **Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC** | **COMPLETED** | `phase-3-auth-kyc-branding` | Official SVG brand mark ingestion, CSS tokens polish, stateless JWT dual-token auth with rotation and replay attack mitigation, 15-minute lock on 5 failed attempts, demo OTP contact verification, 5-step progressive customer onboarding/KYC wizard with encrypted drafts & blind-index PAN hash, verification pending tracker, route guards (unverified customer redirection). 61 backend tests + 94 frontend tests passing. Merged to `main`. |
+| **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | **COMPLETED** | `phase-4-accounts-beneficiaries` | Account products, branches, collision-free ISO 7064 Mod 11,10 account opening with pessimistic sequence lock, customer account dashboard cards, ownership guards, beneficiaries with IFSC validation, cooling-off/verification simulation. 70 backend tests + 101 frontend tests passing. |
 | **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | `NOT STARTED` | - | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`), pessimistic row locks, strict idempotency filter, cash deposit/withdrawal, funds transfer, statements & cryptographic receipts. |
 | **6** | **Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs)** | `NOT STARTED` | - | Customer 360 dashboard & navigation, branch employee teller desk, manager maker-checker approvals (onboarding KYC approval & account opening), audit console. |
 | **7** | **Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs** | `NOT STARTED` | - | Term deposits overview, virtual debit cards preview, accessible motion polish, full-stack E2E regression, final documentation & runbooks. |
@@ -360,4 +360,188 @@ All Phase 2 requirements have been implemented and verified with zero deviations
    - Upon final submission, observe transition to the "Application Under Bank Review" tracker.
    - Observe protected route guard redirecting unverified customers away from `/app` until verified in Phase 6.
 
+---
 
+## 12. Phase 4 Execution & Verification Details (Completed)
+
+### A. Account Management & Opening Engine
+- **Flyway Migrations (`V3`, `V4`)**:
+  - `V3__init_beneficiaries_schema.sql`: Defined `beneficiaries` table with foreign key to `customers`, indexes on `(customer_id, is_active)`, unique constraint on `(customer_id, account_number, ifsc_code)`, and reference seed branches (`1002` Bangalore, `1003` Delhi).
+  - `V4__add_account_controls_and_branch_to_applications.sql`: Added `nickname` column to `accounts` and foreign key `branch_id` to `account_applications`.
+- **Customer Auto-Provisioning (`CustomerLookupService`)**:
+  - Automatically provisions a verified customer record with a 12-digit Luhn CIF, AES-256-GCM encrypted PAN, and HMAC-SHA256 blind index from onboarding data when an active application is approved or auto-activated. Prevents developer test deadlocks prior to full Employee Maker-Checker approval portal in Phase 6.
+- **Collision-Free Account Number Generator**:
+  - Adheres strictly to `docs/DATABASE_DESIGN.md` Section 3.3.
+  - 14 digits format: `4-digit Branch Code` + `2-digit Product Code` + `7-digit Sequential Counter` + `1-digit ISO 7064 Mod 11,10 Check Digit`.
+  - Concurrency protected by pessimistic row locking (`@Lock(LockModeType.PESSIMISTIC_WRITE)`) on `number_sequences` using key `account_num_seq`.
+- **Account Endpoints (`/api/v1/accounts/*`)**:
+  - `GET /api/v1/products/accounts`: Returns active savings and current account products with interest rates and minimum balance constraints.
+  - `GET /api/v1/branches`: Returns active branches with branch codes and IFSC codes.
+  - `POST /api/v1/accounts/applications`: Submits account applications with support for standard pending review or instant auto-activation for verified customers.
+  - `GET /api/v1/accounts`: Lists all accounts owned by the authenticated customer. Strictly enforces ownership checks.
+  - `GET /api/v1/accounts/{accountId}`: Fetches details for a single account owned by the customer, supporting masked and unmasked account number toggles.
+  - `PATCH /api/v1/accounts/{accountId}/controls`: Updates account preferences (e.g. account nickname) and records audit logs.
+  - `GET /api/v1/accounts/applications`: Lists all account applications submitted by the customer with review statuses.
+- **Financial Safety**:
+  - Balances are strictly represented as `BigDecimal` serialized to exact 2-decimal strings (`currentBalance`, `holdBalance`, `availableBalance`). No floating point numbers.
+  - All mutating operations generate tamper-evident audit logs (`ACCOUNT_OPENED`, `ACCOUNT_APPLICATION_SUBMITTED`, `ACCOUNT_CONTROLS_UPDATED`).
+
+### B. Beneficiary Management Engine
+- **Beneficiary Endpoints (`/api/v1/beneficiaries/*`)**:
+  - `GET /api/v1/beneficiaries`: Lists all active beneficiaries for the customer with search and category filtering.
+  - `POST /api/v1/beneficiaries`: Validates account confirmation match, IFSC regex (`^[A-Z]{4}0[A-Z0-9]{6}$`), uniqueness per customer, and blocks self-account addition. Supports internal FinServ account lookup vs other banks.
+  - `POST /api/v1/beneficiaries/{id}/verify`: Simulates 6-digit OTP verification to transition beneficiary from `PENDING_VERIFICATION` to `VERIFIED`.
+  - `DELETE /api/v1/beneficiaries/{id}`: Soft-deletes/deactivates beneficiary (`isActive = false`).
+- **Cooling-Off Period Safeguard**:
+  - Applies a 24-hour cooling-off window during which transfer limits can be capped or monitored.
+- **Audit Logging**:
+  - Records events `BENEFICIARY_CREATED`, `BENEFICIARY_VERIFIED`, and `BENEFICIARY_DEACTIVATED`.
+
+### C. Frontend Accounts & Beneficiaries UI
+- **Accounts (`/app/accounts`)**:
+  - Total Available Balance overview banner with exact INR formatting via `formatINR`.
+  - Premium FinServ Account Cards with masked/unmasked toggle (`••••••••••0017`), one-click clipboard copy for Account Number and IFSC with toast feedback, balance breakdown, status pill, and branch details.
+  - Account Details Modal with full ledger balance breakdown (Gross, Hold, Net Available) and ISO 7064 compliance badge.
+  - Account Controls Modal for updating account nickname with real-time UI refresh.
+  - "Open New Account" Multi-step Modal with product comparison (Savings vs Current), branch selection, initial deposit input, and double-submit + `Idempotency-Key` protection.
+  - Pending Applications alert banner showing submitted applications awaiting bank review.
+- **Beneficiaries (`/app/beneficiaries`)**:
+  - Payee listing with search filter and category tabs (All, Within FinServ, Other Banks, Pending Verification).
+  - FinServ Intra-Bank vs Other Bank badges, copyable account numbers, cooling-off indicators, and quick action buttons.
+  - "Add Beneficiary" Modal with React Hook Form + Zod schema validation (confirm account number match, IFSC regex), followed by a simulated 6-digit OTP modal.
+  - Direct OTP Verification Modal for payees pending verification.
+  - Delete Confirmation Dialog before removing a beneficiary.
+
+---
+
+## 13. How to Run & Verify Phase 4
+
+1. **Verify Git Branch**:
+   ```bash
+   git branch
+   ```
+   *Expected output*: On branch `phase-4-accounts-beneficiaries`.
+
+2. **Run Full Backend Verification Suite**:
+   ```bash
+   cd backend
+   mvn test
+   ```
+   *Verification Result*: **70 tests run, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS**.
+   - 3 integration tests in `AccountIntegrationTest`: Product/branch listing, account application and auto-activation, account ownership security checks (Customer A cannot access Customer B's account).
+   - 6 integration tests in `BeneficiaryIntegrationTest`: Intra-bank & inter-bank beneficiary creation, self-account rejection, duplicate rejection, simulated OTP verification, soft-deletion.
+
+3. **Run Full Frontend Verification Suite**:
+   ```bash
+   cd frontend
+   npm run lint        # Expected: 0 errors, 0 warnings
+   npm run typecheck   # Expected: 0 errors
+   npm test            # Expected: 17 test files, 101 tests passing
+   npm run build       # Expected: Clean production build with Vite
+   ```
+   *Verification Result*:
+   - `npm run lint`: **0 errors, 0 warnings**.
+   - `npm run typecheck`: **0 errors**.
+   - `npm test`: **17 test files, 101 tests passed, 0 failures** (including `AccountsPage.test.tsx` and `BeneficiariesPage.test.tsx`).
+   - `npm run build`: **Built in ~1s** (`dist/` generated with zero errors).
+
+4. **Run Live Application**:
+   ```bash
+   # Terminal 1: Backend
+   cd backend
+   mvn spring-boot:run
+
+   # Terminal 2: Frontend
+   cd frontend
+   npm run dev
+   ```
+   - Log in at `http://localhost:5173/login`.
+   - Open Accounts page at `http://localhost:5173/app/accounts`:
+     - View active accounts, toggle masked account numbers, click "Open New Account".
+     - Submit account application and observe instant account card creation with ISO 7064 account number.
+   - Open Beneficiaries page at `http://localhost:5173/app/beneficiaries`:
+     - Click "Add Beneficiary", enter details, submit, and confirm with demo OTP `123456`.
+     - Observe verified payee card with bank type badge and copyable details.
+---
+
+## 14. Phase 4 UI/UX Visual Overhaul & Evidence
+
+Following the dedicated UI/UX review request, a complete visual and micro-interaction overhaul was executed across the App Shell, Auth, Onboarding, Accounts, and Beneficiaries interfaces with zero backend or logic regressions:
+
+1. **Global Theme, Depth & App Shell (`tokens.css`, `layout.css`, `components.css`, `AppLayout.tsx`)**:
+   - Upgraded surface hierarchy with `#F4F7FB` slate-blue canvas, crisp elevated white surfaces, multi-layered elevation shadows (`--shadow-card-elevated`), and clean subtle borders (`rgba(15, 23, 42, 0.08)`).
+   - Sidebar redesigned in rich Executive Navy gradient (`#0A1628` to `#0F2342`) with glowing active navigation indicators, bank logo mark, and profile footer showing customer KYC status and branch.
+   - Polished top navigation header with quick search/command pill (`⌘K`), environment badge ("LIVE SIMULATION / RBI PILOT"), and interactive user avatar pill.
+
+2. **Luxury Private-Banking Account Cards (`/app/accounts`)**:
+   - Luxury fintech debit/account cards with rich midnight-navy and emerald mesh gradients, geometric SVG radar watermarks, and realistic EMV gold chip illustration.
+   - Crisp tabular balance display (`formatINR`) with sub-rows for current and hold balances.
+   - Frosted account number bar with masked/unmasked toggle (`•••• •••• 1234`) and instant copy buttons with toast feedback.
+   - Relationship overview hero card with Net Available Funds, DICGC insurance guarantee badge, and portfolio metrics.
+   - "Open New Account" product tier comparison selector with interest rates (`% p.a.`), minimum balance requirements, and perk checklists.
+
+3. **Modern Beneficiary Directory (`/app/beneficiaries`)**:
+   - Modern directory grid with colour-coded initials avatars (`AS`, `RV`, `MP`), monospace IFSC badges, Within FinServ vs External Bank tags, and cooling-off alerts.
+   - Instant search and category filter pills (`All Payees`, `Within FinServ`, `Other Banks`, `Pending OTP`).
+   - Clean "Add Beneficiary" and "Verify OTP" modals with clear visual hierarchy and inline icons.
+
+4. **Split-Screen Executive Auth & Onboarding Stepper**:
+   - Desktop split-screen layout for `/login` and `/register`: deep navy FinServ security showcase on the left (256-bit AES encryption, double-entry ledger guarantee, RBI-grade security) paired with an elevated auth card on the right.
+   - Onboarding stepper with time estimate, animated progress track, and 3-stage Verification Status Tracker.
+
+5. **Visual Evidence Gallery (`docs/evidence/phase-4/`)**:
+   - `01-login-desktop.png`: Executive split-screen login layout (1280px).
+   - `02-register-desktop.png`: Executive split-screen registration layout (1280px).
+   - `03-accounts-desktop.png`: Net Funds summary, luxury account cards, and masked toggle (1280px).
+   - `04-open-account-modal-desktop.png`: Product tier comparison modal with perks (1280px).
+   - `05-beneficiaries-desktop.png`: Payee directory with initials avatars and filter pills (1280px).
+   - `06-add-beneficiary-modal-desktop.png`: Modal for intra/inter bank payee creation (1280px).
+   - `07-onboarding-tracker-desktop.png`: Verification tracker for pending KYC review (1280px).
+   - `07b-onboarding-stepper-desktop.png`: 5-step progressive onboarding journey (1280px).
+   - `08-login-mobile.png`: Responsive mobile login view (375px).
+   - `09-accounts-mobile.png`: Responsive mobile account cards & stats view (375px).
+   - `10-beneficiaries-mobile.png`: Responsive mobile payee cards & filters view (375px).
+
+---
+
+## 15. Luxury Fintech UI, Entry Routing, Dual Theme (Light + Obsidian Dark), Colour Grading & Motion Upgrade
+
+Executed a comprehensive luxury fintech upgrade inspired by Revolut, Mercury, and CRED across the customer application:
+
+1. **Entry Routing & Zero Developer Jargon**:
+   - Replaced root `/` developer showcase with `<RootRedirect />`:
+     - Unauthenticated visitors immediately redirect to `/login` (`<Navigate to="/login" replace />`).
+     - Authenticated customers with incomplete KYC redirect to `/onboarding`.
+     - Fully verified customers redirect directly to `/app/accounts`.
+   - Purged all meta/engineering jargon (`Spring Boot 3.3`, `React 19`, `IEEE 754`, `BigDecimal`, `Radix`) from customer-facing screens in favor of authentic institutional banking copy.
+   - Restricted `/design-system` strictly to direct URL entry in dev mode; removed from all public navigation.
+
+2. **Dual Theme Architecture (Zero-Flicker Light + Obsidian Dark)**:
+   - Zero-flicker initialization script in `<head>` reading `finserv_theme` from `localStorage` with system `prefers-color-scheme` fallback.
+   - Comprehensive `ThemeProvider` and resilient `useTheme` hook with safe fallback for isolated test suites.
+   - Sleek animated Sun/Moon `ThemeToggle` component with 180° rotation and spring physics in Auth headers and App Shell.
+   - Colour Grading Tokens (`tokens.css`):
+     - **Light Mode**: Warm alabaster canvas (`#F4F7FB`), pure crisp white cards (`#FFFFFF`) with multi-layer ambient shadows, deep navy brand (`#0B192C`), interactive royal blue (`#1D4ED8`), and emerald wealth accent (`#10B981`).
+     - **Obsidian Dark Mode**: Deep midnight obsidian canvas (`#060B14`), elevated glassmorphic navy-slate cards (`#0D1627` / `rgba(17, 28, 48, 0.78)` with `backdrop-filter: blur(16px)`), luminous 1px borders (`rgba(255, 255, 255, 0.08)`), glowing emerald (`#34D399`), champagne gold (`#F59E0B`), and electric cyan (`#38BDF8`).
+
+3. **Fluid Motion & Micro-Interactions System**:
+   - CSS animation keyframes: `pageSlideUp` (280ms cubic-bezier), `cardReveal` with stagger utilities (`stagger-1`..`stagger-4`).
+   - Interactive 3D Metallic Bank Cards with perspective sheen, mesh glow sweep, and smooth lift (`translateY(-4px) scale(1.01)`).
+   - Tactile button physics (`active: scale(0.98)`), glowing focus rings, and animated loading indicators.
+   - Contextual financial success animations: custom animated SVG checkmark burst with concentric ripple rings for account opening, KYC submission, and beneficiary verification (strictly post-backend confirmation).
+
+4. **Screen-by-Screen Upgrades**:
+   - `/login` & `/register`: Immersive full-viewport (`100vh`) split-screen layout, 3D Platinum Card preview, official FinServ logo, live security indicators, and top-right ThemeToggle.
+   - `/onboarding`: Dynamic stepper with glowing halo, animated radar sweep verification progress screen, and theme toggle.
+   - `/app/accounts`: Relationship overview ribbon, metallic debit cards (Navy-Cyan for Savings, Obsidian-Emerald for Current), unmask eye toggle, copy toast feedback.
+   - `/app/beneficiaries`: Initials avatars, bank classification badges, search and filter pills, and verified payee success animations.
+
+5. **Automated Verification Evidence (`docs/evidence/phase-4-ui/`)**:
+   - `01-login-light-1440px.png`: Light mode split-screen login.
+   - `02-login-dark-obsidian-1440px.png`: Obsidian dark mode split-screen login.
+   - `03-register-dark-obsidian-1440px.png`: Obsidian dark mode registration.
+   - `04-accounts-dark-obsidian-1440px.png`: Obsidian dark mode accounts dashboard & 3D cards.
+   - `05-accounts-light-1440px.png`: Light mode accounts dashboard & 3D cards.
+   - `06-beneficiaries-light-1440px.png`: Light mode beneficiary management directory.
+   - `07-beneficiaries-dark-obsidian-1440px.png`: Obsidian dark mode beneficiary management directory.
+   - `08-accounts-mobile-375px.png`: Mobile responsive layout at 375px.

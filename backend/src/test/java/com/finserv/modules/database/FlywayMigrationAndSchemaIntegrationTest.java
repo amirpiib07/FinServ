@@ -57,23 +57,25 @@ class FlywayMigrationAndSchemaIntegrationTest {
             // V1_6 (2 tables)
             "idempotency_records", "transactions",
             // V1_7 (3 tables)
-            "approval_requests", "number_sequences", "audit_logs"
+            "approval_requests", "number_sequences", "audit_logs",
+            // V3 (1 table)
+            "beneficiaries"
     );
 
     @Test
-    @DisplayName("Should verify exactly 24 core tables plus Flyway history exist in database")
+    @DisplayName("Should verify exactly 25 core tables plus Flyway history exist in database")
     void shouldVerifyAll24CoreTablesExist() {
         List<String> tableNames = jdbcTemplate.queryForList(
                 "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'",
                 String.class
         ).stream().map(String::toLowerCase).toList();
 
-        // 24 core tables + flyway_schema_history = 25 total
+        // 25 core tables + flyway_schema_history = 26 total
         assertThat(tableNames).contains("flyway_schema_history");
         for (String expectedTable : EXPECTED_CORE_TABLES) {
             assertThat(tableNames).as("Table '%s' must exist", expectedTable).contains(expectedTable);
         }
-        assertThat(EXPECTED_CORE_TABLES).hasSize(24);
+        assertThat(EXPECTED_CORE_TABLES).hasSize(25);
     }
 
     @Test

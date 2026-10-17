@@ -9,6 +9,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from '@/routes';
 import { ToastProvider } from '@/context/ToastProvider';
 import { AuthProvider } from '@/context/AuthProvider';
+import { ThemeProvider } from '@/context/ThemeProvider';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
@@ -26,12 +27,14 @@ export const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ToastProvider>
-            <RouterProvider router={router} />
-            <ToastContainer />
-          </ToastProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <RouterProvider router={router} />
+              <ToastContainer />
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

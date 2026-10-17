@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { OnboardingPage } from '../OnboardingPage';
+import { ThemeProvider } from '@/context/ThemeProvider';
 import { apiClient } from '@/lib/api-client';
 import * as useAuthModule from '@/hooks/useAuth';
 
@@ -48,7 +49,9 @@ describe('OnboardingPage Component', () => {
 
     render(
       <MemoryRouter>
-        <OnboardingPage />
+        <ThemeProvider>
+          <OnboardingPage />
+        </ThemeProvider>
       </MemoryRouter>
     );
 
@@ -76,7 +79,9 @@ describe('OnboardingPage Component', () => {
 
     render(
       <MemoryRouter>
-        <OnboardingPage />
+        <ThemeProvider>
+          <OnboardingPage />
+        </ThemeProvider>
       </MemoryRouter>
     );
 
