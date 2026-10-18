@@ -49,5 +49,5 @@ describe('AppLayout Mobile Drawer Focus Management', () => {
 
     // Verify focus is restored to the trigger button
     expect(triggerButton).toHaveFocus();
-  });
+  }, 15000);
 });

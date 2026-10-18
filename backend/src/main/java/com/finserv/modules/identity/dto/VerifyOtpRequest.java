@@ -29,11 +29,31 @@ public class VerifyOtpRequest {
         this.challengeId = challengeId;
     }
 
+    public UUID getReferenceId() {
+        return challengeId;
+    }
+
+    public void setReferenceId(UUID referenceId) {
+        if (this.challengeId == null) {
+            this.challengeId = referenceId;
+        }
+    }
+
     public String getOtpCode() {
         return otpCode;
     }
 
     public void setOtpCode(String otpCode) {
         this.otpCode = otpCode;
+    }
+
+    public String getCode() {
+        return otpCode;
+    }
+
+    public void setCode(String code) {
+        if (this.otpCode == null || this.otpCode.isBlank()) {
+            this.otpCode = code;
+        }
     }
 }

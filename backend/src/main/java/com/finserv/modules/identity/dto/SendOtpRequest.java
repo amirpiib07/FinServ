@@ -29,12 +29,32 @@ public class SendOtpRequest {
         this.contactType = contactType;
     }
 
+    public String getType() {
+        return contactType;
+    }
+
+    public void setType(String type) {
+        if (this.contactType == null || this.contactType.isBlank()) {
+            this.contactType = type;
+        }
+    }
+
     public String getTargetDestination() {
         return targetDestination;
     }
 
     public void setTargetDestination(String targetDestination) {
         this.targetDestination = targetDestination;
+    }
+
+    public String getDestination() {
+        return targetDestination;
+    }
+
+    public void setDestination(String destination) {
+        if (this.targetDestination == null || this.targetDestination.isBlank()) {
+            this.targetDestination = destination;
+        }
     }
 
     public String getPurpose() {

@@ -8,13 +8,14 @@
  * - Brand Mark: /finserv-mark.svg (docs/brand/finserv-mark.svg)
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'full' | 'mark';
   showSubtitle?: boolean;
   className?: string;
+  forceTheme?: 'light' | 'dark';
 }
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
@@ -22,7 +23,25 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'full',
   showSubtitle = true,
   className = '',
+  forceTheme,
 }) => {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(() => {
+      const theme = document.documentElement.getAttribute('data-theme');
+      setIsDark(theme === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
   const heightMap = {
     sm: 28,
     md: 36,
@@ -49,6 +68,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     );
   }
 
+  const logoSrc = (forceTheme === 'dark' || (forceTheme !== 'light' && isDark))
+    ? '/finserv-logo-dark.svg'
+    : '/finserv-logo.svg';
+
   return (
     <div
       className={`brand-logo ${className}`.trim()}
@@ -56,7 +79,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)' }}
     >
       <img
-        src="/finserv-logo.svg"
+        src={logoSrc}
         alt="FINServ"
         height={markHeight}
         style={{ height: `${markHeight}px`, width: 'auto', display: 'block' }}

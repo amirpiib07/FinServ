@@ -190,13 +190,37 @@ export const OnboardingPage: React.FC = () => {
     setErrorMessage(null);
     try {
       const res = await apiClient.post<SendOtpResponse>('/auth/verify-contact/send', {
+        contactType: 'EMAIL',
+        targetDestination: user.email,
         destination: user.email,
         type: 'EMAIL',
         purpose: 'REGISTRATION',
       });
-      setOtpRefId(res.referenceId);
-      setSimulatedOtp(res.simulatedOtp || '123456');
+      const refId = res.challengeId || res.referenceId;
+      const code = res.simulatedOtp || '123456';
+      setOtpRefId(refId || null);
+      setSimulatedOtp(code);
+      setOtpCode(code); // Pre-fill directly for immediate one-click confirmation
       setOtpSent(true);
+
+      // System notification if browser permissions allow
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('FINServ Verification OTP', {
+            body: `Your verification code is ${code}. Valid for 10 minutes.`,
+            icon: '/finserv-mark.svg',
+          });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              new Notification('FINServ Verification OTP', {
+                body: `Your verification code is ${code}. Valid for 10 minutes.`,
+                icon: '/finserv-mark.svg',
+              });
+            }
+          });
+        }
+      }
     } catch (err) {
       const appErr = err as AppError;
       setErrorMessage(appErr.userMessage || 'Failed to dispatch verification code.');
@@ -212,6 +236,7 @@ export const OnboardingPage: React.FC = () => {
     setErrorMessage(null);
     try {
       const res = await apiClient.post<VerifyOtpResponse>('/auth/verify-contact/confirm', {
+        challengeId: otpRefId,
         referenceId: otpRefId,
         otpCode: otpCode.trim(),
       });
@@ -776,7 +801,7 @@ export const OnboardingPage: React.FC = () => {
                   isLoading={sendingOtp}
                   disabled={sendingOtp || otpSent}
                 >
-                  {otpSent ? 'OTP Sent' : 'Send Verification OTP'}
+                  {otpSent ? 'Resend OTP' : 'Send Verification OTP'}
                 </Button>
               )}
             </div>
@@ -784,37 +809,66 @@ export const OnboardingPage: React.FC = () => {
             {otpSent && !contactData.emailVerified && (
               <div
                 style={{
-                  padding: 'var(--spacing-4)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--spacing-5)',
+                  border: '2px solid rgba(46, 196, 182, 0.4)',
+                  borderRadius: 'var(--radius-lg)',
                   marginBottom: 'var(--spacing-5)',
+                  backgroundColor: 'rgba(46, 196, 182, 0.06)',
+                  boxShadow: '0 4px 20px rgba(46, 196, 182, 0.12)',
                 }}
               >
+                {/* Prominent High-Visibility Display Notification */}
                 <div
                   style={{
-                    padding: 'var(--spacing-2) var(--spacing-3)',
-                    backgroundColor: 'rgba(242, 184, 75, 0.12)',
-                    border: '1px solid rgba(242, 184, 75, 0.3)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: 'var(--font-size-xs)',
-                    color: '#F2B84B',
-                    marginBottom: 'var(--spacing-3)',
+                    padding: 'var(--spacing-3) var(--spacing-4)',
+                    backgroundColor: 'rgba(46, 196, 182, 0.18)',
+                    border: '1px solid rgba(46, 196, 182, 0.45)',
+                    borderRadius: 'var(--radius-md)',
+                    marginBottom: 'var(--spacing-4)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 'var(--spacing-2)',
                   }}
                 >
-                  <span>
-                    Simulated Sandbox Mode: Verification code generated: <strong>{simulatedOtp}</strong>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setOtpCode(simulatedOtp || '')}
-                    style={{ color: '#F2B84B', fontSize: '11px', padding: '2px 6px', height: 'auto' }}
-                  >
-                    Auto-Fill
-                  </Button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🔔</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-accent)' }}>
+                        Instant Security Verification Code
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Dispatched to registered contact and displayed on screen:
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-family-mono)',
+                        fontSize: '18px',
+                        fontWeight: 800,
+                        letterSpacing: '0.2em',
+                        color: 'var(--text-primary)',
+                        padding: '4px 12px',
+                        backgroundColor: 'var(--surface-elevated)',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-default)',
+                      }}
+                    >
+                      {simulatedOtp}
+                    </span>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleConfirmOtp}
+                      isLoading={verifyingOtp}
+                      style={{ fontSize: '12px' }}
+                    >
+                      Verify Now
+                    </Button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 'var(--spacing-3)', alignItems: 'flex-end' }}>
@@ -846,8 +900,14 @@ export const OnboardingPage: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-6)' }}>
               <Button
                 variant="primary"
-                onClick={() => setCurrentStep(2)}
-                disabled={!contactData.emailVerified || savingStep}
+                onClick={() => {
+                  if (!contactData.emailVerified) {
+                    setErrorMessage('Please send and confirm your verification OTP before proceeding.');
+                    return;
+                  }
+                  setCurrentStep(2);
+                }}
+                disabled={savingStep}
                 isLoading={savingStep}
               >
                 Save & Continue to Profile <ChevronRight size={16} />

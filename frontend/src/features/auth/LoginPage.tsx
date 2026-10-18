@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
+import { BankingChatbot } from '@/components/common/BankingChatbot';
 import {
   Lock,
   ShieldAlert,
@@ -36,6 +37,23 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(() => {
+      const theme = document.documentElement.getAttribute('data-theme');
+      setIsDark(theme === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app/accounts';
 
@@ -100,15 +118,18 @@ export const LoginPage: React.FC = () => {
         className="auth-brand-showcase"
         style={{
           flex: '1 1 48%',
-          background: 'linear-gradient(145deg, #060D1A 0%, #0A192F 50%, #0F2942 100%)',
+          background: isDark
+            ? 'linear-gradient(145deg, #060D1A 0%, #0A192F 50%, #0F2942 100%)'
+            : 'linear-gradient(145deg, #EBF3FC 0%, #F0F9FF 50%, #F8FAFC 100%)',
           padding: 'var(--spacing-12) var(--spacing-10)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          color: '#FFFFFF',
+          color: isDark ? '#FFFFFF' : '#0B2545',
           position: 'relative',
           overflow: 'hidden',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRight: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid var(--border-subtle)',
+          transition: 'background 0.3s ease, color 0.3s ease',
         }}
       >
         {/* Ambient Radial Mesh Background Glows */}
@@ -120,7 +141,9 @@ export const LoginPage: React.FC = () => {
             width: '500px',
             height: '500px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%)',
+            background: isDark
+              ? 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
@@ -132,7 +155,9 @@ export const LoginPage: React.FC = () => {
             width: '480px',
             height: '480px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%)',
+            background: isDark
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(46, 196, 182, 0.15) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
@@ -151,11 +176,11 @@ export const LoginPage: React.FC = () => {
                 gap: '8px',
                 padding: '4px 12px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(16, 185, 129, 0.12)',
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(16, 185, 129, 0.28)',
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#34D399',
+                color: isDark ? '#34D399' : '#065F46',
               }}
             >
               <span
@@ -163,8 +188,8 @@ export const LoginPage: React.FC = () => {
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  backgroundColor: '#34D399',
-                  boxShadow: '0 0 8px #34D399',
+                  backgroundColor: isDark ? '#34D399' : '#10B981',
+                  boxShadow: isDark ? '0 0 8px #34D399' : '0 0 6px #10B981',
                   display: 'inline-block',
                 }}
               />
@@ -180,8 +205,8 @@ export const LoginPage: React.FC = () => {
                 gap: '6px',
                 padding: '4px 12px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                color: '#38BDF8',
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(14, 165, 233, 0.12)',
+                color: isDark ? '#38BDF8' : '#0369A1',
                 fontSize: '11px',
                 fontWeight: 600,
                 letterSpacing: '0.06em',
@@ -199,7 +224,7 @@ export const LoginPage: React.FC = () => {
                 fontWeight: 700,
                 lineHeight: 1.25,
                 margin: '0 0 var(--spacing-4) 0',
-                color: '#FFFFFF',
+                color: isDark ? '#FFFFFF' : '#0B2545',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -208,7 +233,7 @@ export const LoginPage: React.FC = () => {
             <p
               style={{
                 fontSize: 'var(--font-size-sm)',
-                color: 'rgba(255, 255, 255, 0.75)',
+                color: isDark ? 'rgba(255, 255, 255, 0.75)' : '#475569',
                 lineHeight: 1.6,
                 margin: '0 0 var(--spacing-8) 0',
               }}
@@ -222,13 +247,16 @@ export const LoginPage: React.FC = () => {
               style={{
                 maxWidth: '380px',
                 borderRadius: 'var(--radius-xl)',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)',
+                background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                boxShadow: isDark
+                  ? '0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)'
+                  : '0 20px 35px -10px rgba(15, 23, 42, 0.25), inset 0 0 1px 1px rgba(255, 255, 255, 0.2)',
                 padding: 'var(--spacing-5)',
                 marginBottom: 'var(--spacing-8)',
                 position: 'relative',
                 backdropFilter: 'blur(16px)',
+                color: '#FFFFFF',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
@@ -286,20 +314,20 @@ export const LoginPage: React.FC = () => {
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(16, 185, 129, 0.12)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#34D399',
+                    color: isDark ? '#34D399' : '#059669',
                   }}
                 >
                   <Lock size={16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: '#FFFFFF' }}>
+                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A' }}>
                     256-bit AES-GCM Encrypted
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <div style={{ fontSize: '11px', color: isDark ? 'rgba(255, 255, 255, 0.55)' : '#64748B' }}>
                     Hardware-isolated session keys and TLS 1.3 transport security.
                   </div>
                 </div>
@@ -311,20 +339,20 @@ export const LoginPage: React.FC = () => {
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(14, 165, 233, 0.12)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#38BDF8',
+                    color: isDark ? '#38BDF8' : '#0284C7',
                   }}
                 >
                   <Database size={16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: '#FFFFFF' }}>
+                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A' }}>
                     Double-Entry Verified Ledger
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <div style={{ fontSize: '11px', color: isDark ? 'rgba(255, 255, 255, 0.55)' : '#64748B' }}>
                     Strict mathematical zero-sum balance and cryptographic idempotency.
                   </div>
                 </div>
@@ -336,20 +364,20 @@ export const LoginPage: React.FC = () => {
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(245, 158, 11, 0.12)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#F59E0B',
+                    color: isDark ? '#F59E0B' : '#D97706',
                   }}
                 >
                   <KeyRound size={16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: '#FFFFFF' }}>
+                  <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A' }}>
                     Institutional Authorization Workflow
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <div style={{ fontSize: '11px', color: isDark ? 'rgba(255, 255, 255, 0.55)' : '#64748B' }}>
                     Dual-officer approvals and cooling-off transfer protection.
                   </div>
                 </div>
@@ -358,7 +386,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 'var(--spacing-4)' }}>
+        <div style={{ fontSize: '11px', color: isDark ? 'rgba(255, 255, 255, 0.45)' : 'var(--text-tertiary)', borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid var(--border-subtle)', paddingTop: 'var(--spacing-4)' }}>
           © 2026 FINServ Core Banking Platform • RBI Pilot Simulator
         </div>
       </div>
@@ -533,7 +561,7 @@ export const LoginPage: React.FC = () => {
                   title="Super Admin: Branches, Staff, GL Trial Balance & Audit Trail"
                 >
                   <div style={{ fontWeight: 600, color: '#F59E0B' }}>Super Admin</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>amit.kumar</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>amit.kumar.singh</div>
                 </button>
               </div>
             </div>
@@ -632,6 +660,9 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 24/7 Digital Banking Concierge Chatbot */}
+      <BankingChatbot />
     </div>
   );
 };

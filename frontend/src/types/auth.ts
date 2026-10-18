@@ -34,21 +34,28 @@ export interface RegisterPayload {
 }
 
 export interface SendOtpPayload {
-  destination: string;
-  type: 'EMAIL' | 'SMS';
-  purpose: 'REGISTRATION' | 'LOGIN' | 'TRANSACTION' | 'PASSWORD_RESET';
+  destination?: string;
+  type?: 'EMAIL' | 'SMS';
+  contactType?: 'EMAIL' | 'SMS' | string;
+  targetDestination?: string;
+  purpose: 'REGISTRATION' | 'LOGIN' | 'TRANSACTION' | 'PASSWORD_RESET' | string;
 }
 
 export interface SendOtpResponse {
-  referenceId: string;
-  destinationMasked: string;
+  challengeId?: string;
+  referenceId?: string;
+  destinationMasked?: string;
+  maskedDestination?: string;
+  contactType?: string;
+  targetDestination?: string;
   expiresInSeconds: number;
-  retryAfterSeconds: number;
+  retryAfterSeconds?: number;
   simulatedOtp?: string;
 }
 
 export interface VerifyOtpPayload {
-  referenceId: string;
+  challengeId?: string;
+  referenceId?: string;
   otpCode: string;
 }
 

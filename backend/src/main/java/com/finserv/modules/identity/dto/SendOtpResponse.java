@@ -32,6 +32,16 @@ public class SendOtpResponse {
         this.challengeId = challengeId;
     }
 
+    public UUID getReferenceId() {
+        return challengeId;
+    }
+
+    public void setReferenceId(UUID referenceId) {
+        if (this.challengeId == null) {
+            this.challengeId = referenceId;
+        }
+    }
+
     public String getContactType() {
         return contactType;
     }
@@ -70,5 +80,25 @@ public class SendOtpResponse {
 
     public void setSimulatedOtp(String simulatedOtp) {
         this.simulatedOtp = simulatedOtp;
+    }
+
+    public String getCode() {
+        return simulatedOtp;
+    }
+
+    public void setCode(String code) {
+        if (this.simulatedOtp == null) {
+            this.simulatedOtp = code;
+        }
+    }
+
+    public String getDebugOtpCode() {
+        return simulatedOtp;
+    }
+
+    public void setDebugOtpCode(String debugOtpCode) {
+        if (this.simulatedOtp == null) {
+            this.simulatedOtp = debugOtpCode;
+        }
     }
 }

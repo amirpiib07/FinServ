@@ -5,7 +5,13 @@
 - **Current Milestone**: Phase 7 — Core Banking Add-ons (Fixed Deposits & Virtual Card Controls), UI/UX Polish, Full-Stack QA & Final Release
 - **Phase Status**: `COMPLETED`
 - **Active Git Branch**: `phase-7-fd-cards-final-release`
-- **Current Target**: System Completed — All 7 master roadmap phases implemented, verified with automated tests, and ready for final release approval.
+- **Current Target**: System Completed — All 7 master roadmap phases implemented, verified with automated tests, and 6 critical live inspection issues resolved:
+  1. KYC approval queue (`/admin/kyc`) 404 resolved via safe array/paginated envelope response normalization.
+  2. Onboarding Step 1 OTP error resolved; on-screen high-visibility OTP notification banner, instant 1-click auto-fill, and browser notifications dispatched.
+  3. Demo Persona Bootstrap (`DemoPersonaBootstrapRunner`) idempotently provisions active credentials and funded accounts for `alex.kumar`, `officer.mumbai`, and `amit.kumar.singh`.
+  4. BrandLogo in dark mode updated to use `/finserv-logo-dark.svg` with crisp white "Fin" and cyan "Serv" text.
+  5. Interactive 24/7 Digital Banking Chatbot Concierge mounted across Customer Portal, Admin Portal, and Login screens.
+  6. Light theme consistency fixed: left showcase panel in `/login` and desktop sidebars seamlessly transition to clean luxury light slate/white styles.
 
 ---
 

@@ -18,7 +18,7 @@ export const adminService = {
     return apiClient.get<AdminOverviewDto>('/api/v1/admin/overview');
   },
 
-  getKycApplications(params: {
+  async getKycApplications(params: {
     status?: string;
     search?: string;
     page?: number;
@@ -30,9 +30,25 @@ export const adminService = {
     if (params.page !== undefined) query.set('page', params.page.toString());
     if (params.size !== undefined) query.set('size', params.size.toString());
     const qs = query.toString();
-    return apiClient.get<AdminPageResponse<AdminKycApplicationDto>>(
+    const res = await apiClient.get<AdminKycApplicationDto[] | AdminPageResponse<AdminKycApplicationDto>>(
       `/api/v1/admin/kyc/applications${qs ? '?' + qs : ''}`
     );
+    if (Array.isArray(res)) {
+      return {
+        items: res,
+        page: 0,
+        size: res.length,
+        totalElements: res.length,
+        totalPages: 1,
+      };
+    }
+    return {
+      items: res?.items || [],
+      page: res?.page || 0,
+      size: res?.size || 0,
+      totalElements: res?.totalElements || 0,
+      totalPages: res?.totalPages || 1,
+    };
   },
 
   decideKycApplication(

@@ -26,6 +26,7 @@ import {
 import { AuthContext } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { BankingChatbot } from '@/components/common/BankingChatbot';
 import { adminService } from '@/features/admin/adminService';
 
 export const AdminLayout: React.FC = () => {
@@ -486,6 +487,9 @@ export const AdminLayout: React.FC = () => {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      {/* Floating Banking Concierge Chatbot */}
+      <BankingChatbot />
     </div>
   );
 };

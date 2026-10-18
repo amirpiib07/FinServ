@@ -57,8 +57,9 @@ export const KycReviewPage: React.FC = () => {
       })
       .then((res) => {
         if (!ignore) {
-          setApplications(res.items);
-          setTotalElements(res.totalElements);
+          const items = Array.isArray(res) ? res : (res?.items ?? []);
+          setApplications(items);
+          setTotalElements(Array.isArray(res) ? res.length : (res?.totalElements ?? items.length));
           setLoading(false);
         }
       })
@@ -264,7 +265,7 @@ export const KycReviewPage: React.FC = () => {
                     </td>
                   </tr>
                 ))
-              ) : applications.length > 0 ? (
+              ) : Array.isArray(applications) && applications.length > 0 ? (
                 applications.map((app) => (
                   <tr
                     key={app.applicationId}

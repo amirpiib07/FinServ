@@ -142,11 +142,22 @@
   --color-error-400: #F87171;
   --color-error-500: #EF4444;
 
-  /* Executive App Shell */
-  --navy-sidebar-start: #0B192C;
-  --navy-sidebar-end: #0D1D34;
-  --navy-sidebar-border: rgba(255, 255, 255, 0.08);
-  --nav-active-glow: 0 0 18px rgba(29, 78, 216, 0.35);
+  /* Executive App Shell - Light Mode */
+  --navy-sidebar-start: #FFFFFF;
+  --navy-sidebar-end: #F8FAFC;
+  --navy-sidebar-border: rgba(15, 23, 42, 0.08);
+  --navy-sidebar-bg: #FFFFFF;
+  --nav-active-glow: 0 0 14px rgba(46, 196, 182, 0.25);
+  --sidebar-text: #475569;
+  --sidebar-text-muted: #94A3B8;
+  --sidebar-text-hover: #0F172A;
+  --sidebar-item-hover-bg: rgba(15, 23, 42, 0.04);
+  --sidebar-item-active-bg: rgba(46, 196, 182, 0.12);
+  --sidebar-item-active-text: #0D9488;
+  --sidebar-footer-bg: #F1F5F9;
+  --sidebar-user-bg: #FFFFFF;
+  --sidebar-user-border: rgba(15, 23, 42, 0.08);
+  --sidebar-user-name: #0F172A;
 
   /* State Feedback Semantics */
   --color-success: #10B981;
@@ -304,11 +315,22 @@
   --color-error-400: #F87171;
   --color-error-500: #EF4444;
 
-  /* Executive App Shell */
+  /* Executive App Shell - Dark Mode */
   --navy-sidebar-start: #04080F;
   --navy-sidebar-end: #0A1220;
   --navy-sidebar-border: rgba(255, 255, 255, 0.07);
+  --navy-sidebar-bg: #060D1A;
   --nav-active-glow: 0 0 20px rgba(56, 189, 248, 0.4);
+  --sidebar-text: rgba(255, 255, 255, 0.72);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.4);
+  --sidebar-text-hover: #FFFFFF;
+  --sidebar-item-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-item-active-bg: linear-gradient(90deg, rgba(46, 196, 182, 0.16) 0%, rgba(46, 196, 182, 0.04) 100%);
+  --sidebar-item-active-text: #FFFFFF;
+  --sidebar-footer-bg: rgba(0, 0, 0, 0.25);
+  --sidebar-user-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-user-border: rgba(255, 255, 255, 0.06);
+  --sidebar-user-name: #FFFFFF;
 
   /* State Feedback Semantics */
   --color-success: #34D399;

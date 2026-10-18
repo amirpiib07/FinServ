@@ -10,6 +10,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { BankingChatbot } from '@/components/common/BankingChatbot';
 import { AuthContext } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -406,6 +407,9 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Floating Banking Concierge Chatbot */}
+      <BankingChatbot />
     </div>
   );
 };
