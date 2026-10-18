@@ -2,10 +2,10 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 4 — Accounts (Applications, Opening, Details) & Beneficiary Management
+- **Current Milestone**: Phase 5 — Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts
 - **Phase Status**: `COMPLETED`
-- **Active Git Branch**: `phase-4-accounts-beneficiaries`
-- **Current Target**: Awaiting approval to proceed to Phase 5 (Money Transfers, Deposits/Withdrawals, Double-Entry Ledger)
+- **Active Git Branch**: `phase-5-transfers-ledger-statements`
+- **Current Target**: Awaiting approval to proceed to Phase 6 (Customer 360 Dashboard, Employee/Admin Portal & Approvals)
 
 ---
 
@@ -17,8 +17,8 @@
 | **1** | **Backend Foundation & MySQL Flyway Setup** | **COMPLETED** | `phase-1-backend-foundation` | 24 core tables + triggers (`V1_1`–`V1_8`, `V2`), Flyway, JPA, UUIDv7, Audit Hash Chain, AES-256-GCM, ISO 7064/Luhn generators, 52 automated tests passing, Actuator `/actuator/health` UP, Swagger UI verified. |
 | **2** | **Frontend Foundation & UI Component Kit** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. Merged to `main`. |
 | **3** | **Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC** | **COMPLETED** | `phase-3-auth-kyc-branding` | Official SVG brand mark ingestion, CSS tokens polish, stateless JWT dual-token auth with rotation and replay attack mitigation, 15-minute lock on 5 failed attempts, demo OTP contact verification, 5-step progressive customer onboarding/KYC wizard with encrypted drafts & blind-index PAN hash, verification pending tracker, route guards (unverified customer redirection). 61 backend tests + 94 frontend tests passing. Merged to `main`. |
-| **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | **COMPLETED** | `phase-4-accounts-beneficiaries` | Account products, branches, collision-free ISO 7064 Mod 11,10 account opening with pessimistic sequence lock, customer account dashboard cards, ownership guards, beneficiaries with IFSC validation, cooling-off/verification simulation. 70 backend tests + 101 frontend tests passing. |
-| **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | `NOT STARTED` | - | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`), pessimistic row locks, strict idempotency filter, cash deposit/withdrawal, funds transfer, statements & cryptographic receipts. |
+| **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | **COMPLETED** | `phase-4-accounts-beneficiaries` | Account products, branches, collision-free ISO 7064 Mod 11,10 account opening with pessimistic sequence lock, customer account dashboard cards, ownership guards, beneficiaries with IFSC validation, cooling-off/verification simulation, luxury UI overhaul. 70 backend tests + 101 frontend tests passing. Merged to `main`. |
+| **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | **COMPLETED** | `phase-5-transfers-ledger-statements` | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`: $\sum \text{Debits} == \sum \text{Credits}$), pessimistic write locking with deterministic UUID sorting, SHA-256 idempotency cache & replay guard (`Idempotency-Key`), deposits, withdrawals, internal and beneficiary transfers, passbook statement filters, interactive Transfer Studio, and printable advice receipts. 78 backend tests + 110 frontend tests passing. |
 | **6** | **Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs)** | `NOT STARTED` | - | Customer 360 dashboard & navigation, branch employee teller desk, manager maker-checker approvals (onboarding KYC approval & account opening), audit console. |
 | **7** | **Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs** | `NOT STARTED` | - | Term deposits overview, virtual debit cards preview, accessible motion polish, full-stack E2E regression, final documentation & runbooks. |
 
@@ -545,3 +545,55 @@ Executed a comprehensive luxury fintech upgrade inspired by Revolut, Mercury, an
    - `06-beneficiaries-light-1440px.png`: Light mode beneficiary management directory.
    - `07-beneficiaries-dark-obsidian-1440px.png`: Obsidian dark mode beneficiary management directory.
    - `08-accounts-mobile-375px.png`: Mobile responsive layout at 375px.
+
+---
+
+## 16. Phase 5 — Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts
+
+- **Milestone Status**: `COMPLETED`
+- **Branch**: `phase-5-transfers-ledger-statements`
+
+### 1. Key Engineering Implementations
+
+1. **Financial Precision & Accounting Invariants**:
+   - Strict `BigDecimal` representation for all monetary amounts with zero IEEE-754 float/double math across backend and frontend.
+   - General Ledger posting engine (`LedgerPostingService`): enforces invariant $\sum \text{Debits} == \sum \text{Credits}$ within single `@Transactional` boundary before any balance is persisted.
+   - Inserts immutable `gl_journal_entries` and paired `gl_ledger_postings` (`DEBIT`/`CREDIT`) targeting product liability GLs and operational clearing/settlement GLs (`10100` Vault Cash, `10300` Clearing Transit).
+
+2. **Deadlock Elimination & Row-Level Locking**:
+   - In internal and self transfers involving two FinServ accounts, row locks are acquired deterministically in ascending UUID sort order (`fromId.compareTo(toId)`).
+   - `PESSIMISTIC_WRITE` locks prevent concurrent double-spend race conditions.
+   - Insufficient funds check: `available_balance.compareTo(amount) < 0` immediately triggers `BusinessRuleException` with zero mutation to account balances or ledger.
+
+3. **Strict Idempotency Service (`IdempotencyService`)**:
+   - Evaluates `Idempotency-Key` request header on `/deposit`, `/withdraw`, and `/transfer`.
+   - Calculates deterministic SHA-256 hash of payload request JSON.
+   - Same key + identical payload returns stored cached response without re-executing money movement.
+   - Same key + different payload or concurrent execution rejects with `409 Conflict`.
+
+4. **Core Banking Endpoints (`TransactionController`)**:
+   - `POST /api/v1/transactions/deposit`: Cash/funding deposit into customer account with GL balancing.
+   - `POST /api/v1/transactions/withdraw`: Self-service funds withdrawal with balance checks.
+   - `POST /api/v1/transactions/transfer`: Supports transfer to verified beneficiary (Internal/IMPS/NEFT) and self/own account transfers.
+   - `GET /api/v1/transactions` & `GET /api/v1/accounts/{accountId}/transactions`: Paginated transaction history with filters (account, type, date range, search) and KPI summary metrics (total inflow, outflow, net cashflow).
+   - `GET /api/v1/transactions/{transactionId}`: Transaction receipt details with reference numbers, counterparty details, and balance snapshots.
+
+5. **Luxury Frontend Studio & Passbook**:
+   - `/app/transfers`: Interactive Transfer Studio with 4 segmented tabs (Beneficiary Transfer, Own Account Transfer, Add Funds Instant Deposit, Withdraw Funds).
+   - Quick amount chips (`+₹500`, `+₹2,000`, `+₹10,000`, `+₹25,000`), source account cards with live `Available Balance`, and verified payee avatar selector.
+   - Mandatory glassmorphic Review & Confirm Modal showing routing preview, zero-fee badge, and fresh idempotency key with double-click submission lock.
+   - Confirmed Payment Success card with animated SVG checkmark (`SuccessAnimation`), 1-click UTR copy, updated balance snapshot, and receipt view.
+   - `/app/statements` & `/app/transactions`: Digital Passbook with KPI summary strip, account & type filter pills, date range selector, monospace INR amounts, running balances, and printable receipt modal (`@media print` supported).
+
+### 2. Automated Test Results
+
+- **Backend Suite**: 78 tests passing across 16 test classes (`BUILD SUCCESS`, 0 failures, 0 errors).
+  - `TransactionIntegrationTest`: 8 integration tests covering deposit GL balancing, withdrawal GL balancing, zero mutation on insufficient funds, internal atomic transfer, idempotency replay, payload conflict (409), customer ownership security, and KPI summary calculations.
+- **Frontend Suite**: 110 tests passing across 19 test files.
+  - `TransfersPage.test.tsx`: 3 tests passing.
+  - `TransactionsPage.test.tsx`: 3 tests passing.
+- **Build & Typecheck**:
+  - `npm run lint`: 0 errors.
+  - `npm run typecheck`: 0 errors.
+  - `npm run build`: built in 1.10s (`dist/assets/index-*.js`).
+

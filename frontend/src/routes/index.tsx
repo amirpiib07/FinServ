@@ -22,6 +22,8 @@ import { RegisterPage } from '@/features/auth/RegisterPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage';
+import { TransfersPage } from '@/features/transfers/TransfersPage';
+import { TransactionsPage } from '@/features/transactions/TransactionsPage';
 
 // Lazy-load DesignSystemPage conditionally in development only (direct URL only)
 const LazyDesignSystemPage = import.meta.env.DEV
@@ -91,12 +93,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'transfers',
-        element: (
-          <PlaceholderPage
-            title="Fund Transfers & Wire Payments"
-            description="Intra-bank transfers, NEFT, RTGS, and scheduled standing instructions with multi-factor authorization."
-          />
-        ),
+        element: <TransfersPage />,
+      },
+      {
+        path: 'transactions',
+        element: <TransactionsPage />,
       },
       {
         path: 'deposits',
@@ -118,12 +119,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'statements',
-        element: (
-          <PlaceholderPage
-            title="Account Statements & Digital Receipts"
-            description="Download official digitally-signed PDF statements, monthly account summaries, and transaction receipts."
-          />
-        ),
+        element: <TransactionsPage />,
       },
       {
         path: 'audit',
