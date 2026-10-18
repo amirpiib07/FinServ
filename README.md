@@ -157,9 +157,9 @@ FINSERV/
 
 2. **Run Lint, Type-Check & Unit/A11y Tests**:
    ```bash
-   npm run lint        # ESLint 9 checks
+   npm run lint        # ESLint 9 checks (0 errors, 0 warnings)
    npm run typecheck   # TypeScript strict checks (noUncheckedIndexedAccess)
-   npm test            # 110 Vitest unit, component, and accessibility tests
+   npm test            # 122 Vitest unit, component, and accessibility tests
    ```
 
 3. **Start Frontend Dev Server**:
@@ -172,6 +172,8 @@ FINSERV/
    - Transfer Studio & Direct Deposit: `http://localhost:5173/app/transfers`
    - Beneficiary Management: `http://localhost:5173/app/beneficiaries`
    - Digital Passbook & Statements: `http://localhost:5173/app/statements`
+   - Fixed Deposits (Calculator, Instant Booking, Portfolio): `http://localhost:5173/app/deposits`
+   - Platinum Virtual Debit Card Controls: `http://localhost:5173/app/cards`
    - Admin Operations Command Center: `http://localhost:5173/admin/dashboard`
    - Admin KYC Review Workbench: `http://localhost:5173/admin/kyc`
    - Admin Accounts & Freeze Control: `http://localhost:5173/admin/accounts`
@@ -183,7 +185,7 @@ FINSERV/
 
    | Role | Username | Password | Default Landing | Capabilities |
    | :--- | :--- | :--- | :--- | :--- |
-   | **Verified Customer** | `alex.kumar` | `AlexSecureP@ss1!` | `/app/dashboard` | Net worth banner, 3D metallic card, cashflow bar, transfers, deposits, e-statements |
+   | **Verified Customer** | `alex.kumar` | `AlexSecureP@ss1!` | `/app/dashboard` | Net worth banner, 3D metallic card, cashflow bar, transfers, deposits, Fixed Deposits, Virtual Card controls, e-statements |
    | **Bank Officer / Admin** | `officer.mumbai` | `OfficerSecureP@ss1!` | `/admin/dashboard` | Operational KPIs, KYC review queue (approve/reject), account approvals, account freeze/unfreeze |
    | **Super Admin** | `amit.kumar.singh` | `AdminMasterP@ss1!` | `/admin/dashboard` | All Bank Officer features + Branch creation (IFSC), Staff/Admin user provisioning, GL Trial Balance equality, SHA-256 Audit Log explorer |
 
@@ -192,6 +194,21 @@ FINSERV/
    npm run build
    ```
    Compiles clean production assets to `frontend/dist/`. Dev-only design system routes and components are statically dead-code eliminated from the bundle.
+
+---
+
+## 📖 5-Minute End-to-End Demo Guide
+
+For a rapid, comprehensive walkthrough of all core-banking capabilities (KYC Onboarding, Maker-Checker KYC Approval, Account Opening, Ledger-Backed Deposit, IMPS Transfer, Fixed Deposit Booking, and Card Freeze Kill-Switch), follow the step-by-step evaluation guide in:
+👉 [docs/DEMO_GUIDE.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/DEMO_GUIDE.md)
+
+---
+
+## 🌐 External Provider Boundaries & Simulation Policy
+
+FINServ maintains strict architectural boundaries between working core-banking features and external banking rails:
+- **Core Banking Operations (Real)**: Double-entry ledger accounting, ISO 7064 Mod 11,10 account generator, row-level concurrency locks, SHA-256 audit hash chain, AES-256-GCM data encryption, and fixed deposit compound interest math are 100% real and run locally.
+- **External Integrations (Simulated)**: NPCI UPI/NEFT network switch, Telecom SMS OTP gateways, and Physical Debit Card embossing machines operate via explicit local simulation drivers (`OtpService`, `VirtualCardService`, mock clearing). No fake balances or bypasses are permitted.
 
 ---
 
@@ -205,6 +222,6 @@ Development progresses strictly through phased milestone iterations following th
 - **Phase 4**: Accounts (Applications, Opening, Details) & Beneficiary Management (`COMPLETED`)
 - **Phase 5**: Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts (`COMPLETED`)
 - **Phase 6**: Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs) (`COMPLETED`)
-- **Phase 7**: Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs (`NOT STARTED`)
+- **Phase 7**: Core Add-ons (Fixed Deposits & Cards Controls), UI Polish, Full-Stack QA & Final Release (`COMPLETED`)
 
 Detailed tracking is maintained in [docs/PROGRESS.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/PROGRESS.md) and [docs/TRACEABILITY.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/TRACEABILITY.md).

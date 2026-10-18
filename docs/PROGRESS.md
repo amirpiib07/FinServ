@@ -2,10 +2,10 @@
 
 ## 1. Project Overview & Current State
 
-- **Current Milestone**: Phase 5 — Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts
+- **Current Milestone**: Phase 7 — Core Banking Add-ons (Fixed Deposits & Virtual Card Controls), UI/UX Polish, Full-Stack QA & Final Release
 - **Phase Status**: `COMPLETED`
-- **Active Git Branch**: `phase-5-transfers-ledger-statements`
-- **Current Target**: Awaiting approval to proceed to Phase 6 (Customer 360 Dashboard, Employee/Admin Portal & Approvals)
+- **Active Git Branch**: `phase-7-fd-cards-final-release`
+- **Current Target**: System Completed — All 7 master roadmap phases implemented, verified with automated tests, and ready for final release approval.
 
 ---
 
@@ -18,9 +18,9 @@
 | **2** | **Frontend Foundation & UI Component Kit** | **COMPLETED** | `phase-2-frontend-foundation` | React 19 + TypeScript (strict, `noUncheckedIndexedAccess`), Vite proxy, Tier 1/2 Vanilla CSS tokens, 25 UI components with all states, Radix UI headless primitives, Decimal.js money math (`ROUND_HALF_EVEN`), Asia/Kolkata dates, masking, Zod schemas, RFC 7807 error mapper, Actuator health probe, dev-only `/design-system` catalog (tree-shaken from prod), 80 Vitest unit/a11y tests passing, 0 lint/typecheck errors. Merged to `main`. |
 | **3** | **Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC** | **COMPLETED** | `phase-3-auth-kyc-branding` | Official SVG brand mark ingestion, CSS tokens polish, stateless JWT dual-token auth with rotation and replay attack mitigation, 15-minute lock on 5 failed attempts, demo OTP contact verification, 5-step progressive customer onboarding/KYC wizard with encrypted drafts & blind-index PAN hash, verification pending tracker, route guards (unverified customer redirection). 61 backend tests + 94 frontend tests passing. Merged to `main`. |
 | **4** | **Accounts (Applications, Opening, Details) & Beneficiary Management** | **COMPLETED** | `phase-4-accounts-beneficiaries` | Account products, branches, collision-free ISO 7064 Mod 11,10 account opening with pessimistic sequence lock, customer account dashboard cards, ownership guards, beneficiaries with IFSC validation, cooling-off/verification simulation, luxury UI overhaul. 70 backend tests + 101 frontend tests passing. Merged to `main`. |
-| **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | **COMPLETED** | `phase-5-transfers-ledger-statements` | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`: $\sum \text{Debits} == \sum \text{Credits}$), pessimistic write locking with deterministic UUID sorting, SHA-256 idempotency cache & replay guard (`Idempotency-Key`), deposits, withdrawals, internal and beneficiary transfers, passbook statement filters, interactive Transfer Studio, and printable advice receipts. 78 backend tests + 110 frontend tests passing. |
-| **6** | **Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs)** | `NOT STARTED` | - | Customer 360 dashboard & navigation, branch employee teller desk, manager maker-checker approvals (onboarding KYC approval & account opening), audit console. |
-| **7** | **Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs** | `NOT STARTED` | - | Term deposits overview, virtual debit cards preview, accessible motion polish, full-stack E2E regression, final documentation & runbooks. |
+| **5** | **Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts** | **COMPLETED** | `phase-5-transfers-ledger-statements` | Balanced double-entry general ledger (`gl_journal_entries`, `gl_ledger_postings`: $\sum \text{Debits} == \sum \text{Credits}$), pessimistic write locking with deterministic UUID sorting, SHA-256 idempotency cache & replay guard (`Idempotency-Key`), deposits, withdrawals, internal and beneficiary transfers, passbook statement filters, interactive Transfer Studio, and printable advice receipts. 78 backend tests + 110 frontend tests passing. Merged to `main`. |
+| **6** | **Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs)** | **COMPLETED** | `phase-6-dashboards-admin-portal` | Executive Customer 360 wealth dashboard, Bank Officer Command Center, pending KYC review & approval modal, account application decision desk, account status freeze/unfreeze toggles, Super Admin branch management, staff provisioning, double-entry GL balance verification, SHA-256 audit log viewer. 86 backend tests + 114 frontend tests passing. Merged to `main`. |
+| **7** | **Core Add-ons (FD & Cards), Full Polish, Full-Stack QA & Final Release** | **COMPLETED** | `phase-7-fd-cards-final-release` | Fixed Deposits module with interactive tenure/rate calculator, instant booking funded from real account balance with balanced double-entry GL journal posting, printable FD advice certificate; Virtual Platinum Debit Card controls with 3D obsidian/emerald/gold metallic card, instant kill-switch freeze/unfreeze, channel switches, daily limit slider, audit logging; zero dead links, dark/light theme polish, 88 backend tests + 122 frontend tests passing, clean production bundle, master evaluation guide `docs/DEMO_GUIDE.md`. |
 
 ---
 
