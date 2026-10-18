@@ -12,7 +12,6 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootRedirect } from './RootRedirect';
 import { AppLayout } from '@/layouts/AppLayout';
-import { PlaceholderPage } from './PlaceholderPage';
 import { NotFoundPage } from '@/components/common/NotFoundPage';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -26,6 +25,8 @@ import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage';
 import { TransfersPage } from '@/features/transfers/TransfersPage';
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
 import { CustomerDashboardPage } from '@/features/dashboard/CustomerDashboardPage';
+import { DepositsPage } from '@/features/deposits/DepositsPage';
+import { CardsPage } from '@/features/cards/CardsPage';
 
 // Admin Command Center Pages & Layout
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -115,21 +116,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'deposits',
-        element: (
-          <PlaceholderPage
-            title="Term Deposits & Wealth Products"
-            description="High-yield fixed deposits, compounding recurring deposits, and tax-saver investment accounts."
-          />
-        ),
+        element: <DepositsPage />,
       },
       {
         path: 'cards',
-        element: (
-          <PlaceholderPage
-            title="Debit Cards, Virtual Cards & UPI"
-            description="Manage physical and virtual debit cards, spend limits, international usage toggles, and UPI VPAs."
-          />
-        ),
+        element: <CardsPage />,
       },
       {
         path: 'statements',
@@ -137,12 +128,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'audit',
-        element: (
-          <PlaceholderPage
-            title="Security Audit & Access History"
-            description="Review secure session history, device fingerprints, and verified account operation logs."
-          />
-        ),
+        element: <AuditLedgerPage />,
       },
     ],
   },
