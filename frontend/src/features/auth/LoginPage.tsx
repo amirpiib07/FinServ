@@ -42,6 +42,7 @@ export const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -51,17 +52,30 @@ export const LoginPage: React.FC = () => {
     },
   });
 
+  const fillCredentials = (username: string, pass: string) => {
+    setValue('usernameOrEmail', username, { shouldValidate: true });
+    setValue('password', pass, { shouldValidate: true });
+    setServerError(null);
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
     try {
       const response = await login(data);
-      if (
+      const isStaffOrAdmin = response.user.roles.some((r: string) =>
+        ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE'].includes(r)
+      );
+
+      if (isStaffOrAdmin) {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (
         response.user.roles.includes('ROLE_CUSTOMER') &&
         response.user.status === 'PENDING_VERIFICATION'
       ) {
         navigate('/onboarding', { replace: true });
       } else {
-        navigate(from, { replace: true });
+        const target = from === '/app/accounts' ? '/app/dashboard' : from;
+        navigate(target, { replace: true });
       }
     } catch (err) {
       const appErr = err as AppError;
@@ -434,6 +448,95 @@ export const LoginPage: React.FC = () => {
                 <span>{serverError}</span>
               </div>
             )}
+
+            {/* Quick Demo Access Bar */}
+            <div
+              style={{
+                marginBottom: 'var(--spacing-5)',
+                padding: 'var(--spacing-3)',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--surface-sunken)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: 'var(--text-tertiary)',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <KeyRound size={13} color="var(--brand-accent)" />
+                <span>Instant Demo Access (Click to autofill)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => fillCredentials('alex.kumar', 'AlexSecureP@ss1!')}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-default)',
+                    backgroundColor: 'var(--surface-elevated)',
+                    color: 'var(--text-primary)',
+                    fontSize: '11px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Verified Customer with INR accounts & beneficiaries"
+                >
+                  <div style={{ fontWeight: 600, color: 'var(--brand-accent)' }}>Customer</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>alex.kumar</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fillCredentials('officer.mumbai', 'OfficerSecureP@ss1!')}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-default)',
+                    backgroundColor: 'var(--surface-elevated)',
+                    color: 'var(--text-primary)',
+                    fontSize: '11px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Bank Officer: KYC Review Queue & Account Opening"
+                >
+                  <div style={{ fontWeight: 600, color: '#38BDF8' }}>Bank Officer</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>officer.mumbai</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fillCredentials('amit.kumar.singh', 'AdminMasterP@ss1!')}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(217, 119, 6, 0.4)',
+                    backgroundColor: 'var(--surface-elevated)',
+                    color: 'var(--text-primary)',
+                    fontSize: '11px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Super Admin: Branches, Staff, GL Trial Balance & Audit Trail"
+                >
+                  <div style={{ fontWeight: 600, color: '#F59E0B' }}>Super Admin</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>amit.kumar</div>
+                </button>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <FormField

@@ -166,13 +166,28 @@ FINSERV/
    ```bash
    npm run dev
    ```
-   - Authentication: `http://localhost:5173/login`
-   - Core Banking Layout: `http://localhost:5173/app/accounts`
-   - Transfer Studio: `http://localhost:5173/app/transfers`
+   - Authentication & 3-Tier Demo Access: `http://localhost:5173/login`
+   - Customer Executive Home Dashboard: `http://localhost:5173/app/dashboard`
+   - Accounts Directory & Opening: `http://localhost:5173/app/accounts`
+   - Transfer Studio & Direct Deposit: `http://localhost:5173/app/transfers`
+   - Beneficiary Management: `http://localhost:5173/app/beneficiaries`
    - Digital Passbook & Statements: `http://localhost:5173/app/statements`
+   - Admin Operations Command Center: `http://localhost:5173/admin/dashboard`
+   - Admin KYC Review Workbench: `http://localhost:5173/admin/kyc`
+   - Admin Accounts & Freeze Control: `http://localhost:5173/admin/accounts`
+   - Super Admin Branch & Staff Provisioning: `http://localhost:5173/admin/branches-staff`
+   - Super Admin GL Trial Balance & SHA-256 Audit Trail: `http://localhost:5173/admin/audit-ledger`
    - Living Design System: `http://localhost:5173/design-system` (Dev-only, live Actuator probe)
 
-4. **Production Build**:
+4. **Instant 3-Tier Demo Credentials**:
+
+   | Role | Username | Password | Default Landing | Capabilities |
+   | :--- | :--- | :--- | :--- | :--- |
+   | **Verified Customer** | `alex.kumar` | `AlexSecureP@ss1!` | `/app/dashboard` | Net worth banner, 3D metallic card, cashflow bar, transfers, deposits, e-statements |
+   | **Bank Officer / Admin** | `officer.mumbai` | `OfficerSecureP@ss1!` | `/admin/dashboard` | Operational KPIs, KYC review queue (approve/reject), account approvals, account freeze/unfreeze |
+   | **Super Admin** | `amit.kumar.singh` | `AdminMasterP@ss1!` | `/admin/dashboard` | All Bank Officer features + Branch creation (IFSC), Staff/Admin user provisioning, GL Trial Balance equality, SHA-256 Audit Log explorer |
+
+5. **Production Build**:
    ```bash
    npm run build
    ```
@@ -189,7 +204,7 @@ Development progresses strictly through phased milestone iterations following th
 - **Phase 3**: Branding, Auth (JWT/Sessions) & Progressive Customer Onboarding + KYC (`COMPLETED`)
 - **Phase 4**: Accounts (Applications, Opening, Details) & Beneficiary Management (`COMPLETED`)
 - **Phase 5**: Money Transfers, Deposits/Withdrawals, Double-Entry Ledger & Statements/Receipts (`COMPLETED`)
-- **Phase 6**: Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs) (`NOT STARTED`)
+- **Phase 6**: Customer Dashboard + Employee/Admin Portal (KYC/Account Approvals & Audit Logs) (`COMPLETED`)
 - **Phase 7**: Core Add-ons (FD/Cards Overview), UI/Motion Polish, End-to-End QA & Final Docs (`NOT STARTED`)
 
 Detailed tracking is maintained in [docs/PROGRESS.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/PROGRESS.md) and [docs/TRACEABILITY.md](file:///c:/Users/AMIT%20KUMAR%20SINGH/OneDrive/Desktop/finserv/docs/TRACEABILITY.md).

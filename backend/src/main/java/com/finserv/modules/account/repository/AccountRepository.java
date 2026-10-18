@@ -28,4 +28,21 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Account a WHERE a.accountNumber = :accountNumber")
     Optional<Account> findByAccountNumberWithLock(@Param("accountNumber") String accountNumber);
+
+    long countByStatus(String status);
+
+    @Query("SELECT COALESCE(SUM(a.currentBalance), 0) FROM Account a WHERE a.status = 'ACTIVE'")
+    java.math.BigDecimal sumActiveCurrentBalances();
+
+    @Query("""
+        SELECT a FROM Account a
+        WHERE (:status IS NULL OR a.status = :status)
+          AND (:search IS NULL OR LOWER(a.accountNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR (a.nickname IS NOT NULL AND LOWER(a.nickname) LIKE LOWER(CONCAT('%', :search, '%'))))
+        ORDER BY a.openedAt DESC
+    """)
+    org.springframework.data.domain.Page<Account> findAdminFilteredAccounts(
+            @Param("status") String status,
+            @Param("search") String search,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

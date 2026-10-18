@@ -12,4 +12,8 @@ import java.util.UUID;
 public interface AccountApplicationRepository extends JpaRepository<AccountApplication, UUID> {
     Optional<AccountApplication> findByApplicationNumber(String applicationNumber);
     List<AccountApplication> findByCustomerId(UUID customerId);
+    List<AccountApplication> findByApplicationStatus(String applicationStatus);
+    List<AccountApplication> findByApplicationStatusIn(java.util.Collection<String> statuses);
+    long countByApplicationStatusIn(java.util.Collection<String> statuses);
+    List<AccountApplication> findAllByOrderByCreatedAtDesc();
 }

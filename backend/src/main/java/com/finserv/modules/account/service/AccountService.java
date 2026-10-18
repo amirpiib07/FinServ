@@ -266,7 +266,7 @@ public class AccountService {
                 .toList();
     }
 
-    private AccountDto toAccountDto(Account account) {
+    public AccountDto toAccountDto(Account account) {
         AccountDto dto = new AccountDto();
         dto.setId(account.getId());
         dto.setCustomerId(account.getCustomerId());

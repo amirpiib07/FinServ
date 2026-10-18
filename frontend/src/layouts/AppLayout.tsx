@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { AuthContext } from '@/context/AuthContext';
 import {
+  LayoutDashboard,
   Wallet,
   Users,
   ArrowLeftRight,
@@ -19,6 +20,7 @@ import {
   CreditCard,
   FileText,
   ShieldCheck,
+  ShieldAlert,
   Menu,
   X,
   Building2,
@@ -78,6 +80,7 @@ export const AppLayout: React.FC = () => {
   };
 
   const navItems = [
+    { to: '/app/dashboard', label: 'Executive Home', icon: <LayoutDashboard size={18} /> },
     { to: '/app/accounts', label: 'Accounts & Deposits', icon: <Wallet size={18} /> },
     { to: '/app/beneficiaries', label: 'Beneficiaries', icon: <Users size={18} /> },
     { to: '/app/transfers', label: 'Fund Transfers', icon: <ArrowLeftRight size={18} /> },
@@ -154,6 +157,29 @@ export const AppLayout: React.FC = () => {
               <LogOut size={15} />
             </button>
           </div>
+
+          {user?.roles.some((r) => ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE'].includes(r)) && (
+            <NavLink
+              to="/admin/dashboard"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: 'var(--border-radius-md)',
+                background: 'rgba(217, 119, 6, 0.15)',
+                border: '1px solid rgba(217, 119, 6, 0.35)',
+                color: '#FCD34D',
+                fontSize: '12px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                marginBottom: '8px',
+              }}
+            >
+              <ShieldAlert size={15} />
+              <span>Admin Command Center</span>
+            </NavLink>
+          )}
 
           <div
             style={{

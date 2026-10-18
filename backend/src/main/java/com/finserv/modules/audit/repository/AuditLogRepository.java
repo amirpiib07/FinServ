@@ -19,4 +19,18 @@ public interface AuditLogRepository extends Repository<AuditLog, UUID> {
     List<AuditLog> findAllByOrderByChainSeqAsc();
     List<AuditLog> findByEntityTypeAndEntityIdOrderByChainSeqAsc(String entityType, String entityId);
     long count();
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT a FROM AuditLog a
+        WHERE (:action IS NULL OR a.action = :action)
+          AND (:entityType IS NULL OR a.entityType = :entityType)
+          AND (:actorUserId IS NULL OR a.actorUserId = :actorUserId)
+        ORDER BY a.chainSeq DESC
+    """)
+    org.springframework.data.domain.Page<AuditLog> findFilteredAuditLogs(
+            @org.springframework.data.repository.query.Param("action") String action,
+            @org.springframework.data.repository.query.Param("entityType") String entityType,
+            @org.springframework.data.repository.query.Param("actorUserId") UUID actorUserId,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

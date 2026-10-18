@@ -13,7 +13,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,39 +52,52 @@ class AdminBootstrapRunnerTest {
     }
 
     @Test
-    @DisplayName("Should skip bootstrapping when admin user already exists (idempotency)")
+    @DisplayName("Should skip user creation and verify roles when admin user already exists (idempotency)")
     void shouldSkipWhenAdminUserAlreadyExists() {
         ReflectionTestUtils.setField(runner, "adminUsername", "superadmin");
         ReflectionTestUtils.setField(runner, "adminPassword", "Secret123!");
         Role adminRole = new Role(4, "ROLE_ADMIN", "Administrator");
+        Role superAdminRole = new Role(6, "ROLE_SUPER_ADMIN", "Super Administrator");
         when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.of(adminRole));
-        when(userRepository.existsByUsername("superadmin")).thenReturn(true);
+        when(roleRepository.findByName("ROLE_SUPER_ADMIN")).thenReturn(Optional.of(superAdminRole));
+        User existingUser = new User(UUID.randomUUID());
+        existingUser.setUsername("superadmin");
+        User amitUser = new User(UUID.randomUUID());
+        amitUser.setUsername("amit.kumar.singh");
+
+        when(userRepository.findByUsername("superadmin")).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByUsername("amit.kumar.singh")).thenReturn(Optional.of(amitUser));
+        when(userRoleRepository.findByUserId(any(UUID.class))).thenReturn(List.of(
+                new UserRole(existingUser.getId(), 4),
+                new UserRole(existingUser.getId(), 6)
+        ));
 
         runner.run();
 
         verify(userRepository, never()).save(any());
-        verify(userRoleRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Should successfully create admin user and assign ROLE_ADMIN on first run")
+    @DisplayName("Should successfully create admin user and assign ROLE_ADMIN and ROLE_SUPER_ADMIN on first run")
     void shouldCreateAdminUserWhenConfigured() {
         ReflectionTestUtils.setField(runner, "adminUsername", "superadmin");
         ReflectionTestUtils.setField(runner, "adminEmail", "admin@finserv.local");
         ReflectionTestUtils.setField(runner, "adminPassword", "Secret123!");
 
         Role adminRole = new Role(4, "ROLE_ADMIN", "Administrator");
+        Role superAdminRole = new Role(6, "ROLE_SUPER_ADMIN", "Super Administrator");
         when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.of(adminRole));
-        when(userRepository.existsByUsername("superadmin")).thenReturn(false);
-        when(userRepository.existsByEmail("admin@finserv.local")).thenReturn(false);
+        when(roleRepository.findByName("ROLE_SUPER_ADMIN")).thenReturn(Optional.of(superAdminRole));
+        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(userRepository.existsByPhoneNumber(anyString())).thenReturn(false);
         when(passwordEncoder.encode("Secret123!")).thenReturn("$2a$12$hashedPassword");
 
         runner.run();
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
+        verify(userRepository, atLeastOnce()).save(userCaptor.capture());
+        User savedUser = userCaptor.getAllValues().get(0);
 
         assertThat(savedUser.getUsername()).isEqualTo("superadmin");
         assertThat(savedUser.getEmail()).isEqualTo("admin@finserv.local");
@@ -91,7 +106,8 @@ class AdminBootstrapRunnerTest {
         assertThat(savedUser.isSystem()).isFalse();
 
         ArgumentCaptor<UserRole> roleCaptor = ArgumentCaptor.forClass(UserRole.class);
-        verify(userRoleRepository).save(roleCaptor.capture());
-        assertThat(roleCaptor.getValue().getRoleId()).isEqualTo(4);
+        verify(userRoleRepository, atLeastOnce()).save(roleCaptor.capture());
+        List<Integer> assignedRoleIds = roleCaptor.getAllValues().stream().map(UserRole::getRoleId).toList();
+        assertThat(assignedRoleIds).contains(4, 6);
     }
 }

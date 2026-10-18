@@ -597,3 +597,73 @@ Executed a comprehensive luxury fintech upgrade inspired by Revolut, Mercury, an
   - `npm run typecheck`: 0 errors.
   - `npm run build`: built in 1.10s (`dist/assets/index-*.js`).
 
+---
+
+## 17. Phase 6 — Customer Executive Dashboard & Admin / Super Admin Command Center Portal
+
+- **Milestone Status**: `COMPLETED`
+- **Branch**: `phase-6-dashboards-admin-portal`
+
+### 1. Key Engineering Implementations (Phase 6)
+
+1. **Role Architecture, Schema Indexing & Bootstrap Elevation**:
+   - Flyway migration `V5__add_super_admin_role_and_admin_indices.sql`:
+     - Added `ROLE_SUPER_ADMIN` to `roles` table.
+     - Created compound index `idx_account_apps_status_submitted` on `account_applications(status, submitted_at)` for instant queue lookups.
+     - Created compound index `idx_onboarding_apps_status_submitted` on `onboarding_applications(status, submitted_at)`.
+   - Updated `AdminBootstrapRunner` to seed both `ROLE_SUPER_ADMIN` and `ROLE_ADMIN` for superuser `amit.kumar.singh`.
+
+2. **Customer Executive Dashboard API (`GET /api/v1/dashboard/customer`)**:
+   - Aggregates relationship net worth across active accounts with `DECIMAL(19,4)` precision.
+   - Computes 30-day inflow (credits) and outflow (debits) with net cashflow.
+   - Returns primary account card details, top verified payees strip, recent 5 transactions, and pending KYC/account alerts.
+
+3. **Admin & Super Admin Command Center APIs (`/api/v1/admin/*`)**:
+   - Method-level security: `@PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN')")` for operational queues, `@PreAuthorize("hasRole('SUPER_ADMIN')")` for staff/branches.
+   - `GET /api/v1/admin/overview`: System-wide KPIs (customers, active accounts, pending KYC count, pending account applications, total deposits, today's transaction volume, GL integrity status).
+   - `GET /api/v1/admin/kyc/applications` & `POST /api/v1/admin/kyc/applications/{id}/decide`:
+     - Maker-checker KYC workbench with masked PAN/Aadhaar and FATCA review.
+     - On `APPROVE`: marks customer and KYC docs as `VERIFIED` / `ACTIVE`, auto-opens initial savings account, and appends SHA-256 hash-chained audit record.
+     - On `REJECT`: records officer rejection reason for customer resubmission and logs audit entry.
+   - `GET /api/v1/admin/accounts`, `POST /api/v1/admin/account-applications/{id}/decide`, `PATCH /api/v1/admin/accounts/{id}/status`:
+     - Account opening review and approval with official 14-digit FinServ account generation.
+     - Account Freeze/Unfreeze control requiring mandatory officer audit reason.
+   - `POST /api/v1/admin/branches` & `GET /api/v1/admin/branches`: Provision new branches with strict `FINS0XXXXXX` IFSC validation.
+   - `POST /api/v1/admin/staff` & `GET /api/v1/admin/staff`: Provision new Bank Officers (`ROLE_EMPLOYEE`) and Branch Admins (`ROLE_ADMIN`).
+   - `GET /api/v1/admin/ledger/summary`: Computes double-entry trial balance across all GL accounts verifying global equation $\sum \text{Debits} == \sum \text{Credits}$.
+   - `GET /api/v1/admin/audit-logs`: Paginated cryptographic audit log explorer with action/entity filters and SHA-256 chain validation.
+
+4. **Frontend Architecture & Zero-Jargon UI**:
+   - **Customer Executive Dashboard (`/app/dashboard`)**:
+     - Net Worth & Cashflow Hero Banner with 30-day visual split bar (pure SVG/CSS).
+     - 3D Metallic Card Preview with EMV chip, contactless indicator, balance reveal/hide toggle, and copyable account/IFSC buttons.
+     - Quick Transfer Payee Avatar strip for 1-click jumps to pre-filled transfers.
+     - Recent 5 transactions feed with directional badges and instant receipt modal drawer.
+   - **Admin Command Center Shell (`AdminLayout.tsx`)**:
+     - Dedicated gold Super Admin / electric blue Bank Officer role badge.
+     - Real-time IST clock, zero-flicker theme toggle, and Retail Banking view switcher.
+     - Radix UI-based accessible mobile drawer with keyboard focus trapping.
+   - **Screens Delivered**:
+     - `/admin/dashboard`: Live system KPIs, pending review action launchers, GL trial balance badge.
+     - `/admin/kyc`: KYC Review Workbench with applicant profile slide-over drawer and approve/reject modal.
+     - `/admin/accounts`: Accounts directory with status filtering (`ACTIVE`, `FROZEN`), approve actions, and Freeze/Unfreeze modal.
+     - `/admin/branches-staff`: Branch creation modal and Bank Officer provisioning modal.
+     - `/admin/audit-ledger`: Dual-tab GL Trial Balance table and SHA-256 cryptographic audit trail viewer.
+   - **3-Tier Role Routing & Quick Access Chips**:
+     - `/login` provides 1-click credentials for Customer (`alex.kumar`), Bank Officer (`officer.mumbai`), and Super Admin (`amit.kumar.singh`).
+     - `RootRedirect` intelligently routes officers/admins to `/admin/dashboard`, verified customers to `/app/dashboard`, and pending users to `/onboarding`.
+
+### 2. Automated Test Results (Phase 6)
+
+- **Backend Suite**: 84 tests passing across 17 test classes (`BUILD SUCCESS`, 0 failures, 0 errors).
+  - `AdminIntegrationTest`: 6 comprehensive integration tests verifying role 403 authorization guard, KYC approval workflow with audit trail, account freeze/unfreeze blocking transactions, and Super Admin branch/staff provisioning.
+- **Frontend Suite**: 114 tests passing across 21 test files.
+  - `CustomerDashboardPage.test.tsx`: 2 tests passing.
+  - `AdminDashboardPage.test.tsx`: 1 test passing.
+  - `RouteGuards.test.tsx`: 8 tests passing.
+- **Code Quality & Production Build**:
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run typecheck`: 0 errors.
+  - `npm run build`: clean production build in 1.02s (`dist/index.html` 1.14 kB, `dist/assets/index-DRh5OX1K.js` 895 kB).
+
+

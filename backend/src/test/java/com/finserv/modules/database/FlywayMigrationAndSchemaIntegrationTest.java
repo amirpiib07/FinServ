@@ -81,13 +81,14 @@ class FlywayMigrationAndSchemaIntegrationTest {
     @Test
     @DisplayName("Should verify V2 seed reference data present in database")
     void shouldVerifyV2SeedDataPresent() {
-        // 1. Roles (5 roles)
-        assertThat(roleRepository.count()).isEqualTo(5L);
+        // 1. Roles (6 roles)
+        assertThat(roleRepository.count()).isEqualTo(6L);
         assertThat(roleRepository.findByName("ROLE_CUSTOMER")).isPresent();
         assertThat(roleRepository.findByName("ROLE_EMPLOYEE")).isPresent();
         assertThat(roleRepository.findByName("ROLE_MANAGER")).isPresent();
         assertThat(roleRepository.findByName("ROLE_ADMIN")).isPresent();
         assertThat(roleRepository.findByName("ROLE_COMPLIANCE")).isPresent();
+        assertThat(roleRepository.findByName("ROLE_SUPER_ADMIN")).isPresent();
 
         // 2. SYSTEM_INTERNAL Daemon User
         UUID systemUserId = UUID.fromString("00000000-0000-0000-0000-000000000001");

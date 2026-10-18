@@ -65,35 +65,45 @@ public class AdminBootstrapRunner implements CommandLineRunner {
         }
 
         Optional<Role> adminRoleOpt = roleRepository.findByName("ROLE_ADMIN");
+        Optional<Role> superAdminRoleOpt = roleRepository.findByName("ROLE_SUPER_ADMIN");
         if (adminRoleOpt.isEmpty()) {
             log.warn("Superadmin bootstrap: ROLE_ADMIN not found in roles table. Ensure migrations have run. Skipping.");
             return;
         }
         Role adminRole = adminRoleOpt.get();
+        Role superAdminRole = superAdminRoleOpt.orElse(adminRole);
 
-        if (userRepository.existsByUsername(adminUsername)) {
-            log.info("Superadmin bootstrap: User '{}' already exists. Skipping initialization.", adminUsername);
+        ensureAdminUser(adminUsername, adminEmail != null && !adminEmail.isBlank() ? adminEmail : "admin@finserv.local",
+                "+910000000099", adminPassword, adminRole, superAdminRole);
+
+        // Also ensure amit.kumar.singh is provisioned if distinct
+        if (!"amit.kumar.singh".equalsIgnoreCase(adminUsername)) {
+            ensureAdminUser("amit.kumar.singh", "amit.kumar.singh@finserv.local",
+                    "+910000000098", adminPassword, adminRole, superAdminRole);
+        }
+    }
+
+    private void ensureAdminUser(String username, String email, String phone, String password,
+                                 Role adminRole, Role superAdminRole) {
+        Optional<User> existingUserOpt = userRepository.findByUsername(username);
+        if (existingUserOpt.isPresent()) {
+            User existing = existingUserOpt.get();
+            assignRolesIfMissing(existing.getId(), adminRole, superAdminRole);
+            log.info("Superadmin bootstrap: User '{}' verified and granted superadmin roles.", username);
             return;
         }
 
-        String email = (adminEmail != null && !adminEmail.isBlank()) ? adminEmail : "admin@finserv.local";
-        if (userRepository.existsByEmail(email)) {
-            log.info("Superadmin bootstrap: User with email '{}' already exists. Skipping initialization.", email);
-            return;
-        }
-
-        String phone = "+910000000099";
-        if (userRepository.existsByPhoneNumber(phone)) {
-            log.info("Superadmin bootstrap: User with phone '{}' already exists. Skipping initialization.", phone);
+        if (userRepository.existsByEmail(email) || userRepository.existsByPhoneNumber(phone)) {
+            log.info("Superadmin bootstrap: Email '{}' or phone '{}' already taken. Skipping bootstrap for '{}'.", email, phone, username);
             return;
         }
 
         UUID adminId = UuidUtils.generateV4();
         User adminUser = new User(adminId);
-        adminUser.setUsername(adminUsername);
+        adminUser.setUsername(username);
         adminUser.setEmail(email);
-        adminUser.setPhoneNumber("+910000000099");
-        adminUser.setPasswordHash(passwordEncoder.encode(adminPassword));
+        adminUser.setPhoneNumber(phone);
+        adminUser.setPasswordHash(passwordEncoder.encode(password));
         adminUser.setStatus("ACTIVE");
         adminUser.setSystem(false);
         adminUser.setFailedLoginAttempts(0);
@@ -102,7 +112,23 @@ public class AdminBootstrapRunner implements CommandLineRunner {
 
         userRepository.save(adminUser);
         userRoleRepository.save(new UserRole(adminId, adminRole.getId()));
+        if (superAdminRole != null && !superAdminRole.getId().equals(adminRole.getId())) {
+            userRoleRepository.save(new UserRole(adminId, superAdminRole.getId()));
+        }
 
-        log.info("Superadmin bootstrap: Initial administrator account successfully provisioned for username '{}'.", adminUsername);
+        log.info("Superadmin bootstrap: Administrator account provisioned for username '{}'.", username);
+    }
+
+    private void assignRolesIfMissing(UUID userId, Role adminRole, Role superAdminRole) {
+        var userRoles = userRoleRepository.findByUserId(userId);
+        boolean hasAdmin = userRoles.stream().anyMatch(ur -> ur.getRoleId().equals(adminRole.getId()));
+        boolean hasSuperAdmin = superAdminRole != null && userRoles.stream().anyMatch(ur -> ur.getRoleId().equals(superAdminRole.getId()));
+
+        if (!hasAdmin) {
+            userRoleRepository.save(new UserRole(userId, adminRole.getId()));
+        }
+        if (!hasSuperAdmin && superAdminRole != null && !superAdminRole.getId().equals(adminRole.getId())) {
+            userRoleRepository.save(new UserRole(userId, superAdminRole.getId()));
+        }
     }
 }
