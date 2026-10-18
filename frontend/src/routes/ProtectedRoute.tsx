@@ -6,11 +6,13 @@ import { LoadingFallback } from '@/components/common/LoadingFallback';
 interface ProtectedRouteProps {
   children?: React.ReactNode;
   requireVerifiedCustomer?: boolean;
+  allowedRoles?: string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireVerifiedCustomer = false,
+  allowedRoles,
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
@@ -21,6 +23,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check role authorization if restricted
+  if (allowedRoles && allowedRoles.length > 0) {
+    const hasRole = user.roles.some((r) => allowedRoles.includes(r));
+    if (!hasRole) {
+      const isStaff = user.roles.some((r) =>
+        ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE'].includes(r)
+      );
+      return <Navigate to={isStaff ? '/admin/dashboard' : '/app/dashboard'} replace />;
+    }
   }
 
   // If customer is not yet an active verified customer, route customer to onboarding flow

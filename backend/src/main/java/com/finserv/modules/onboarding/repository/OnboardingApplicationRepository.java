@@ -13,5 +13,8 @@ public interface OnboardingApplicationRepository extends JpaRepository<Onboardin
     Optional<OnboardingApplication> findByUserIdAndStatusIn(UUID userId, java.util.Collection<String> statuses);
     Optional<OnboardingApplication> findTopByUserIdOrderByCreatedAtDesc(UUID userId);
     java.util.List<OnboardingApplication> findByStatusIn(java.util.Collection<String> statuses);
+    java.util.List<OnboardingApplication> findByStatusInOrderByCreatedAtDesc(java.util.Collection<String> statuses);
+    java.util.List<OnboardingApplication> findAllByOrderByCreatedAtDesc();
+    long countByStatusIn(java.util.Collection<String> statuses);
     boolean existsByApplicationReference(String applicationReference);
 }

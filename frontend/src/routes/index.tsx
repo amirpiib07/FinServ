@@ -17,6 +17,7 @@ import { NotFoundPage } from '@/components/common/NotFoundPage';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
 import { ProtectedRoute } from './ProtectedRoute';
 
+import { Navigate } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
@@ -24,6 +25,15 @@ import { AccountsPage } from '@/features/accounts/AccountsPage';
 import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage';
 import { TransfersPage } from '@/features/transfers/TransfersPage';
 import { TransactionsPage } from '@/features/transactions/TransactionsPage';
+import { CustomerDashboardPage } from '@/features/dashboard/CustomerDashboardPage';
+
+// Admin Command Center Pages & Layout
+import { AdminLayout } from '@/layouts/AdminLayout';
+import { AdminDashboardPage } from '@/features/admin/AdminDashboardPage';
+import { KycReviewPage } from '@/features/admin/KycReviewPage';
+import { AdminAccountsPage } from '@/features/admin/AdminAccountsPage';
+import { BranchesStaffPage } from '@/features/admin/BranchesStaffPage';
+import { AuditLedgerPage } from '@/features/admin/AuditLedgerPage';
 
 // Lazy-load DesignSystemPage conditionally in development only (direct URL only)
 const LazyDesignSystemPage = import.meta.env.DEV
@@ -77,7 +87,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <AccountsPage />,
+        element: <CustomerDashboardPage />,
+      },
+      {
+        path: 'dashboard',
+        element: <CustomerDashboardPage />,
       },
       {
         path: 'accounts',
@@ -129,6 +143,47 @@ export const router = createBrowserRouter([
             description="Review secure session history, device fingerprints, and verified account operation logs."
           />
         ),
+      },
+    ],
+  },
+
+  // Admin & Super Admin Command Center Routes
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE']}>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
+    errorElement: <NotFoundPage />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/admin/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <AdminDashboardPage />,
+      },
+      {
+        path: 'kyc',
+        element: <KycReviewPage />,
+      },
+      {
+        path: 'accounts',
+        element: <AdminAccountsPage />,
+      },
+      {
+        path: 'branches-staff',
+        element: (
+          <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}>
+            <BranchesStaffPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'audit-ledger',
+        element: <AuditLedgerPage />,
       },
     ],
   },

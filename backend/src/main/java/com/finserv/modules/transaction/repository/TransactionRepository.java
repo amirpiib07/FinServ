@@ -50,4 +50,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @org.springframework.data.repository.query.Param("startDate") java.time.Instant startDate,
             @org.springframework.data.repository.query.Param("endDate") java.time.Instant endDate
     );
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+        WHERE t.createdAt >= :since AND t.status = 'COMPLETED'
+    """)
+    java.math.BigDecimal sumAmountSince(@org.springframework.data.repository.query.Param("since") java.time.Instant since);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT COUNT(t) FROM Transaction t
+        WHERE t.createdAt >= :since AND t.status = 'COMPLETED'
+    """)
+    long countCompletedSince(@org.springframework.data.repository.query.Param("since") java.time.Instant since);
 }

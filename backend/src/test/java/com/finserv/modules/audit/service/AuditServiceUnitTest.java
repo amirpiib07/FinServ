@@ -74,6 +74,17 @@ class AuditServiceUnitTest {
         public long count() {
             return store.size();
         }
+
+        @Override
+        public org.springframework.data.domain.Page<AuditLog> findFilteredAuditLogs(String action, String entityType, UUID actorUserId, org.springframework.data.domain.Pageable pageable) {
+            List<AuditLog> filtered = store.values().stream()
+                    .filter(a -> action == null || action.equals(a.getAction()))
+                    .filter(a -> entityType == null || entityType.equals(a.getEntityType()))
+                    .filter(a -> actorUserId == null || actorUserId.equals(a.getActorUserId()))
+                    .sorted(Comparator.comparing(AuditLog::getChainSeq).reversed())
+                    .toList();
+            return new org.springframework.data.domain.PageImpl<>(filtered, pageable, filtered.size());
+        }
     }
 
     @BeforeEach

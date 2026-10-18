@@ -229,12 +229,46 @@ describe('Route Guards', () => {
         <MemoryRouter initialEntries={['/']}>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
-            <Route path="/app/accounts" element={<div>Accounts Dashboard Target</div>} />
+            <Route path="/app/dashboard" element={<div>Customer Executive Dashboard Target</div>} />
           </Routes>
         </MemoryRouter>
       );
 
-      expect(screen.getByText('Accounts Dashboard Target')).toBeInTheDocument();
+      expect(screen.getByText('Customer Executive Dashboard Target')).toBeInTheDocument();
+    });
+
+    it('redirects staff / admin user from / to /admin/dashboard', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: 'admin-uuid-1',
+          username: 'officer.mumbai',
+          email: 'officer@finserv.com',
+          phoneNumber: '+919876543299',
+          roles: ['ROLE_EMPLOYEE', 'ROLE_ADMIN'],
+          status: 'ACTIVE',
+          emailVerified: true,
+          phoneVerified: true,
+          lastLoginAt: null,
+        },
+        accessToken: 'admin-token-xyz',
+        isLoading: false,
+        isAuthenticated: true,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/admin/dashboard" element={<div>Admin Command Center Target</div>} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Admin Command Center Target')).toBeInTheDocument();
     });
   });
 });
