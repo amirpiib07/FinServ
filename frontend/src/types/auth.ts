@@ -5,6 +5,9 @@
 export interface UserSummary {
   id: string;
   username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  employeeName?: string | null;
   email: string;
   phoneNumber: string;
   status: string;
