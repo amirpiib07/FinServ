@@ -350,6 +350,8 @@ public class AuthService {
             Customer customer = customerOpt.get();
             dto.setCustomerNumber(customer.getCustomerNumber());
             dto.setCustomerVerified("VERIFIED".equalsIgnoreCase(customer.getKycStatus()));
+            dto.setFirstName(customer.getFirstName());
+            dto.setLastName(customer.getLastName());
         } else {
             dto.setCustomerVerified(false);
         }
