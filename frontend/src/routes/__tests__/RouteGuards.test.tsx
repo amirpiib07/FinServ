@@ -102,6 +102,48 @@ describe('Route Guards', () => {
     expect(screen.queryByText('Dashboard Core Banking')).not.toBeInTheDocument();
   });
 
+  it('redirects staff from customer banking routes to the admin dashboard', () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 'usr-staff',
+        username: 'officer',
+        email: 'officer@finserv.local',
+        phoneNumber: '+919876543211',
+        roles: ['ROLE_EMPLOYEE', 'ROLE_ADMIN'],
+        status: 'ACTIVE',
+        emailVerified: true,
+        phoneVerified: true,
+        lastLoginAt: null,
+      },
+      accessToken: 'token-staff',
+      isLoading: false,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/app/transfers']}>
+        <Routes>
+          <Route path="/admin/dashboard" element={<div>Admin Operations</div>} />
+          <Route
+            path="/app/transfers"
+            element={
+              <ProtectedRoute requireVerifiedCustomer>
+                <div>Customer Transfers</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Admin Operations')).toBeInTheDocument();
+    expect(screen.queryByText('Customer Transfers')).not.toBeInTheDocument();
+  });
+
   it('RoleRoute denies access and redirects when user lacks required role', () => {
     mockUseAuth.mockReturnValue({
       user: {

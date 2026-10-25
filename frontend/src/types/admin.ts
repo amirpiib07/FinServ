@@ -21,41 +21,26 @@ export interface AdminPageResponse<T> {
   totalPages: number;
 }
 
-export interface AdminAddressDto {
-  line1?: string;
-  line2?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
-}
-
-export interface AdminKycDocDto {
-  id: string;
-  documentType: string;
-  documentNumberMasked: string;
-  verificationStatus: string;
-  uploadedAt: string;
-}
-
 export interface AdminKycApplicationDto {
-  applicationId: string;
+  id: string;
+  userId: string;
   applicationReference: string;
-  customerId: string;
-  customerNumber: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  panNumberMasked: string;
+  applicantUsername?: string | null;
+  applicantEmail?: string | null;
+  applicantPhone?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  maskedPan?: string | null;
+  idType?: string | null;
+  maskedIdNumber?: string | null;
   status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
-  submittedAt: string;
-  dateOfBirth?: string;
-  gender?: string;
-  residentialAddress?: AdminAddressDto | null;
-  fatcaDeclared?: boolean;
-  pepDeclared?: boolean;
+  currentStep: number;
+  submittedAt?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  residentialAddress?: string | null;
+  declarationsAccepted: string[];
   rejectionReason?: string | null;
-  kycDocuments: AdminKycDocDto[];
 }
 
 export interface AdminAccountSummaryDto {
@@ -95,12 +80,12 @@ export interface BranchDto {
   branchCode: string;
   branchName: string;
   ifscCode: string;
-  micrCode?: string;
-  addressLine1?: string;
+  routingNumber: string;
+  streetAddress: string;
   city: string;
   state: string;
-  postalCode?: string;
-  phone?: string;
+  postalCode: string;
+  phoneNumber: string;
   status: string;
 }
 
@@ -122,12 +107,12 @@ export interface CreateBranchRequest {
   branchCode: string;
   branchName: string;
   ifscCode: string;
-  micrCode?: string;
-  addressLine1: string;
+  routingNumber: string;
+  streetAddress: string;
   city: string;
   state: string;
   postalCode: string;
-  phone?: string;
+  phoneNumber: string;
 }
 
 export interface CreateStaffRequest {
@@ -135,7 +120,7 @@ export interface CreateStaffRequest {
   email: string;
   phoneNumber: string;
   password: string;
-  role: 'EMPLOYEE' | 'ADMIN';
+  role: 'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN';
   branchId: string;
   department?: string;
   designation?: string;

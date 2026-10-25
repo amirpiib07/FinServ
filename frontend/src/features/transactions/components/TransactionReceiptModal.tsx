@@ -250,6 +250,7 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
                     className="btn-icon btn-ghost print:hidden"
                     onClick={handleClose}
                     aria-label="Close transaction receipt"
+                    title="Close transaction receipt"
                   >
                     <X size={18} />
                   </button>

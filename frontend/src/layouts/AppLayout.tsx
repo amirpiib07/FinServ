@@ -5,8 +5,9 @@
  */
 
 import React, { useState, useRef, useContext, useEffect } from 'react';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
+import { AnimatedOutlet } from '@/components/common/AnimatedOutlet';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -20,16 +21,16 @@ import {
   PiggyBank,
   CreditCard,
   FileText,
-  ShieldCheck,
   ShieldAlert,
   Menu,
   X,
-  Building2,
   CheckCircle2,
   LogOut,
   Clock,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
+import { getAsiaKolkataGreeting, getUserDisplayName, getUserInitials } from '@/lib/user-identity';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,20 +67,6 @@ export const AppLayout: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Time-of-day greeting
-  const getGreeting = () => {
-    try {
-      const istHour = new Date(
-        new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
-      ).getHours();
-      if (istHour < 12) return 'Good morning';
-      if (istHour < 17) return 'Good afternoon';
-      return 'Good evening';
-    } catch {
-      return 'Welcome back';
-    }
-  };
-
   const navItems = [
     { to: '/app/dashboard', label: 'Executive Home', icon: <LayoutDashboard size={18} /> },
     { to: '/app/accounts', label: 'Accounts & Deposits', icon: <Wallet size={18} /> },
@@ -88,7 +75,6 @@ export const AppLayout: React.FC = () => {
     { to: '/app/deposits', label: 'Term Deposits', icon: <PiggyBank size={18} /> },
     { to: '/app/cards', label: 'Cards & UPI', icon: <CreditCard size={18} /> },
     { to: '/app/statements', label: 'Passbook & Statements', icon: <FileText size={18} /> },
-    { to: '/app/audit', label: 'Audit Security', icon: <ShieldCheck size={18} /> },
   ];
 
   // Derive simple breadcrumbs from pathname
@@ -102,12 +88,12 @@ export const AppLayout: React.FC = () => {
     }),
   ];
 
-  const displayName = user?.username ? user.username : 'Customer';
-  const userInitials = (user?.username || 'CU').slice(0, 2).toUpperCase();
+  const displayName = getUserDisplayName(user);
+  const userInitials = getUserInitials(displayName);
 
   const handleLogout = async () => {
     await authContext?.logout();
-    navigate('/login', { replace: true });
+    navigate('/login', { replace: true, state: { logoutTransition: true } });
   };
 
   return (
@@ -115,7 +101,7 @@ export const AppLayout: React.FC = () => {
       {/* Desktop Sidebar — Executive Navy Theme */}
       <aside className="app-sidebar" aria-label="Desktop Core Banking Navigation">
         <div className="sidebar-header">
-          <BrandLogo size="sm" />
+          <BrandLogo size="sm" forceTheme="dark" />
         </div>
 
         <nav className="sidebar-nav">
@@ -143,20 +129,10 @@ export const AppLayout: React.FC = () => {
                 {displayName}
               </div>
               <div className="sidebar-user-status">
-                <CheckCircle2 size={12} color="#34D399" />
-                <span>KYC Tier 1 Verified</span>
+                <CheckCircle2 size={12} />
+                <span>Signed in</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="btn-icon btn-ghost"
-              title="Sign Out"
-              aria-label="Sign Out"
-              style={{ color: 'rgba(255, 255, 255, 0.6)', padding: '4px' }}
-            >
-              <LogOut size={15} />
-            </button>
           </div>
 
           {user?.roles.some((r) => ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE'].includes(r)) && (
@@ -182,19 +158,6 @@ export const AppLayout: React.FC = () => {
             </NavLink>
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--spacing-2)',
-              padding: '0 var(--spacing-1)',
-              fontSize: '11px',
-              color: 'rgba(255, 255, 255, 0.55)',
-            }}
-          >
-            <Building2 size={13} color="rgba(255, 255, 255, 0.55)" />
-            <span>Branch 1001 (Mumbai Fort HQ)</span>
-          </div>
         </div>
       </aside>
 
@@ -212,12 +175,13 @@ export const AppLayout: React.FC = () => {
           >
             <Dialog.Title className="sr-only">Mobile Navigation Menu</Dialog.Title>
             <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
-              <BrandLogo size="sm" />
+              <BrandLogo size="sm" forceTheme="dark" />
               <Dialog.Close asChild>
                 <button
                   type="button"
                   className="btn-icon btn-ghost"
                   aria-label="Close navigation menu"
+                  title="Close navigation menu"
                   style={{ color: '#FFFFFF' }}
                 >
                   <X size={20} />
@@ -248,18 +212,12 @@ export const AppLayout: React.FC = () => {
                   <div className="sidebar-user-name">{displayName}</div>
                   <div className="sidebar-user-status">
                     <CheckCircle2 size={12} color="#34D399" />
-                    <span>KYC Tier 1 Verified</span>
+                    <span>Signed in</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="btn-icon btn-ghost"
-                  title="Sign Out"
-                  aria-label="Sign Out"
-                  style={{ color: 'rgba(255, 255, 255, 0.6)', padding: '4px' }}
-                >
-                  <LogOut size={15} />
+                <button type="button" onClick={handleLogout} className="sidebar-logout-action" title="Log out">
+                  <LogOut size={16} aria-hidden="true" />
+                  <span>Log out</span>
                 </button>
               </div>
             </div>
@@ -270,42 +228,35 @@ export const AppLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="app-main-wrapper">
         <header className="app-topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+          <div className="app-topbar-identity" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
             <button
               ref={triggerRef}
               type="button"
-              className="btn-icon btn-ghost"
-              style={{ display: 'inline-flex' }}
+              className="btn btn-icon btn-icon-md btn-ghost app-mobile-menu-trigger"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle navigation menu"
+              title="Open navigation menu"
               aria-expanded={mobileMenuOpen}
             >
               <Menu size={20} />
             </button>
 
             {/* Dynamic Greeting */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span
-                  style={{
-                    fontSize: 'var(--font-size-sm)',
-                    fontWeight: 'var(--font-weight-semibold)',
-                    color: 'var(--text-primary)',
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {getGreeting()}, {displayName}
+            <div className="app-greeting-block" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="app-greeting-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>
+                  {getAsiaKolkataGreeting()}, {displayName}
                 </span>
-                <Sparkles size={14} color="#F59E0B" />
+                <Sparkles className="app-greeting-sparkle" size={14} />
               </div>
               <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                Private Core Banking Relationship
+                Your accounts, transfers and statements
               </span>
             </div>
           </div>
 
           {/* Topbar Actions: Live IST Badge + Theme Toggle + User Pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+          <div className="app-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
             {/* Live IST Date & Time Badge */}
             {currentTimeStr && (
               <div
@@ -328,83 +279,41 @@ export const AppLayout: React.FC = () => {
               </div>
             )}
 
-            {/* Regulatory Protection Pill */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: 'var(--color-success)',
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-              }}
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10B981',
-                  boxShadow: '0 0 6px #10B981',
-                  display: 'inline-block',
-                }}
-              />
-              <span>DICGC INSURED</span>
-            </div>
-
             {/* Sleek Theme Toggle */}
             <ThemeToggle variant="glass" size="md" />
 
-            {/* User Avatar Pill */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-2)',
-                padding: '3px 10px 3px 4px',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--surface-card)',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: 'var(--shadow-xs)',
-              }}
-            >
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1D4ED8 0%, #10B981 100%)',
-                  color: '#FFFFFF',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+            <details className="app-user-menu">
+              <summary
+                className="app-user-trigger"
+                aria-label={`Open profile menu for ${displayName}`}
+                title={`Profile: ${displayName}`}
               >
-                {userInitials}
+                <span className="app-user-avatar" aria-hidden="true">{userInitials}</span>
+                <span className="app-user-trigger-name">{displayName}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </summary>
+              <div className="app-user-dropdown">
+                <div className="app-user-profile-summary">
+                  <span className="app-user-avatar app-user-avatar--large" aria-hidden="true">
+                    {userInitials}
+                  </span>
+                  <div className="app-user-profile-copy">
+                    <span className="app-user-profile-label">Profile</span>
+                    <strong>{displayName}</strong>
+                  </div>
+                </div>
+                <button type="button" className="app-user-menu-action" onClick={handleLogout}>
+                  <LogOut size={18} aria-hidden="true" />
+                  <span>Log out</span>
+                </button>
               </div>
-              <span
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 'var(--font-weight-medium)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {displayName}
-              </span>
-            </div>
+            </details>
           </div>
         </header>
 
         <main className="app-content page-transition-enter">
           <Breadcrumbs items={breadcrumbItems} />
-          <Outlet />
+          <AnimatedOutlet />
         </main>
       </div>
 

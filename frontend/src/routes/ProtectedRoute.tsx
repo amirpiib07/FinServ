@@ -25,6 +25,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const isCustomer = user.roles.includes('ROLE_CUSTOMER');
+  if (requireVerifiedCustomer && !isCustomer) {
+    const isStaff = user.roles.some((role) =>
+      ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE'].includes(role)
+    );
+    return <Navigate to={isStaff ? '/admin/dashboard' : '/login'} replace />;
+  }
+
   // Check role authorization if restricted
   if (allowedRoles && allowedRoles.length > 0) {
     const hasRole = user.roles.some((r) => allowedRoles.includes(r));
@@ -35,9 +43,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return <Navigate to={isStaff ? '/admin/dashboard' : '/app/dashboard'} replace />;
     }
   }
-
   // If customer is not yet an active verified customer, route customer to onboarding flow
-  const isCustomer = user.roles.includes('ROLE_CUSTOMER');
+  // If customer is not yet an active verified customer, route customer to onboarding flow
   if (requireVerifiedCustomer && isCustomer && user.status !== 'ACTIVE') {
     return <Navigate to="/onboarding" replace />;
   }

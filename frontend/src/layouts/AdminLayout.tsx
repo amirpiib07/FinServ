@@ -6,8 +6,9 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
+import { AnimatedOutlet } from '@/components/common/AnimatedOutlet';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -22,12 +23,15 @@ import {
   X,
   Clock,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { AuthContext } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { BankingChatbot } from '@/components/common/BankingChatbot';
 import { adminService } from '@/features/admin/adminService';
+import { getUserDisplayName, getUserInitials } from '@/lib/user-identity';
+import { maskEmail } from '@/lib/masking';
 
 export const AdminLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,6 +40,8 @@ export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
+  const displayName = getUserDisplayName(user);
+  const userInitials = getUserInitials(displayName);
 
   const isSuperAdmin = user?.roles.includes('ROLE_SUPER_ADMIN');
   const isAdmin = user?.roles.includes('ROLE_ADMIN');
@@ -239,60 +245,45 @@ export const AdminLayout: React.FC = () => {
 
         {/* Bottom Actions & User Profile */}
         <div style={{ padding: 'var(--spacing-4)', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-          {/* Switch to Customer Banking */}
-          <button
-            type="button"
-            onClick={() => navigate('/app/dashboard')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)',
-              backgroundColor: 'var(--surface-sunken)',
-              color: 'var(--text-primary)',
-              fontSize: '12px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ArrowRightLeft size={14} color="var(--brand-accent)" />
-              Customer View
-            </span>
-            <ChevronRight size={14} color="var(--text-tertiary)" />
-          </button>
-
-          {/* Officer Info & Logout */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {user?.username || 'Officer'}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                {user?.email || 'officer@finserv.local'}
-              </div>
-            </div>
-
+          {user?.roles.includes('ROLE_CUSTOMER') && (
             <button
               type="button"
-              onClick={() => authContext?.logout()}
-              title="Sign Out"
-              aria-label="Sign Out"
+              onClick={() => navigate('/app/dashboard')}
               style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-tertiary)',
-                cursor: 'pointer',
-                padding: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--surface-sunken)',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
               }}
             >
-              <LogOut size={16} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowRightLeft size={14} color="var(--brand-accent)" />
+                Customer View
+              </span>
+              <ChevronRight size={14} color="var(--text-tertiary)" />
             </button>
+          )}
+
+          {/* Staff profile */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+            <span className="app-user-avatar" aria-hidden="true">{userInitials}</span>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {displayName}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {user?.email ? maskEmail(user.email) : ''}
+              </div>
+            </div>
           </div>
         </div>
       </aside>
@@ -329,6 +320,7 @@ export const AdminLayout: React.FC = () => {
                 display: 'none',
               }}
               aria-label="Open Admin Navigation"
+              title="Open admin navigation"
             >
               <Menu size={22} />
             </button>
@@ -347,12 +339,44 @@ export const AdminLayout: React.FC = () => {
           {/* Right Header Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
             <ThemeToggle />
+            <details className="app-user-menu admin-user-menu">
+              <summary
+                className="app-user-trigger"
+                aria-label={`Open profile menu for ${displayName}`}
+                title={`Profile: ${displayName}`}
+              >
+                <span className="app-user-avatar" aria-hidden="true">{userInitials}</span>
+                <span className="app-user-trigger-name">{displayName}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </summary>
+              <div className="app-user-dropdown">
+                <div className="app-user-profile-summary">
+                  <span className="app-user-avatar app-user-avatar--large" aria-hidden="true">
+                    {userInitials}
+                  </span>
+                  <div className="app-user-profile-copy">
+                    <span className="app-user-profile-label">Profile</span>
+                    <strong>{displayName}</strong>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="app-user-menu-action"
+                  onClick={() => void authContext?.logout().then(() =>
+                    navigate('/login', { replace: true, state: { logoutTransition: true } })
+                  )}
+                >
+                  <LogOut size={18} aria-hidden="true" />
+                  <span>Log out</span>
+                </button>
+              </div>
+            </details>
           </div>
         </header>
 
         {/* Nested Page Content */}
         <main style={{ flex: 1, padding: 'var(--spacing-6)', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-          <Outlet />
+          <AnimatedOutlet />
         </main>
       </div>
 
@@ -391,6 +415,7 @@ export const AdminLayout: React.FC = () => {
                     type="button"
                     style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
                     aria-label="Close Navigation"
+                    title="Close navigation"
                   >
                     <X size={20} />
                   </button>
@@ -440,27 +465,29 @@ export const AdminLayout: React.FC = () => {
             </div>
 
             <div style={{ paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--border-subtle)' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/app/dashboard');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-subtle)',
-                  backgroundColor: 'var(--surface-sunken)',
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  marginBottom: 'var(--spacing-3)',
-                }}
-              >
-                Switch to Customer Banking
-              </button>
+              {user?.roles.includes('ROLE_CUSTOMER') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/app/dashboard');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: 'var(--surface-sunken)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    marginBottom: 'var(--spacing-3)',
+                  }}
+                >
+                  Switch to Customer Banking
+                </button>
+              )}
 
               <button
                 type="button"

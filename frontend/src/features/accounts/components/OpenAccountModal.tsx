@@ -27,7 +27,7 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
-  const [initialDeposit, setInitialDeposit] = useState<string>('1000.00');
+  const [initialDeposit, setInitialDeposit] = useState<string>('5000.00');
   const [nickname, setNickname] = useState<string>('');
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
   const [loadingReferenceData, setLoadingReferenceData] = useState<boolean>(true);
@@ -90,10 +90,11 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
     setSubmitting(true);
     setErrorMessage(null);
 
+    const depositAmount = initialDeposit && Number(initialDeposit) > 0 ? initialDeposit.trim() : '5000.00';
     const payload: CreateAccountApplicationPayload = {
       productId: selectedProductId,
       branchId: selectedBranchId,
-      initialDepositAmount: initialDeposit ? initialDeposit.trim() : '0.00',
+      initialDepositAmount: depositAmount,
       nickname: nickname.trim() || undefined,
       autoActivate: true,
     };
@@ -318,12 +319,17 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
           {/* Initial Deposit & Nickname Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
             <div>
-              <label
-                htmlFor="initialDepositInput"
-                style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--spacing-1)', color: 'var(--text-primary)' }}
-              >
-                Initial Deposit Amount (₹)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-1)' }}>
+                <label
+                  htmlFor="initialDepositInput"
+                  style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}
+                >
+                  Initial Deposit Amount (₹)
+                </label>
+                <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 600 }}>
+                  ₹5,000 Welcome Balance
+                </span>
+              </div>
               <Input
                 id="initialDepositInput"
                 type="number"
@@ -331,11 +337,32 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({
                 min="0"
                 value={initialDeposit}
                 onChange={(e) => setInitialDeposit(e.target.value)}
-                placeholder="e.g. 1000.00"
+                placeholder="5000.00"
               />
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                {['5000.00', '10000.00', '25000.00', '50000.00'].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setInitialDeposit(amt)}
+                    style={{
+                      background: initialDeposit === amt ? 'var(--brand-accent, #2EC4B6)' : 'rgba(255,255,255,0.08)',
+                      color: initialDeposit === amt ? '#FFFFFF' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '4px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: initialDeposit === amt ? 700 : 500,
+                    }}
+                  >
+                    ₹{Number(amt).toLocaleString('en-IN')}{amt === '5000.00' ? ' (Default)' : ''}
+                  </button>
+                ))}
+              </div>
               {selectedProduct && (
                 <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
-                  Recommended min: ₹{selectedProduct.minBalance}
+                  Min balance requirement: ₹{selectedProduct.minBalance} (covered by initial ₹5,000 credit)
                 </span>
               )}
             </div>

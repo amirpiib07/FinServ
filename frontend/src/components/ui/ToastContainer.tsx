@@ -49,6 +49,7 @@ export const ToastContainer: React.FC = () => {
             className="btn-icon btn-ghost"
             style={{ width: 24, height: 24 }}
             aria-label="Dismiss notification"
+            title="Dismiss notification"
             onClick={() => dismissToast(toast.id)}
           >
             <X size={14} aria-hidden="true" />

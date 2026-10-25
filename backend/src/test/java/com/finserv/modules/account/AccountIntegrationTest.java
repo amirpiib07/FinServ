@@ -147,4 +147,25 @@ class AccountIntegrationTest {
 
         assertThat(updated.getNickname()).isEqualTo("Vacation Savings Fund");
     }
+
+    @Test
+    @DisplayName("Should default initial deposit to 5000.00 INR when unspecified or zero on account opening")
+    void shouldDefaultInitialDepositTo5000WhenUnspecified() {
+        CreateAccountApplicationRequest req = new CreateAccountApplicationRequest();
+        req.setProductId(savingsProduct.getId());
+        req.setBranchId(headOfficeBranch.getId());
+        req.setInitialDepositAmount(null);
+        req.setAutoActivate(true);
+
+        AccountApplicationDto application = accountService.applyForAccount(testUserA.getId(), req);
+
+        assertThat(application).isNotNull();
+        assertThat(application.getApplicationStatus()).isEqualTo("APPROVED");
+        assertThat(application.getCreatedAccountId()).isNotNull();
+
+        AccountDto acc = accountService.getAccountById(application.getCreatedAccountId(), testUserA.getId(), false);
+        assertThat(acc.getCurrentBalance()).isEqualByComparingTo("5000.00");
+        assertThat(acc.getAvailableBalance()).isEqualByComparingTo("5000.00");
+    }
 }
+

@@ -16,7 +16,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   const { toggleTheme, isDark } = useTheme();
 
   const isSmall = size === 'sm';
-  const buttonSize = isSmall ? '34px' : '38px';
+  const buttonSize = '40px';
   const iconSize = isSmall ? 16 : 18;
 
   const nextThemeLabel = isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme';
@@ -39,7 +39,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         position: 'relative',
         cursor: 'pointer',
         padding: 0,
-        transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       <span
@@ -52,9 +52,9 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         }}
       >
         {isDark ? (
-          <Moon size={iconSize} className="theme-toggle-icon moon-icon" style={{ color: '#F59E0B' }} />
+          <Moon size={iconSize} className="theme-toggle-icon moon-icon" />
         ) : (
-          <Sun size={iconSize} className="theme-toggle-icon sun-icon" style={{ color: '#F59E0B' }} />
+          <Sun size={iconSize} className="theme-toggle-icon sun-icon" />
         )}
       </span>
     </button>

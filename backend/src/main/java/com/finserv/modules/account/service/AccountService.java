@@ -10,6 +10,8 @@ import com.finserv.modules.account.repository.AccountApplicationRepository;
 import com.finserv.modules.account.repository.AccountProductRepository;
 import com.finserv.modules.account.repository.AccountRepository;
 import com.finserv.modules.audit.service.AuditService;
+import com.finserv.modules.ledger.service.LedgerPostingService;
+import com.finserv.modules.ledger.service.PostingInstruction;
 import com.finserv.modules.onboarding.entity.Customer;
 import com.finserv.modules.onboarding.service.CustomerLookupService;
 import com.finserv.modules.organization.dto.BranchDto;
@@ -43,6 +45,7 @@ public class AccountService {
     private final AccountNumberGenerator accountNumberGenerator;
     private final NumberSequenceService numberSequenceService;
     private final AuditService auditService;
+    private final LedgerPostingService ledgerPostingService;
 
     public AccountService(AccountRepository accountRepository,
                           AccountProductRepository accountProductRepository,
@@ -51,7 +54,8 @@ public class AccountService {
                           CustomerLookupService customerLookupService,
                           AccountNumberGenerator accountNumberGenerator,
                           NumberSequenceService numberSequenceService,
-                          AuditService auditService) {
+                          AuditService auditService,
+                          LedgerPostingService ledgerPostingService) {
         this.accountRepository = accountRepository;
         this.accountProductRepository = accountProductRepository;
         this.accountApplicationRepository = accountApplicationRepository;
@@ -60,6 +64,7 @@ public class AccountService {
         this.accountNumberGenerator = accountNumberGenerator;
         this.numberSequenceService = numberSequenceService;
         this.auditService = auditService;
+        this.ledgerPostingService = ledgerPostingService;
     }
 
     public List<AccountProductDto> getActiveAccountProducts() {
@@ -113,9 +118,10 @@ public class AccountService {
             throw new ValidationException("Selected branch is not currently active.");
         }
 
-        BigDecimal deposit = req.getInitialDepositAmount() != null
+        BigDecimal defaultInitialDeposit = new BigDecimal("5000.00");
+        BigDecimal deposit = (req.getInitialDepositAmount() != null && req.getInitialDepositAmount().compareTo(BigDecimal.ZERO) > 0)
                 ? req.getInitialDepositAmount().setScale(2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO.setScale(2);
+                : defaultInitialDeposit;
 
         if (deposit.compareTo(BigDecimal.ZERO) < 0) {
             throw new ValidationException("Initial deposit amount cannot be negative.");
@@ -153,6 +159,24 @@ public class AccountService {
             account.setOpenedAt(Instant.now());
 
             account = accountRepository.save(account);
+
+            // Double-entry GL voucher posting for initial deposit
+            if (deposit.compareTo(BigDecimal.ZERO) > 0) {
+                try {
+                    UUID cashGlId = UUID.fromString("00000000-0000-0000-0001-000000010100"); // 10100 Vault Cash
+                    ledgerPostingService.recordJournalEntry(
+                            "ACCOUNT_OPENING_DEPOSIT",
+                            "Initial account funding of ₹" + deposit + " for " + accountNumber,
+                            userId,
+                            List.of(
+                                    new PostingInstruction(cashGlId, null, "DEBIT", deposit),
+                                    new PostingInstruction(product.getGlAccountId(), account.getId(), "CREDIT", deposit)
+                            )
+                    );
+                } catch (Exception e) {
+                    log.warn("Could not post GL voucher for initial deposit on auto-activated account {}: {}", accountNumber, e.getMessage());
+                }
+            }
 
             application.setApplicationStatus("APPROVED");
             application.setCreatedAccountId(account.getId());

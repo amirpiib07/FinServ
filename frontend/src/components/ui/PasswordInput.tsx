@@ -27,9 +27,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         />
         <button
           type="button"
-          tabIndex={-1}
-          className="input-suffix actionable btn-icon"
+          className="input-suffix actionable btn-icon password-visibility-toggle"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
+          title={showPassword ? 'Hide password' : 'Show password'}
           onClick={() => setShowPassword(prev => !prev)}
           disabled={disabled}
           style={{ background: 'transparent', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer' }}

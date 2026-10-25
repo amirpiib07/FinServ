@@ -1,7 +1,7 @@
 /**
  * FINServ Luxury Payment Success Receipt Card
  * Renders strictly AFTER backend confirmation with animated SVG checkmark,
- * one-click UTR copy, updated balance, and official receipt print action.
+ * transaction-reference copy, updated balance, and printable receipt action.
  */
 
 import React, { useState } from 'react';
@@ -35,12 +35,17 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
   onPrintReceipt,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
-  const handleCopyReference = () => {
-    if (transaction.transactionReference) {
-      navigator.clipboard.writeText(transaction.transactionReference);
+  const handleCopyReference = async () => {
+    if (!transaction.transactionReference) return;
+    setCopyError(null);
+    try {
+      await navigator.clipboard.writeText(transaction.transactionReference);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError('Could not copy the reference. Select and copy it manually.');
     }
   };
 
@@ -55,56 +60,63 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
 
   const formattedDate = transaction.createdAt
     ? formatDateTimeIST(transaction.createdAt)
-    : 'Just now';
+    : 'Timestamp unavailable';
+  const displayedBalance =
+    transaction.runningBalance ??
+    transaction.toAccountBalanceAfter ??
+    transaction.fromAccountBalanceAfter;
+  const amountLabel = isDeposit ? 'Amount deposited' : isWithdraw ? 'Amount withdrawn' : 'Amount transferred';
 
   return (
-    <div className="max-w-xl mx-auto p-8 rounded-3xl bg-surface border border-border/60 shadow-2xl space-y-8 animate-fade-in">
+    <div className="transfer-success-receipt">
       {/* Animated SVG Checkmark + Ripple Ring */}
-      <div className="flex flex-col items-center text-center space-y-4">
+      <div className="transfer-success-heading">
         <SuccessAnimation size={80} />
         <div>
           <h2 className="text-2xl font-bold text-text-primary tracking-tight">
             {title}
           </h2>
           <p className="text-sm text-text-muted mt-1">
-            Confirmed by FINServ Core Banking Engine
+            Confirmation received from the banking service.
           </p>
         </div>
       </div>
 
       {/* Prominent Amount Card */}
-      <div className="p-6 rounded-2xl bg-surface-raised border border-border/50 text-center space-y-2">
+      <div className="transfer-success-amount">
         <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
-          Total Amount Transferred
+          {amountLabel}
         </span>
-        <div className="text-4xl font-extrabold font-mono text-emerald-500 tracking-tight">
+        <div className="transfer-success-total">
           {formatINR(transaction.amount)}
         </div>
-        <div className="flex items-center justify-center gap-2 pt-1">
+        <div className="transfer-success-status">
           <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-            Status: Completed
+            Status: {transaction.status}
           </span>
           <span className="px-3 py-0.5 rounded-full text-xs font-medium bg-surface text-text-muted border border-border/60">
-            Mode: {transaction.transferMode || 'IMPS'}
+            Mode: {transaction.transferMode || 'Not provided'}
           </span>
         </div>
       </div>
 
       {/* Reference & Audit Details */}
-      <div className="space-y-3">
+      <div className="transfer-receipt-details">
         {/* Reference Number with One-Click Copy */}
-        <div className="p-4 rounded-xl bg-surface-subtle border border-border/40 flex items-center justify-between">
+        <div className="transfer-reference">
           <div>
-            <div className="text-xs text-text-muted">Transaction Reference (UTR)</div>
+            <div className="text-xs text-text-muted">Transaction reference</div>
             <div className="text-sm font-mono font-bold text-text-primary mt-0.5">
-              {transaction.transactionReference}
+              {transaction.transactionReference || 'Not provided'}
             </div>
           </div>
           <button
             type="button"
             onClick={handleCopyReference}
+            disabled={!transaction.transactionReference}
             className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-raised transition-colors flex items-center gap-1.5 text-xs font-medium text-text-primary"
             aria-label="Copy transaction reference"
+            title="Copy transaction reference"
           >
             {copied ? (
               <>
@@ -119,10 +131,11 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
             )}
           </button>
         </div>
+        {copyError && <p className="transfer-copy-error" role="alert">{copyError}</p>}
 
         {/* Counterparty / Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3.5 rounded-xl bg-surface-subtle border border-border/40">
+        <div className="transfer-receipt-grid">
+          <div className="transfer-receipt-item">
             <div className="flex items-center gap-2 text-xs text-text-muted">
               <Clock size={14} />
               <span>Timestamp</span>
@@ -132,20 +145,20 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-surface-subtle border border-border/40">
+          <div className="transfer-receipt-item">
             <div className="flex items-center gap-2 text-xs text-text-muted">
               <Wallet size={14} />
               <span>Updated Balance</span>
             </div>
             <div className="text-sm font-mono font-bold text-text-primary mt-0.5">
-              {transaction.runningBalance ? formatINR(transaction.runningBalance) : 'Updated'}
+              {displayedBalance != null ? formatINR(displayedBalance) : 'Balance unavailable'}
             </div>
           </div>
         </div>
 
         {/* Counterparty / Narration */}
         {transaction.counterpartyName && (
-          <div className="p-3.5 rounded-xl bg-surface-subtle border border-border/40 flex items-center justify-between">
+          <div className="transfer-receipt-item transfer-counterparty">
             <div className="flex items-center gap-2.5">
               <Building2 size={16} className="text-text-muted" />
               <div>
@@ -165,13 +178,13 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
       </div>
 
       {/* Security Endorsement */}
-      <div className="flex items-center justify-center gap-2 text-xs text-text-muted pt-2 border-t border-border/40">
+      <div className="transfer-ledger-note">
         <ShieldCheck size={14} className="text-emerald-500" />
-        <span>Cryptographically verified on immutable double-entry general ledger</span>
+        <span>Transaction details returned by the banking service.</span>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+      <div className="transfer-receipt-actions">
         <Button
           type="button"
           variant="secondary"
@@ -179,7 +192,7 @@ export const TransferSuccessReceipt: React.FC<TransferSuccessReceiptProps> = ({
           className="w-full sm:w-auto flex items-center justify-center gap-2"
         >
           <Printer size={16} />
-          Print Official Receipt
+          Print Receipt
         </Button>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">

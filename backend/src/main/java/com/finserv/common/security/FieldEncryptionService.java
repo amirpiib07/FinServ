@@ -2,8 +2,6 @@ package com.finserv.common.security;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
@@ -31,7 +29,6 @@ public class FieldEncryptionService {
     private static final int GCM_TAG_LENGTH_BITS = 128;
     private static final String HMAC_ALGORITHM = "HmacSHA256";
 
-    private final Environment environment;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${finserv.security.encryption-key:}")
@@ -39,21 +36,10 @@ public class FieldEncryptionService {
 
     private byte[] masterKeyBytes;
 
-    public FieldEncryptionService(Environment environment) {
-        this.environment = environment;
-    }
-
     @PostConstruct
     public void init() {
-        boolean isProd = environment.acceptsProfiles(Profiles.of("prod"));
-
         if (configuredKey == null || configuredKey.isBlank()) {
-            if (isProd) {
-                throw new IllegalStateException("FATAL: APP_ENCRYPTION_KEY is required in production but was not configured.");
-            }
-            // Non-production fallback key (32 bytes = 256 bits)
-            this.masterKeyBytes = HexFormat.of().parseHex("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-            return;
+            throw new IllegalStateException("APP_ENCRYPTION_KEY is required in every profile.");
         }
 
         try {
@@ -69,11 +55,9 @@ public class FieldEncryptionService {
                     throw new IllegalArgumentException("Invalid key length: must be 256 bits (32 bytes / 64 hex chars)");
                 }
             }
-        } catch (Exception ex) {
-            if (isProd) {
-                throw new IllegalStateException("FATAL: Failed to parse APP_ENCRYPTION_KEY in production profile.", ex);
-            }
-            this.masterKeyBytes = HexFormat.of().parseHex("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                    "Invalid APP_ENCRYPTION_KEY. Configure a 256-bit key (32 bytes).", ex);
         }
     }
 

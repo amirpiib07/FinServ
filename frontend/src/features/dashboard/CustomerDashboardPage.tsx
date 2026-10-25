@@ -7,8 +7,9 @@
  * - Complete Light & Dark theme support, zero developer jargon
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '@/context/AuthContext';
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -21,7 +22,6 @@ import {
   Check,
   Wifi,
   ChevronRight,
-  ShieldCheck,
   AlertTriangle,
   Info,
 } from 'lucide-react';
@@ -35,9 +35,12 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TransactionReceiptModal } from '@/features/transactions/components/TransactionReceiptModal';
+import { getAsiaKolkataGreeting, getUserDisplayName } from '@/lib/user-identity';
 
 export const CustomerDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const authContext = useContext(AuthContext);
+  const displayName = getUserDisplayName(authContext?.user);
   const [data, setData] = useState<CustomerDashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +110,7 @@ export const CustomerDashboardPage: React.FC = () => {
             Dashboard Overview Unavailable
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-6)' }}>
-            {error || 'Unable to load real-time account balances. Please check your network connection.'}
+            {error || 'Unable to load account balances. Please check your network connection.'}
           </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
             Retry Connection
@@ -127,19 +130,14 @@ export const CustomerDashboardPage: React.FC = () => {
   return (
     <div className="page-transition-enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)', paddingBottom: 'var(--spacing-10)' }}>
       {/* 1. Header & Welcome Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--spacing-4)' }}>
+      <div className="stagger-1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--spacing-4)' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-              Executive Banking Portfolio
-            </h1>
-            <Badge variant="success">
-              <ShieldCheck size={12} style={{ marginRight: '4px' }} />
-              RBI Verified
-            </Badge>
-          </div>
+          <div className="dashboard-eyebrow">Your FINServ portfolio</div>
+          <h1 className="dashboard-greeting">
+            {getAsiaKolkataGreeting()}, {displayName}
+          </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
-            Real-time relationship net worth, multi-account ledger balances, and cashflow intelligence.
+            Your account balances and recent activity, thoughtfully organized.
           </p>
         </div>
 
@@ -165,7 +163,7 @@ export const CustomerDashboardPage: React.FC = () => {
 
       {/* Pending KYC / Account Alerts */}
       {data.pendingAlerts && data.pendingAlerts.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+        <div className="dashboard-stagger-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
           {data.pendingAlerts.map((alert, idx) => (
             <div
               key={idx}
@@ -177,16 +175,16 @@ export const CustomerDashboardPage: React.FC = () => {
                 borderRadius: 'var(--radius-lg)',
                 backgroundColor:
                   alert.severity === 'ALERT'
-                    ? 'rgba(239, 68, 68, 0.12)'
+                    ? 'var(--color-danger-subtle)'
                     : alert.severity === 'WARNING'
-                    ? 'rgba(245, 158, 11, 0.12)'
-                    : 'rgba(59, 130, 246, 0.12)',
+                    ? 'var(--color-warning-subtle)'
+                    : 'var(--color-info-subtle)',
                 border: `1px solid ${
                   alert.severity === 'ALERT'
-                    ? 'rgba(239, 68, 68, 0.3)'
+                    ? 'var(--color-danger-border)'
                     : alert.severity === 'WARNING'
-                    ? 'rgba(245, 158, 11, 0.3)'
-                    : 'rgba(59, 130, 246, 0.3)'
+                    ? 'var(--color-warning-border)'
+                    : 'var(--color-info-border)'
                 }`,
               }}
             >
@@ -221,14 +219,15 @@ export const CustomerDashboardPage: React.FC = () => {
 
       {/* 2. Hero Wealth & Cashflow Banner */}
       <div
+        className="dashboard-wealth-card stagger-2"
         style={{
           position: 'relative',
           borderRadius: 'var(--radius-2xl)',
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, #0B192C 0%, #1E3E62 50%, #000000 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-          color: '#FFFFFF',
+          background: 'var(--card-gradient-savings)',
+          border: '1px solid color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+          boxShadow: 'var(--shadow-xl)',
+          color: 'var(--neutral-0)',
           padding: 'var(--spacing-8)',
         }}
       >
@@ -241,31 +240,32 @@ export const CustomerDashboardPage: React.FC = () => {
             width: '280px',
             height: '280px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, var(--gold-400) 22%, transparent) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
 
-        <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--spacing-8)' }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 'var(--spacing-8)' }}>
           {/* Left Column: Net Worth & Balance Reveal */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-2)' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', color: '#D4AF37', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--brand-gold)', textTransform: 'uppercase' }}>
                 TOTAL RELATIONSHIP NET WORTH
               </div>
               <button
                 type="button"
                 onClick={() => setShowBalance(!showBalance)}
                 aria-label={showBalance ? 'Hide portfolio balance' : 'Reveal portfolio balance'}
+                title={showBalance ? 'Hide portfolio balance' : 'Reveal portfolio balance'}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.12)',
+                  background: 'color-mix(in srgb, var(--neutral-0) 12%, transparent)',
                   border: 'none',
                   borderRadius: 'var(--radius-full)',
                   padding: '6px 12px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  color: '#FFFFFF',
+                  color: 'var(--neutral-0)',
                   cursor: 'pointer',
                   fontSize: '11px',
                   fontWeight: 500,
@@ -284,20 +284,19 @@ export const CustomerDashboardPage: React.FC = () => {
                 fontWeight: 700,
                 letterSpacing: '-0.03em',
                 lineHeight: 1.1,
-                color: '#FFFFFF',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.6)',
+                color: 'var(--neutral-0)',
               }}
             >
               {showBalance ? formatINR(data.totalNetWorth) : '₹ ••••••••'}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)', marginTop: 'var(--spacing-4)' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.7)' }}>
-                Active Accounts: <strong style={{ color: '#FFFFFF' }}>{data.activeAccountsCount}</strong>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'color-mix(in srgb, var(--neutral-0) 70%, transparent)' }}>
+                Active Accounts: <strong style={{ color: 'var(--neutral-0)' }}>{data.activeAccountsCount}</strong>
               </div>
-              <div style={{ width: '1px', height: '14px', backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.7)' }}>
-                Verified Payees: <strong style={{ color: '#FFFFFF' }}>{data.verifiedBeneficiariesCount}</strong>
+              <div style={{ width: '1px', height: '14px', backgroundColor: 'color-mix(in srgb, var(--neutral-0) 20%, transparent)' }} />
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'color-mix(in srgb, var(--neutral-0) 70%, transparent)' }}>
+                Verified Payees: <strong style={{ color: 'var(--neutral-0)' }}>{data.verifiedBeneficiariesCount}</strong>
               </div>
             </div>
 
@@ -314,9 +313,9 @@ export const CustomerDashboardPage: React.FC = () => {
                 type="button"
                 onClick={() => navigate('/app/transfers')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#FFFFFF',
+                  background: 'color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--neutral-0) 25%, transparent)',
+                  color: 'var(--neutral-0)',
                   padding: '8px 14px',
                   borderRadius: 'var(--radius-lg)',
                   fontSize: '12px',
@@ -329,16 +328,16 @@ export const CustomerDashboardPage: React.FC = () => {
                   transition: 'background 0.2s',
                 }}
               >
-                <ArrowUpRight size={14} color="#34D399" />
+                <ArrowUpRight size={14} color="var(--teal-300)" />
                 Send Money
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/app/transfers?mode=deposit')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#FFFFFF',
+                  background: 'color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--neutral-0) 25%, transparent)',
+                  color: 'var(--neutral-0)',
                   padding: '8px 14px',
                   borderRadius: 'var(--radius-lg)',
                   fontSize: '12px',
@@ -351,16 +350,38 @@ export const CustomerDashboardPage: React.FC = () => {
                   transition: 'background 0.2s',
                 }}
               >
-                <ArrowDownLeft size={14} color="#60A5FA" />
-                Add Funds
+                <ArrowDownLeft size={14} color="var(--color-info)" />
+                Add Funds (Deposit)
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/app/transfers?mode=withdraw')}
+                style={{
+                  background: 'color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--neutral-0) 25%, transparent)',
+                  color: 'var(--neutral-0)',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-lg)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(8px)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <ArrowUpRight size={14} color="#FBBF24" />
+                Withdraw Cash
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/app/beneficiaries')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#FFFFFF',
+                  background: 'color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--neutral-0) 25%, transparent)',
+                  color: 'var(--neutral-0)',
                   padding: '8px 14px',
                   borderRadius: 'var(--radius-lg)',
                   fontSize: '12px',
@@ -373,16 +394,16 @@ export const CustomerDashboardPage: React.FC = () => {
                   transition: 'background 0.2s',
                 }}
               >
-                <Users size={14} color="#FBBF24" />
+                <Users size={14} color="var(--brand-gold)" />
                 Add Beneficiary
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/app/accounts')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#FFFFFF',
+                  background: 'color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--neutral-0) 25%, transparent)',
+                  color: 'var(--neutral-0)',
                   padding: '8px 14px',
                   borderRadius: 'var(--radius-lg)',
                   fontSize: '12px',
@@ -395,7 +416,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   transition: 'background 0.2s',
                 }}
               >
-                <PlusCircle size={14} color="#A78BFA" />
+                <PlusCircle size={14} color="var(--brand-accent)" />
                 Open Account
               </button>
             </div>
@@ -404,10 +425,10 @@ export const CustomerDashboardPage: React.FC = () => {
           {/* Right Column: 30-day Cashflow Ratio & Bar */}
           <div
             style={{
-              background: 'rgba(0, 0, 0, 0.25)',
+              background: 'color-mix(in srgb, var(--navy-950) 65%, transparent)',
               borderRadius: 'var(--radius-xl)',
               padding: 'var(--spacing-5)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              border: '1px solid color-mix(in srgb, var(--neutral-0) 12%, transparent)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -415,7 +436,7 @@ export const CustomerDashboardPage: React.FC = () => {
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-3)' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: 'color-mix(in srgb, var(--neutral-0) 75%, transparent)', textTransform: 'uppercase' }}>
                   30-DAY CASHFLOW INTEL
                 </span>
                 <span
@@ -424,8 +445,10 @@ export const CustomerDashboardPage: React.FC = () => {
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: 'var(--radius-full)',
-                    backgroundColor: data.netCashflow30d >= 0 ? 'rgba(52, 211, 153, 0.2)' : 'rgba(248, 113, 113, 0.2)',
-                    color: data.netCashflow30d >= 0 ? '#34D399' : '#F87171',
+                    backgroundColor: data.netCashflow30d >= 0
+                      ? 'color-mix(in srgb, var(--teal-400) 20%, transparent)'
+                      : 'color-mix(in srgb, var(--danger-400) 20%, transparent)',
+                    color: data.netCashflow30d >= 0 ? 'var(--teal-300)' : 'var(--danger-400)',
                   }}
                 >
                   Net: {data.netCashflow30d >= 0 ? '+' : ''}{formatINR(data.netCashflow30d)}
@@ -433,20 +456,20 @@ export const CustomerDashboardPage: React.FC = () => {
               </div>
 
               {/* Visual Split Bar */}
-              <div style={{ height: '10px', width: '100%', borderRadius: '5px', backgroundColor: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden', display: 'flex' }}>
+              <div style={{ height: '10px', width: '100%', borderRadius: '5px', backgroundColor: 'color-mix(in srgb, var(--neutral-0) 10%, transparent)', overflow: 'hidden', display: 'flex' }}>
                 <div
-                  style={{
-                    width: `${inPercent}%`,
-                    backgroundColor: '#10B981',
-                    transition: 'width 0.4s ease',
+                    className="cashflow-bar"
+                    style={{
+                      width: `${inPercent}%`,
+                      backgroundColor: 'var(--teal-400)',
                   }}
                   title={`Money In: ${inPercent}%`}
                 />
                 <div
-                  style={{
-                    width: `${outPercent}%`,
-                    backgroundColor: '#EF4444',
-                    transition: 'width 0.4s ease',
+                    className="cashflow-bar"
+                    style={{
+                      width: `${outPercent}%`,
+                      backgroundColor: 'var(--danger-400)',
                   }}
                   title={`Money Out: ${outPercent}%`}
                 />
@@ -455,38 +478,38 @@ export const CustomerDashboardPage: React.FC = () => {
               {/* Numbers Row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)', marginTop: 'var(--spacing-4)' }}>
                 <div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  <div style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--neutral-0) 72%, transparent)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--teal-400)' }} />
                     Money In (Credits)
                   </div>
-                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: '#34D399', marginTop: '4px' }}>
+                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: 'var(--teal-300)', marginTop: '4px' }}>
                     +{formatINR(moneyIn)}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                  <div style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--neutral-0) 72%, transparent)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--danger-400)' }} />
                     Money Out (Debits)
                   </div>
-                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: '#F87171', marginTop: '4px' }}>
+                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: 'var(--danger-400)', marginTop: '4px' }}>
                     -{formatINR(moneyOut)}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)', marginTop: 'var(--spacing-4)' }}>
-              Includes verified internal transfers, NEFT/RTGS, and direct cash settlements.
+            <div style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--neutral-0) 70%, transparent)', marginTop: 'var(--spacing-4)' }}>
+              Totals are calculated from the accounts returned for your profile.
             </div>
           </div>
         </div>
       </div>
 
       {/* 3. Primary Account Metallic 3D Showcase & Quick Payees Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 'var(--spacing-6)' }}>
+      <div className="dashboard-feature-grid stagger-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 'var(--spacing-6)' }}>
         {/* Left: 3D Metallic Account Card */}
-        <Card style={{ padding: 'var(--spacing-6)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <Card className="dashboard-feature-card" style={{ padding: 'var(--spacing-6)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
               <div>
@@ -494,23 +517,27 @@ export const CustomerDashboardPage: React.FC = () => {
                   Primary Banking Account
                 </h2>
                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                  {primary?.productName || 'Savings Account'} • {primary?.branchName || 'FinServ Mumbai'}
+                  {primary
+                    ? `${primary.productName}${primary.branchName ? ` • ${primary.branchName}` : ''}`
+                    : 'No primary account is linked yet.'}
                 </div>
               </div>
-              <Badge variant={primary?.status === 'ACTIVE' ? 'success' : 'warning'}>
-                {primary?.status || 'ACTIVE'}
-              </Badge>
+              {primary && (
+                <Badge variant={primary.status === 'ACTIVE' ? 'success' : 'warning'}>
+                  {primary.status}
+                </Badge>
+              )}
             </div>
 
             {/* Stylized Metallic Card Graphic */}
             <div
               style={{
                 borderRadius: 'var(--radius-xl)',
-                background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                boxShadow: '0 12px 28px -6px rgba(0, 0, 0, 0.35)',
+                background: 'var(--card-gradient-current)',
+                border: '1px solid color-mix(in srgb, var(--neutral-0) 15%, transparent)',
+                boxShadow: 'var(--shadow-lg)',
                 padding: 'var(--spacing-5)',
-                color: '#FFFFFF',
+                color: 'var(--neutral-0)',
                 position: 'relative',
               }}
             >
@@ -521,16 +548,16 @@ export const CustomerDashboardPage: React.FC = () => {
                     <div className="emv-chip-line-vertical" />
                     <div className="emv-chip-center" />
                   </div>
-                  <Wifi size={14} color="rgba(255, 255, 255, 0.7)" style={{ transform: 'rotate(90deg)' }} />
+                  <Wifi size={14} color="color-mix(in srgb, var(--neutral-0) 72%, transparent)" style={{ transform: 'rotate(90deg)' }} />
                 </div>
-                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', color: '#F59E0B' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--brand-gold)' }}>
                   FINSERV PRIVILEGE
                 </div>
               </div>
 
               {/* Account Number display */}
               <div style={{ marginBottom: 'var(--spacing-3)' }}>
-                <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255, 255, 255, 0.55)' }}>
+                <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'color-mix(in srgb, var(--neutral-0) 72%, transparent)' }}>
                   Account Number
                 </div>
                 <div
@@ -538,22 +565,24 @@ export const CustomerDashboardPage: React.FC = () => {
                     fontFamily: 'var(--font-family-mono)',
                     fontSize: '1.25rem',
                     letterSpacing: '0.12em',
-                    color: '#FFFFFF',
+                    color: 'var(--neutral-0)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                   }}
                 >
-                  {primary ? primary.accountNumber : 'No Active Account'}
+                  {primary ? maskAccountNumber(primary.accountNumber) : 'No active account'}
                   {primary && (
                     <button
                       type="button"
+                      className="btn btn-icon btn-icon-sm btn-ghost dashboard-copy-button"
                       onClick={() => handleCopy(primary.accountNumber, 'account')}
+                      aria-label="Copy account number"
                       title="Copy Account Number"
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: copiedField === 'account' ? '#34D399' : 'rgba(255, 255, 255, 0.6)',
+                        color: copiedField === 'account' ? 'var(--teal-300)' : 'color-mix(in srgb, var(--neutral-0) 72%, transparent)',
                         cursor: 'pointer',
                         padding: '2px',
                       }}
@@ -566,34 +595,40 @@ export const CustomerDashboardPage: React.FC = () => {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--neutral-0) 72%, transparent)' }}>
                     IFSC Code
                   </div>
-                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '11px', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {primary?.ifscCode || 'FINS0000101'}
+                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '11px', color: 'var(--neutral-0)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {primary?.ifscCode || '—'}
+                    {primary?.ifscCode && (
                     <button
                       type="button"
-                      onClick={() => handleCopy(primary?.ifscCode || 'FINS0000101', 'ifsc')}
+                      className="btn btn-icon btn-icon-sm btn-ghost dashboard-copy-button"
+                      onClick={() => {
+                        if (primary.ifscCode) handleCopy(primary.ifscCode, 'ifsc');
+                      }}
+                      aria-label="Copy IFSC code"
                       title="Copy IFSC Code"
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: copiedField === 'ifsc' ? '#34D399' : 'rgba(255, 255, 255, 0.6)',
+                        color: copiedField === 'ifsc' ? 'var(--teal-300)' : 'color-mix(in srgb, var(--neutral-0) 72%, transparent)',
                         cursor: 'pointer',
                         padding: '2px',
                       }}
                     >
                       {copiedField === 'ifsc' ? <Check size={12} /> : <Copy size={12} />}
                     </button>
+                    )}
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--neutral-0) 72%, transparent)' }}>
                     Available Balance
                   </div>
-                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: '#34D399' }}>
-                    {primary ? (showBalance ? formatINR(primary.availableBalance) : '₹ ••••••') : '₹0.00'}
+                  <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '1.15rem', fontWeight: 700, color: 'var(--teal-300)' }}>
+                    {primary ? (showBalance ? formatINR(primary.availableBalance) : '₹ ••••••') : '—'}
                   </div>
                 </div>
               </div>
@@ -623,7 +658,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   Quick Transfer Payees
                 </h2>
                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                  Instant zero-friction fund transfers to verified payees
+                  Start a transfer to one of your saved payees.
                 </div>
               </div>
               <Button
@@ -637,30 +672,13 @@ export const CustomerDashboardPage: React.FC = () => {
             </div>
 
             {data.topBeneficiaries && data.topBeneficiaries.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+              <div className="dashboard-stagger-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
                 {data.topBeneficiaries.map((b) => (
-                  <div
+                  <button
+                    type="button"
                     key={b.id}
+                    className="dashboard-list-action"
                     onClick={() => navigate(`/app/transfers?beneficiaryId=${b.id}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: 'var(--spacing-3) var(--spacing-4)',
-                      borderRadius: 'var(--radius-lg)',
-                      backgroundColor: 'var(--surface-sunken)',
-                      border: '1px solid var(--border-subtle)',
-                      cursor: 'pointer',
-                      transition: 'transform 0.15s, border-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateX(4px)';
-                      e.currentTarget.style.borderColor = 'var(--brand-accent)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateX(0)';
-                      e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                       <div
@@ -668,8 +686,8 @@ export const CustomerDashboardPage: React.FC = () => {
                           width: '38px',
                           height: '38px',
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, var(--brand-accent) 0%, #1D4ED8 100%)',
-                          color: '#FFFFFF',
+                          background: 'linear-gradient(145deg, var(--teal-400), var(--navy-800))',
+                          color: 'var(--neutral-0)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -695,7 +713,7 @@ export const CustomerDashboardPage: React.FC = () => {
                       </Badge>
                       <ChevronRight size={16} color="var(--text-tertiary)" />
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -713,7 +731,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   No Beneficiaries Added Yet
                 </div>
                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginTop: '4px', marginBottom: 'var(--spacing-4)' }}>
-                  Add verified payees to initiate instant NEFT, RTGS, or intra-bank transfers.
+                  Add and verify a payee before starting a transfer.
                 </div>
                 <Button
                   variant="primary"
@@ -749,7 +767,7 @@ export const CustomerDashboardPage: React.FC = () => {
       </div>
 
       {/* 4. Recent Activity Feed */}
-      <Card style={{ padding: 'var(--spacing-6)' }}>
+      <Card className="stagger-4" style={{ padding: 'var(--spacing-6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
           <div>
             <h2 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -769,32 +787,15 @@ export const CustomerDashboardPage: React.FC = () => {
         </div>
 
         {data.recentTransactions && data.recentTransactions.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
+          <div className="dashboard-stagger-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
             {data.recentTransactions.map((tx) => {
-              const isCredit = tx.transactionType === 'DEPOSIT';
+              const isCredit = (tx as any).direction === 'CREDIT' || tx.transactionType === 'DEPOSIT';
               return (
-                <div
+                <button
+                  type="button"
                   key={tx.id}
+                  className="dashboard-list-action"
                   onClick={() => setSelectedTxnId(tx.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 'var(--spacing-3) var(--spacing-4)',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: 'var(--surface-sunken)',
-                    border: '1px solid var(--border-subtle)',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s, border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--surface-card)';
-                    e.currentTarget.style.borderColor = 'var(--border-interactive)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--surface-sunken)';
-                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                     <div
@@ -803,8 +804,8 @@ export const CustomerDashboardPage: React.FC = () => {
                         height: '38px',
                         borderRadius: 'var(--radius-full)',
                         backgroundColor: isCredit
-                          ? 'rgba(16, 185, 129, 0.12)'
-                          : 'rgba(239, 68, 68, 0.12)',
+                          ? 'var(--color-success-subtle)'
+                          : 'var(--color-danger-subtle)',
                         color: isCredit ? 'var(--color-success)' : 'var(--color-danger)',
                         display: 'flex',
                         alignItems: 'center',
@@ -816,10 +817,10 @@ export const CustomerDashboardPage: React.FC = () => {
 
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)' }}>
-                        {tx.narrative || tx.transactionType.replace(/_/g, ' ')}
+                        {(tx as any).description || tx.narrative || tx.transactionType.replace(/_/g, ' ')}
                       </div>
                       <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span>{formatDateTimeIST(tx.initiatedAt)}</span>
+                        <span>{formatDateTimeIST((tx as any).createdAt || tx.initiatedAt || (tx as any).completedAt)}</span>
                         <span>•</span>
                         <span style={{ fontFamily: 'var(--font-family-mono)' }}>{tx.transactionReference}</span>
                       </div>
@@ -838,10 +839,10 @@ export const CustomerDashboardPage: React.FC = () => {
                       {isCredit ? '+' : '-'}{formatINR(tx.amount)}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                      Bal: {formatINR(tx.balanceAfter)}
+                      Bal: {formatINR(tx.balanceAfter ?? (tx as any).runningBalance ?? (tx as any).fromAccountBalanceAfter ?? (tx as any).toAccountBalanceAfter ?? 0)}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

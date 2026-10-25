@@ -16,7 +16,7 @@ public class CreateAccountApplicationRequest {
     private UUID branchId;
 
     @DecimalMin(value = "0.00", message = "Initial deposit amount cannot be negative")
-    private BigDecimal initialDepositAmount = BigDecimal.ZERO;
+    private BigDecimal initialDepositAmount = new BigDecimal("5000.00");
 
     @Size(max = 60, message = "Account nickname cannot exceed 60 characters")
     private String nickname;

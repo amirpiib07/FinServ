@@ -25,7 +25,7 @@ public class JwtService {
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    @Value("${finserv.jwt.secret:finserv-banking-core-jwt-secret-key-must-be-at-least-256-bits-long-secure}")
+    @Value("${finserv.jwt.secret}")
     private String jwtSecret;
 
     @Value("${finserv.jwt.access-token-expiration-minutes:15}")
@@ -38,15 +38,13 @@ public class JwtService {
 
     @PostConstruct
     public void init() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("JWT signing secret must be configured.");
+        }
+
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            // Pad or hash to ensure 256 bits minimum
-            try {
-                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-                keyBytes = sha256.digest(keyBytes);
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("SHA-256 algorithm not available", e);
-            }
+            throw new IllegalStateException("JWT signing secret must contain at least 32 UTF-8 bytes.");
         }
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }

@@ -18,13 +18,20 @@ export interface DashboardAccountDto {
 export interface DashboardRecentTransactionDto {
   id: string;
   transactionReference: string;
-  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_INTERNAL' | 'TRANSFER_NEFT' | 'TRANSFER_RTGS' | 'TRANSFER_IMPS';
+  transactionType: string;
   amount: number;
   currency: string;
   status: 'SUCCESS' | 'PENDING' | 'FAILED' | 'REVERSED';
-  initiatedAt: string;
-  narrative: string;
-  balanceAfter: number;
+  createdAt?: string;
+  initiatedAt?: string;
+  completedAt?: string;
+  narrative?: string;
+  description?: string;
+  direction?: 'CREDIT' | 'DEBIT' | 'SELF';
+  balanceAfter?: number;
+  runningBalance?: number;
+  fromAccountBalanceAfter?: number;
+  toAccountBalanceAfter?: number;
   counterpartyAccount?: string | null;
   counterpartyName?: string | null;
 }

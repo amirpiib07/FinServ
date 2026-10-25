@@ -116,7 +116,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "INTERNAL_SERVER_ERROR",
-                "Internal server error: " + (ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName()) + ". CorrelationId: " + correlationId,
+                "An unexpected internal server error occurred. Please quote correlationId: " + correlationId,
                 request.getRequestURI(),
                 correlationId
         );

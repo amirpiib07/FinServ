@@ -26,9 +26,10 @@ public class CreateStaffRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    @NotBlank(message = "Role is required (EMPLOYEE or ADMIN)")
-    @Pattern(regexp = "^(EMPLOYEE|ADMIN)$", message = "Role must be either EMPLOYEE or ADMIN")
+    @NotBlank(message = "Role is required (EMPLOYEE, ADMIN, or SUPER_ADMIN)")
+    @Pattern(regexp = "^(EMPLOYEE|ADMIN|SUPER_ADMIN)$", message = "Role must be EMPLOYEE, ADMIN, or SUPER_ADMIN")
     private String role;
+
 
     @NotNull(message = "Branch ID is required")
     private UUID branchId;

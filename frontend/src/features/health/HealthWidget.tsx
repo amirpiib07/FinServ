@@ -80,6 +80,7 @@ export const HealthWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
           className="btn-icon btn-ghost"
           style={{ width: 28, height: 28 }}
           aria-label="Refresh backend health"
+          title="Refresh backend health"
           onClick={() => refetch()}
         >
           <RefreshCw size={14} />

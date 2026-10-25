@@ -12,6 +12,10 @@ import {
   Plus,
   X,
   Sparkles,
+  Users,
+  ShieldCheck,
+  UserCheck,
+  Search,
 } from 'lucide-react';
 import { adminService } from './adminService';
 import type { BranchDto, StaffDto, CreateBranchRequest, CreateStaffRequest } from '@/types/admin';
@@ -32,18 +36,20 @@ export const BranchesStaffPage: React.FC = () => {
     branchCode: '',
     branchName: '',
     ifscCode: '',
-    micrCode: '',
-    addressLine1: '',
+    routingNumber: '',
+    streetAddress: '',
     city: 'Mumbai',
     state: 'Maharashtra',
     postalCode: '400051',
-    phone: '+912211223344',
+    phoneNumber: '+912211223344',
   });
 
   // Staff State
   const [staffList, setStaffList] = useState<StaffDto[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [staffForm, setStaffForm] = useState<CreateStaffRequest>({
     username: '',
     email: '',
@@ -55,8 +61,87 @@ export const BranchesStaffPage: React.FC = () => {
     designation: 'Credit & Verification Officer',
   });
 
+  const superAdminCount = staffList.filter((s) => s.role.includes('SUPER_ADMIN')).length;
+  const adminCount = staffList.filter((s) => s.role === 'ROLE_ADMIN').length;
+  const employeeCount = staffList.filter((s) => s.role === 'ROLE_EMPLOYEE').length;
+
+  const filteredStaffList = staffList.filter((s) => {
+    const matchesRole =
+      roleFilter === 'ALL' ||
+      (roleFilter === 'SUPER_ADMIN' && s.role.includes('SUPER_ADMIN')) ||
+      (roleFilter === 'ADMIN' && s.role === 'ROLE_ADMIN') ||
+      (roleFilter === 'EMPLOYEE' && s.role === 'ROLE_EMPLOYEE');
+
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      s.username.toLowerCase().includes(q) ||
+      s.email.toLowerCase().includes(q) ||
+      (s.branchName && s.branchName.toLowerCase().includes(q)) ||
+      (s.department && s.department.toLowerCase().includes(q)) ||
+      (s.designation && s.designation.toLowerCase().includes(q));
+
+    return matchesRole && matchesSearch;
+  });
+
+  const renderRoleBadge = (role: string) => {
+    if (role.includes('SUPER_ADMIN')) {
+      return (
+        <Badge
+          variant="neutral"
+          style={{
+            borderColor: '#D4AF37',
+            backgroundColor: 'rgba(212, 175, 55, 0.12)',
+            color: '#D4AF37',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <Sparkles size={11} />
+          Super Admin
+        </Badge>
+      );
+    }
+    if (role === 'ROLE_ADMIN') {
+      return (
+        <Badge
+          variant="warning"
+          style={{
+            borderColor: 'var(--brand-accent)',
+            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+            color: 'var(--brand-accent)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <ShieldCheck size={11} />
+          Branch Admin
+        </Badge>
+      );
+    }
+    return (
+      <Badge
+        variant="neutral"
+        style={{
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+          color: '#10B981',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        <UserCheck size={11} />
+        Bank Officer
+      </Badge>
+    );
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [branchError, setBranchError] = useState<string | null>(null);
 
   const [branchRefreshKey, setBranchRefreshKey] = useState(0);
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
@@ -112,19 +197,48 @@ export const BranchesStaffPage: React.FC = () => {
 
   const handleBranchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!branchForm.branchCode || !branchForm.branchName || !branchForm.ifscCode) {
-      alert('Branch Code, Name, and IFSC are mandatory.');
+    const normalizedIfsc = branchForm.ifscCode.trim().toUpperCase();
+    if (!/^[0-9]{4}$/.test(branchForm.branchCode.trim())) {
+      setBranchError('Branch code must be exactly 4 digits.');
       return;
     }
 
-    if (!/^FINS0[0-9A-Z]{6}$/.test(branchForm.ifscCode)) {
-      alert('IFSC Code must follow RBI pattern FINS0XXXXXX (e.g., FINS0100201).');
+    if (!/^FINS0[0-9A-Z]{6}$/.test(normalizedIfsc)) {
+      setBranchError('IFSC code must follow the FINS0XXXXXX format (e.g., FINS0100201).');
+      return;
+    }
+
+    const requiredFields: Array<keyof CreateBranchRequest> = [
+      'branchName',
+      'routingNumber',
+      'streetAddress',
+      'city',
+      'state',
+      'postalCode',
+      'phoneNumber',
+    ];
+    if (requiredFields.some((field) => !branchForm[field].trim())) {
+      setBranchError('Complete all branch details before provisioning.');
       return;
     }
 
     setIsSubmitting(true);
+    setFeedback(null);
+    setBranchError(null);
     try {
-      const created = await adminService.createBranch(branchForm);
+      const created = await adminService.createBranch({
+        ...branchForm,
+        branchCode: branchForm.branchCode.trim(),
+        branchName: branchForm.branchName.trim(),
+        ifscCode: normalizedIfsc,
+        routingNumber: branchForm.routingNumber.trim(),
+        streetAddress: branchForm.streetAddress.trim(),
+        city: branchForm.city.trim(),
+        state: branchForm.state.trim(),
+        postalCode: branchForm.postalCode.trim(),
+        phoneNumber: branchForm.phoneNumber.trim(),
+      });
+      setBranchError(null);
       setFeedback({
         message: `Branch ${created.branchName} (${created.ifscCode}) created successfully!`,
         type: 'success',
@@ -134,9 +248,8 @@ export const BranchesStaffPage: React.FC = () => {
       setBranchRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       const msg = (err as { userMessage?: string; message?: string })?.userMessage ||
-        (err as Error)?.message ||
-        'Failed to create branch';
-      alert(msg);
+        (err as Error)?.message || 'Failed to create branch';
+      setBranchError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -152,8 +265,13 @@ export const BranchesStaffPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       const created = await adminService.createStaff(staffForm);
+      const roleLabel = created.role.includes('SUPER_ADMIN')
+        ? 'Super Administrator'
+        : created.role.includes('ADMIN')
+        ? 'Branch Administrator'
+        : 'Bank Officer';
       setFeedback({
-        message: `Bank Officer ${created.username} provisioned with role ${created.role}!`,
+        message: `${roleLabel} ${created.username} provisioned successfully with role ${created.role}!`,
         type: 'success',
       });
       setStaffModalOpen(false);
@@ -261,13 +379,14 @@ export const BranchesStaffPage: React.FC = () => {
                   branchCode: nextCode,
                   branchName: `FinServ Branch ${nextCode}`,
                   ifscCode: `FINS0${nextCode}01`,
-                  micrCode: `400${nextCode}`,
-                  addressLine1: 'Financial District, Level 4',
+                  routingNumber: nextCode,
+                  streetAddress: 'Financial District, Level 4',
                   city: 'Bengaluru',
                   state: 'Karnataka',
                   postalCode: '560001',
-                  phone: '+918011223344',
+                  phoneNumber: '+918011223344',
                 });
+                setBranchError(null);
                 setBranchModalOpen(true);
               }}
               leftIcon={<Plus size={16} />}
@@ -326,27 +445,114 @@ export const BranchesStaffPage: React.FC = () => {
       {/* 3. TAB 2: STAFF */}
       {activeTab === 'STAFF' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {/* KPI Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-4)' }}>
+            <Card style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <span>Total Provisioned Staff</span>
+                <Users size={16} />
+              </div>
+              <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {staffList.length}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Active bank personnel</span>
+            </Card>
+
+            <Card style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '4px solid #D4AF37' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <span>Super Administrators</span>
+                <Sparkles size={16} color="#D4AF37" />
+              </div>
+              <span style={{ fontSize: '1.75rem', fontWeight: 700, color: '#D4AF37' }}>
+                {superAdminCount}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Full governance & provisioning</span>
+            </Card>
+
+            <Card style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '4px solid var(--brand-accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <span>Branch Administrators</span>
+                <ShieldCheck size={16} color="var(--brand-accent)" />
+              </div>
+              <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {adminCount}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Branch & KYC approvals</span>
+            </Card>
+
+            <Card style={{ padding: 'var(--spacing-4)', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '4px solid #10B981' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <span>Bank Officers</span>
+                <UserCheck size={16} color="#10B981" />
+              </div>
+              <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {employeeCount}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Counter & verification staff</span>
+            </Card>
+          </div>
+
+          {/* Controls Bar: Search & Role Filter + Provision Button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--spacing-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', flex: '1 1 320px' }}>
+              <div style={{ position: 'relative', flex: 1, maxWidth: '340px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                <input
+                  type="text"
+                  placeholder="Search username, email, department..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: 'var(--surface-sunken)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                  }}
+                />
+              </div>
+
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: 'var(--surface-sunken)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="ALL">All Roles ({staffList.length})</option>
+                <option value="SUPER_ADMIN">Super Admins ({superAdminCount})</option>
+                <option value="ADMIN">Branch Admins ({adminCount})</option>
+                <option value="EMPLOYEE">Bank Officers ({employeeCount})</option>
+              </select>
+            </div>
+
             <Button
               variant="primary"
               size="sm"
               onClick={() => {
                 const rnd = Math.floor(1000 + Math.random() * 9000);
                 setStaffForm({
-                  username: `officer_${rnd}`,
-                  email: `officer_${rnd}@finserv.local`,
+                  username: `staff_${rnd}`,
+                  email: `staff_${rnd}@finserv.local`,
                   phoneNumber: '+9198765' + rnd,
-                  password: 'OfficerSecureP@ss1!',
+                  password: '',
                   role: 'EMPLOYEE',
                   branchId: branches[0]?.id || '',
                   department: 'Risk Operations',
-                  designation: 'Senior KYC Officer',
+                  designation: 'Bank Officer / KYC Specialist',
                 });
                 setStaffModalOpen(true);
               }}
               leftIcon={<UserPlus size={16} />}
             >
-              Provision Bank Officer / Admin
+              Provision Staff / Super Admin
             </Button>
           </div>
 
@@ -369,8 +575,8 @@ export const BranchesStaffPage: React.FC = () => {
                         <td colSpan={5} style={{ padding: '16px' }}><Skeleton width="100%" height="24px" /></td>
                       </tr>
                     ))
-                  ) : staffList.length > 0 ? (
-                    staffList.map((s) => (
+                  ) : filteredStaffList.length > 0 ? (
+                    filteredStaffList.map((s) => (
                       <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           {s.username}
@@ -380,7 +586,7 @@ export const BranchesStaffPage: React.FC = () => {
                           <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{s.phoneNumber || 'N/A'}</div>
                         </td>
                         <td style={{ padding: '12px 16px' }}>
-                          <Badge variant={s.role.includes('ADMIN') ? 'warning' : 'neutral'}>{s.role}</Badge>
+                          {renderRoleBadge(s.role)}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ color: 'var(--text-primary)' }}>{s.branchName}</div>
@@ -394,7 +600,7 @@ export const BranchesStaffPage: React.FC = () => {
                   ) : (
                     <tr>
                       <td colSpan={5} style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                        No provisioned officers found.
+                        {staffList.length === 0 ? 'No provisioned officers found.' : 'No staff members match the selected filter criteria.'}
                       </td>
                     </tr>
                   )}
@@ -416,6 +622,8 @@ export const BranchesStaffPage: React.FC = () => {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               width: 'min(500px, 92vw)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
               backgroundColor: 'var(--surface-card)',
               borderRadius: 'var(--radius-xl)',
               padding: 'var(--spacing-6)',
@@ -436,6 +644,30 @@ export const BranchesStaffPage: React.FC = () => {
                   value={branchForm.branchCode}
                   onChange={(e) => setBranchForm({ ...branchForm, branchCode: e.target.value })}
                   placeholder="e.g. 1002"
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Routing Number
+                </label>
+                <Input
+                  value={branchForm.routingNumber}
+                  onChange={(e) => setBranchForm({ ...branchForm, routingNumber: e.target.value })}
+                  placeholder="Enter branch routing number"
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Street Address
+                </label>
+                <Input
+                  value={branchForm.streetAddress}
+                  onChange={(e) => setBranchForm({ ...branchForm, streetAddress: e.target.value })}
+                  placeholder="Enter branch street address"
                   required
                 />
               </div>
@@ -475,6 +707,23 @@ export const BranchesStaffPage: React.FC = () => {
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Postal Code</label>
+                  <Input value={branchForm.postalCode} onChange={(e) => setBranchForm({ ...branchForm, postalCode: e.target.value })} required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Phone Number</label>
+                  <Input value={branchForm.phoneNumber} onChange={(e) => setBranchForm({ ...branchForm, phoneNumber: e.target.value })} required />
+                </div>
+              </div>
+
+              {branchError && (
+                <div role="alert" aria-live="polite" style={{ color: 'var(--danger-main)', fontSize: 'var(--font-size-sm)' }}>
+                  {branchError}
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-4)' }}>
                 <Button variant="outline" type="button" onClick={() => setBranchModalOpen(false)}>Cancel</Button>
                 <Button variant="primary" type="submit" isLoading={isSubmitting}>Provision Branch</Button>
@@ -494,7 +743,9 @@ export const BranchesStaffPage: React.FC = () => {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 'min(500px, 92vw)',
+              width: 'min(520px, 92vw)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
               backgroundColor: 'var(--surface-card)',
               borderRadius: 'var(--radius-xl)',
               padding: 'var(--spacing-6)',
@@ -503,37 +754,58 @@ export const BranchesStaffPage: React.FC = () => {
             }}
           >
             <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--spacing-4)' }}>
-              Provision Bank Officer / Admin
+              Provision Banking Staff / Super Admin
             </h2>
 
             <form onSubmit={handleStaffSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Username</label>
-                <Input value={staffForm.username} onChange={(e) => setStaffForm({ ...staffForm, username: e.target.value })} required />
+                <label htmlFor="staff-username" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Username</label>
+                <Input id="staff-username" value={staffForm.username} onChange={(e) => setStaffForm({ ...staffForm, username: e.target.value })} required />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Email</label>
-                  <Input type="email" value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} required />
+                  <label htmlFor="staff-email" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Email</label>
+                  <Input id="staff-email" type="email" value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} required />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Phone</label>
-                  <Input value={staffForm.phoneNumber} onChange={(e) => setStaffForm({ ...staffForm, phoneNumber: e.target.value })} required />
+                  <label htmlFor="staff-phone" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Phone</label>
+                  <Input id="staff-phone" value={staffForm.phoneNumber} onChange={(e) => setStaffForm({ ...staffForm, phoneNumber: e.target.value })} required />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Temporary Password</label>
-                <Input type="password" value={staffForm.password} onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })} required />
+                <label htmlFor="staff-password" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Temporary Password</label>
+                <Input id="staff-password" type="password" value={staffForm.password} onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })} required />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Security Role</label>
+                  <label htmlFor="staff-role" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Security Role</label>
                   <select
+                    id="staff-role"
                     value={staffForm.role}
-                    onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value as 'EMPLOYEE' | 'ADMIN' })}
+                    onChange={(e) => {
+                      const newRole = e.target.value as 'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN';
+                      let defDept = staffForm.department;
+                      let defDesig = staffForm.designation;
+                      if (newRole === 'SUPER_ADMIN') {
+                        defDept = 'Executive Leadership';
+                        defDesig = 'Executive Super Administrator';
+                      } else if (newRole === 'ADMIN') {
+                        defDept = 'Branch Operations';
+                        defDesig = 'Branch Administrator';
+                      } else if (newRole === 'EMPLOYEE') {
+                        defDept = 'Risk Operations';
+                        defDesig = 'Bank Officer / KYC Specialist';
+                      }
+                      setStaffForm({
+                        ...staffForm,
+                        role: newRole,
+                        department: defDept,
+                        designation: defDesig,
+                      });
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -544,14 +816,16 @@ export const BranchesStaffPage: React.FC = () => {
                       fontSize: '13px',
                     }}
                   >
-                    <option value="EMPLOYEE">EMPLOYEE (Bank Officer)</option>
-                    <option value="ADMIN">ADMIN (Full Admin)</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN (Executive Super Administrator)</option>
+                    <option value="ADMIN">ADMIN (Branch Administrator)</option>
+                    <option value="EMPLOYEE">EMPLOYEE (Bank Officer / Counter Staff)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Assigned Branch</label>
+                  <label htmlFor="staff-branch" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Assigned Branch</label>
                   <select
+                    id="staff-branch"
                     value={staffForm.branchId}
                     onChange={(e) => setStaffForm({ ...staffForm, branchId: e.target.value })}
                     style={{
@@ -573,9 +847,38 @@ export const BranchesStaffPage: React.FC = () => {
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
+                <div>
+                  <label htmlFor="staff-dept" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Department</label>
+                  <Input
+                    id="staff-dept"
+                    value={staffForm.department}
+                    onChange={(e) => setStaffForm({ ...staffForm, department: e.target.value })}
+                    placeholder="e.g. Operations / Risk"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="staff-desig" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Designation</label>
+                  <Input
+                    id="staff-desig"
+                    value={staffForm.designation}
+                    onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })}
+                    placeholder="e.g. Senior Bank Officer"
+                    required
+                  />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-3)', marginTop: 'var(--spacing-4)' }}>
                 <Button variant="outline" type="button" onClick={() => setStaffModalOpen(false)}>Cancel</Button>
-                <Button variant="primary" type="submit" isLoading={isSubmitting}>Provision User</Button>
+                <Button variant="primary" type="submit" isLoading={isSubmitting}>
+                  {staffForm.role === 'SUPER_ADMIN'
+                    ? 'Provision Super Admin'
+                    : staffForm.role === 'ADMIN'
+                    ? 'Provision Branch Admin'
+                    : 'Provision Bank Officer'}
+                </Button>
               </div>
             </form>
           </Dialog.Content>

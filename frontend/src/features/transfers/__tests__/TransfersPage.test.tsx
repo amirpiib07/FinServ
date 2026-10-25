@@ -98,6 +98,22 @@ const mockDepositResponse: TransactionDto = {
   createdAt: '2026-10-17T10:00:00Z',
 };
 
+const mockTransferResponse: TransactionDto = {
+  ...mockDepositResponse,
+  id: 'tx-2',
+  transactionReference: 'FSV202610170002',
+  fromAccountId: 'acc-1',
+  fromAccountNumber: '10010100000018',
+  toAccountId: null,
+  toAccountNumber: '10010100000099',
+  transactionType: 'TRANSFER_EXTERNAL',
+  amount: '5000.00',
+  direction: 'DEBIT',
+  runningBalance: '45000.00',
+  status: 'COMPLETED',
+  transferMode: 'IMPS',
+};
+
 describe('TransfersPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -175,13 +191,13 @@ describe('TransfersPage Component', () => {
     await user.type(amountInput, '5000');
 
     // Click review button
-    const reviewBtn = screen.getByRole('button', { name: /Review & Authorize/i });
+    const reviewBtn = screen.getByRole('button', { name: /Review transfer/i });
     await user.click(reviewBtn);
 
     // Modal should appear
     await waitFor(() => {
       expect(screen.getByText(/Review Account Funding/i)).toBeInTheDocument();
-      expect(screen.getByText(/Fee: ₹0.00 Free/i)).toBeInTheDocument();
+      expect(screen.getByText(/Direct Deposit/i)).toBeInTheDocument();
     });
 
     // Confirm deposit
@@ -194,5 +210,63 @@ describe('TransfersPage Component', () => {
       expect(screen.getByText(/Account Funded Successfully!/i)).toBeInTheDocument();
       expect(screen.getByText(/FSV202610170001/i)).toBeInTheDocument();
     });
+  });
+
+  it('keeps the same idempotency key when retrying a failed submission', async () => {
+    const user = userEvent.setup();
+    vi.mocked(transferService.transfer)
+      .mockRejectedValueOnce(new Error('Temporary network failure'))
+      .mockResolvedValueOnce(mockTransferResponse);
+
+    renderComponent();
+
+    await screen.findByText('Priya Sharma');
+    await user.click(screen.getByRole('button', { name: /Priya Sharma/i }));
+    await user.type(screen.getByPlaceholderText('0.00'), '5000');
+    await user.click(screen.getByRole('button', { name: /Review transfer/i }));
+    await user.click(await screen.findByRole('button', { name: /Confirm & Transfer Money/i }));
+
+    expect(await screen.findAllByText('Temporary network failure')).not.toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: /Confirm & Transfer Money/i }));
+
+    await screen.findByText(/Payment Transfer Successful!/i);
+    const calls = vi.mocked(transferService.transfer).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.[1]).toBe(calls[0]?.[1]);
+  });
+
+  it('does not present a pending transfer as successful or offer another transfer', async () => {
+    const user = userEvent.setup();
+    vi.mocked(transferService.transfer).mockResolvedValue({
+      ...mockTransferResponse,
+      status: 'PENDING',
+    });
+
+    renderComponent();
+
+    await screen.findByText('Priya Sharma');
+    await user.click(screen.getByRole('button', { name: /Priya Sharma/i }));
+    await user.type(screen.getByPlaceholderText('0.00'), '5000');
+    await user.click(screen.getByRole('button', { name: /Review transfer/i }));
+    await user.click(await screen.findByRole('button', { name: /Confirm & Transfer Money/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Transfer pending' })).toBeInTheDocument();
+    expect(screen.queryByText(/Payment Transfer Successful!/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Start another transfer/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View transactions/i })).toBeInTheDocument();
+  });
+
+  it('shows a retry state instead of reporting empty accounts when data loading fails', async () => {
+    vi.mocked(beneficiaryService.getBeneficiaries)
+      .mockRejectedValueOnce(new Error('Payee service unavailable'));
+
+    renderComponent();
+
+    expect(await screen.findByText('Banking data could not be loaded')).toBeInTheDocument();
+    expect(screen.getByText('Payee service unavailable')).toBeInTheDocument();
+    expect(screen.queryByText('No verified payees found.')).not.toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /Try again/i }));
+    expect(await screen.findByText('Fund Transfers & Payments')).toBeInTheDocument();
   });
 });

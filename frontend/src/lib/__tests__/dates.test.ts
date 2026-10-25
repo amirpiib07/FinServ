@@ -1,6 +1,6 @@
 /**
  * Unit Tests for Date Formatting in Asia/Kolkata (IST = UTC+5:30)
- * Verifies day-boundary midnight rollover handling
+ * Verifies day-boundary midnight rollover handling and null/undefined resiliency
  */
 
 import { describe, it, expect } from 'vitest';
@@ -84,6 +84,34 @@ describe('Date Formatting Utilities (dates.ts)', () => {
       const now = new Date('2026-10-15T12:00:00Z');
       const past = new Date('2026-10-13T12:00:00Z'); // 2 days ago
       expect(formatRelativeIST(past, now)).toBe('2 days ago');
+    });
+  });
+
+  describe('Resilience Against Null, Undefined & Malformed Timestamps', () => {
+    it('gracefully handles undefined without throwing errors', () => {
+      expect(formatDateIST(undefined)).toBe('—');
+      expect(formatTimeIST(undefined)).toBe('—');
+      expect(formatDateTimeIST(undefined)).toBe('—');
+      expect(formatRelativeIST(undefined)).toBe('—');
+    });
+
+    it('gracefully handles null without throwing errors', () => {
+      expect(formatDateIST(null)).toBe('—');
+      expect(formatTimeIST(null)).toBe('—');
+      expect(formatDateTimeIST(null)).toBe('—');
+      expect(formatRelativeIST(null)).toBe('—');
+    });
+
+    it('gracefully handles empty strings or malformed date strings', () => {
+      expect(formatDateIST('')).toBe('—');
+      expect(formatTimeIST('invalid-date')).toBe('—');
+      expect(formatDateTimeIST('not-a-timestamp')).toBe('—');
+      expect(formatRelativeIST('random-string')).toBe('—');
+    });
+
+    it('allows custom fallback text', () => {
+      expect(formatDateIST(undefined, 'medium', 'N/A')).toBe('N/A');
+      expect(formatDateTimeIST(null, true, 'Pending')).toBe('Pending');
     });
   });
 });

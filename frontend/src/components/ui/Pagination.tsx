@@ -59,6 +59,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
         aria-label="Go to previous page"
+        title="Go to previous page"
       >
         <ChevronLeft size={16} aria-hidden="true" />
       </button>
@@ -92,6 +93,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
         aria-label="Go to next page"
+        title="Go to next page"
       >
         <ChevronRight size={16} aria-hidden="true" />
       </button>

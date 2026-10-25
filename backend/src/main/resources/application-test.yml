@@ -19,6 +19,8 @@ springdoc:
 finserv:
   security:
     encryption-key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  jwt:
+    secret: ${TEST_JWT_SECRET:finserv-test-only-jwt-key-not-for-production-1234}
 
 logging:
   level:

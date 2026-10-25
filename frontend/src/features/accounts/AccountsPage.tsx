@@ -11,12 +11,14 @@ import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { addMoney } from '@/lib/money';
 import {
   Plus,
   Wallet,
   Clock,
   Sparkles,
   ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -34,72 +36,54 @@ export const AccountsPage: React.FC = () => {
   const [directLoadedAccount, setDirectLoadedAccount] = useState<BankAccount | null>(null);
   const [closedRouteModal, setClosedRouteModal] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (!routeAccountId) return;
-    if (accounts.some((a) => a.id === routeAccountId)) return;
-    let active = true;
-    void accountService
-      .getAccountById(routeAccountId)
-      .then((acc) => {
-        if (active) setDirectLoadedAccount(acc);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [routeAccountId, accounts]);
-
   const activeDetailsAccount =
     selectedForDetails ||
     (!closedRouteModal && routeAccountId
-      ? accounts.find((a) => a.id === routeAccountId) || directLoadedAccount
+      ? accounts.find((a) => a.id === routeAccountId) ||
+        (directLoadedAccount?.id === routeAccountId ? directLoadedAccount : null)
       : null);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isActive: () => boolean = () => true) => {
+    setLoading(true);
+    setError(null);
     try {
       const [accs, apps] = await Promise.all([
         accountService.getMyAccounts(),
-        accountService.getMyApplications().catch(() => [] as AccountApplication[]),
+        accountService.getMyApplications(),
       ]);
+      if (!isActive()) return;
+      const directAccount =
+        routeAccountId && !accs.some((account) => account.id === routeAccountId)
+          ? await accountService.getAccountById(routeAccountId)
+          : null;
+      if (!isActive()) return;
       setAccounts(accs);
       setApplications(apps);
+      setDirectLoadedAccount(directAccount);
     } catch (err: unknown) {
+      if (!isActive()) return;
       const appErr = err as { userMessage?: string };
       setError(appErr.userMessage || 'Failed to load customer accounts.');
     } finally {
-      setLoading(false);
+      if (isActive()) setLoading(false);
     }
-  }, []);
+  }, [routeAccountId]);
 
   useEffect(() => {
     let mounted = true;
-    void (async () => {
-      try {
-        const [accs, apps] = await Promise.all([
-          accountService.getMyAccounts(),
-          accountService.getMyApplications().catch(() => [] as AccountApplication[]),
-        ]);
-        if (!mounted) return;
-        setAccounts(accs);
-        setApplications(apps);
-      } catch (err: unknown) {
-        if (!mounted) return;
-        const appErr = err as { userMessage?: string };
-        setError(appErr.userMessage || 'Failed to load customer accounts.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
+    void Promise.resolve().then(() => {
+      if (mounted) void loadData(() => mounted);
+    });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [loadData]);
 
   // Aggregate total balance
   const totalAvailable = accounts.reduce((acc, curr) => {
-    return acc + (Number(curr.availableBalance) || 0);
-  }, 0);
+    return addMoney(acc, String(curr.availableBalance));
+  }, '0.00');
 
   const pendingApps = applications.filter(
     (a) => a.applicationStatus === 'SUBMITTED' || a.applicationStatus === 'UNDER_REVIEW'
@@ -124,7 +108,7 @@ export const AccountsPage: React.FC = () => {
             Bank Accounts
           </h1>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-            Real-time deposit balances, ISO 7064 account numbers, and account controls.
+            View your account balances, account details, and available controls.
           </p>
         </div>
 
@@ -199,22 +183,6 @@ export const AccountsPage: React.FC = () => {
                 >
                   Consolidated Net Available Funds
                 </span>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '10px',
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'rgba(52, 211, 153, 0.15)',
-                    color: '#34D399',
-                    fontWeight: 600,
-                    border: '1px solid rgba(52, 211, 153, 0.25)',
-                  }}
-                >
-                  DICGC Insured (₹5 Lakh)
-                </span>
               </div>
 
               <div style={{ margin: 'var(--spacing-2) 0', color: '#FFFFFF', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
@@ -222,7 +190,7 @@ export const AccountsPage: React.FC = () => {
               </div>
 
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.7)' }}>
-                Across {accounts.length} active core-banking account(s) • Real-time ledger settlement
+                Across {accounts.length} account(s)
               </div>
             </div>
 
@@ -236,7 +204,7 @@ export const AccountsPage: React.FC = () => {
                 flexWrap: 'wrap',
               }}
             >
-              <Link to="/app/beneficiaries" style={{ textDecoration: 'none' }}>
+              <Link to="/app/transfers?tab=DEPOSIT" style={{ textDecoration: 'none' }}>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -244,12 +212,30 @@ export const AccountsPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    color: '#FFFFFF',
-                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    color: '#34D399',
+                    borderColor: 'rgba(52, 211, 153, 0.35)',
+                    fontWeight: 600,
                   }}
                 >
-                  Manage Beneficiaries <ArrowUpRight size={14} />
+                  <ArrowDownLeft size={14} /> Deposit Money
+                </Button>
+              </Link>
+              <Link to="/app/transfers?tab=WITHDRAW" style={{ textDecoration: 'none' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                    color: '#FBBF24',
+                    borderColor: 'rgba(251, 191, 36, 0.35)',
+                    fontWeight: 600,
+                  }}
+                >
+                  <ArrowUpRight size={14} /> Withdraw Cash
                 </Button>
               </Link>
               <Link to="/app/transfers" style={{ textDecoration: 'none' }}>
@@ -266,6 +252,22 @@ export const AccountsPage: React.FC = () => {
                   }}
                 >
                   Quick Transfer <ArrowUpRight size={14} />
+                </Button>
+              </Link>
+              <Link to="/app/beneficiaries" style={{ textDecoration: 'none' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    color: '#FFFFFF',
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  Manage Beneficiaries <ArrowUpRight size={14} />
                 </Button>
               </Link>
             </div>

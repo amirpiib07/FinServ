@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { TransactionsPage } from '../TransactionsPage';
 import { transferService } from '@/features/transfers/services/transferService';
 import { accountService } from '@/features/accounts/accountService';
+import { ToastProvider } from '@/context/ToastProvider';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 import type { BankAccount } from '@/types/account';
 import type {
   TransactionDto,
@@ -128,9 +130,12 @@ describe('TransactionsPage (Passbook & Statements)', () => {
 
   const renderComponent = () =>
     render(
-      <MemoryRouter>
-        <TransactionsPage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <TransactionsPage />
+        </MemoryRouter>
+        <ToastContainer />
+      </ToastProvider>
     );
 
   it('renders Passbook header and KPI summary cards', async () => {
@@ -177,6 +182,42 @@ describe('TransactionsPage (Passbook & Statements)', () => {
       expect(transferService.getTransactionReceipt).toHaveBeenCalledWith('tx-1');
       expect(screen.getByText(/Official Electronic Transaction Advice/i)).toBeInTheDocument();
       expect(screen.getByText(/Print \/ Save PDF/i)).toBeInTheDocument();
+    });
+  });
+
+  it('does not show a fallback receipt when the official receipt request fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(transferService.getTransactionReceipt).mockRejectedValueOnce(
+      new Error('Official receipt is unavailable.')
+    );
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Self Cash Deposit/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByTitle(/View Official Receipt/i)[0]!);
+
+    expect(await screen.findByText('Official receipt is unavailable.')).toBeInTheDocument();
+    expect(screen.queryByText(/Official Electronic Transaction Advice/i)).not.toBeInTheDocument();
+  });
+
+  it('applies draft search filters with one request instead of fetching for each keystroke', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    await waitFor(() => {
+      expect(transferService.getTransactions).toHaveBeenCalledTimes(1);
+    });
+    await user.type(screen.getByLabelText(/Search Narration \/ UTR/i), 'rent');
+    expect(transferService.getTransactions).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => {
+      expect(transferService.getTransactions).toHaveBeenCalledTimes(2);
+    });
+    expect(vi.mocked(transferService.getTransactions).mock.calls[1]?.[0]).toMatchObject({
+      query: 'rent',
+      page: 0,
     });
   });
 });

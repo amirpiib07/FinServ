@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { cardService } from './cardService';
 import type { VirtualCard, UpdateCardControlsRequest } from '@/types/card';
 import { formatINR } from '@/lib/money';
@@ -17,10 +17,6 @@ import {
   Wifi,
   ShoppingBag,
   Sliders,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
@@ -33,12 +29,10 @@ export const CardsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Card reveal state
-  const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
-
   // Spend limit editing state
-  const [dailyLimit, setDailyLimit] = useState<number>(50000);
+  const [dailyLimit, setDailyLimit] = useState<number>(0);
+  const selectedCardIdRef = useRef('');
+  const mountedRef = useRef(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -46,79 +40,55 @@ export const CardsPage: React.FC = () => {
   };
 
   const loadCards = useCallback(async () => {
+    setLoading(true);
     try {
       setError(null);
       const res = await cardService.getCustomerCards();
+      if (!mountedRef.current) return;
       setCards(res);
-      if (res.length > 0 && res[0]) {
-        const firstCard = res[0];
-        // If nothing selected or selected not in list, default to first
-        if (!selectedCardId || !res.some((c) => c.id === selectedCardId)) {
-          setSelectedCardId(firstCard.id);
-          setDailyLimit(Number(firstCard.dailySpendLimit || 50000));
-        } else {
-          const current = res.find((c) => c.id === selectedCardId);
-          if (current) {
-            setDailyLimit(Number(current.dailySpendLimit || 50000));
-          }
-        }
-      }
+      const selectedCard =
+        res.find((card) => card.id === selectedCardIdRef.current) ?? res[0];
+      selectedCardIdRef.current = selectedCard?.id ?? '';
+      setSelectedCardId(selectedCard?.id ?? '');
+      setDailyLimit(selectedCard ? Number(selectedCard.dailySpendLimit) : 0);
     } catch (err: unknown) {
+      if (!mountedRef.current) return;
       const msg = err instanceof Error ? err.message : 'Unable to load virtual cards.';
       setError(msg);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [selectedCardId]);
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    void (async () => {
-      try {
-        const res = await cardService.getCustomerCards();
-        if (!mounted) return;
-        setCards(res);
-        if (res.length > 0 && res[0]) {
-          const firstCard = res[0];
-          if (!selectedCardId || !res.some((c) => c.id === selectedCardId)) {
-            setSelectedCardId(firstCard.id);
-            setDailyLimit(Number(firstCard.dailySpendLimit || 50000));
-          } else {
-            const current = res.find((c) => c.id === selectedCardId);
-            if (current) {
-              setDailyLimit(Number(current.dailySpendLimit || 50000));
-            }
-          }
-        }
-      } catch (err: unknown) {
-        if (!mounted) return;
-        const msg = err instanceof Error ? err.message : 'Unable to load virtual cards.';
-        setError(msg);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    })();
+    mountedRef.current = true;
+    const timeoutId = window.setTimeout(() => void loadCards(), 0);
     return () => {
-      mounted = false;
+      mountedRef.current = false;
+      window.clearTimeout(timeoutId);
     };
-  }, [selectedCardId]);
+  }, [loadCards]);
 
   const activeCard = cards.find((c) => c.id === selectedCardId) || cards[0];
 
   const handleUpdateControls = async (req: UpdateCardControlsRequest, successText: string) => {
     if (!activeCard) return;
     try {
+      setError(null);
       setSavingControls(true);
       const updated = await cardService.updateCardControls(activeCard.id, req);
+      if (!mountedRef.current) return;
       setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      if (updated.id === selectedCardIdRef.current) {
+        setDailyLimit(Number(updated.dailySpendLimit));
+      }
       showToast(successText);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update card security settings.';
-      showToast(msg);
+      if (!mountedRef.current) return;
+      const msg = err instanceof Error ? err.message : 'Failed to update card profile settings.';
+      setError(msg);
     } finally {
-      setSavingControls(false);
+      if (mountedRef.current) setSavingControls(false);
     }
   };
 
@@ -127,22 +97,19 @@ export const CardsPage: React.FC = () => {
     const newStatus = activeCard.status === 'ACTIVE' ? 'FROZEN' : 'ACTIVE';
     void handleUpdateControls(
       { status: newStatus },
-      newStatus === 'FROZEN' ? 'Card frozen instantly. All transactions blocked.' : 'Card unfrozen and activated successfully.'
+      newStatus === 'FROZEN' ? 'Card profile marked frozen.' : 'Card profile marked active.'
     );
-  };
-
-  const handleCopyCard = () => {
-    if (!activeCard) return;
-    void navigator.clipboard.writeText(activeCard.cardNumberMasked);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSaveLimit = () => {
     if (!activeCard) return;
+    if (!Number.isFinite(dailyLimit) || dailyLimit < 0) {
+      setError('Profile limit must be a valid non-negative amount.');
+      return;
+    }
     void handleUpdateControls(
       { dailySpendLimit: dailyLimit },
-      `Daily spend limit updated to ${formatINR(dailyLimit)}.`
+      `Profile limit saved as ${formatINR(dailyLimit)}.`
     );
   };
 
@@ -153,6 +120,8 @@ export const CardsPage: React.FC = () => {
       {/* Toast Notification */}
       {toastMessage && (
         <div
+          role="status"
+          aria-live="polite"
           style={{
             position: 'fixed',
             top: '24px',
@@ -190,17 +159,17 @@ export const CardsPage: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-1)' }}>
             <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Virtual Debit Cards & Controls
+              Virtual Card Profiles
             </h1>
-            <Badge variant="success">Visa Platinum</Badge>
+            <Badge variant="neutral">Profile preview</Badge>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-            Instant tokenized debit cards with real-time kill-switch freeze, spend limits, and channel security.
+            Review persisted card-profile settings. No external payment processor is connected to apply them.
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
-          <Button variant="outline" size="sm" onClick={() => void loadCards()}>
+          <Button variant="outline" size="sm" onClick={() => void loadCards()} isLoading={loading} disabled={loading}>
             <RefreshCw size={14} style={{ marginRight: '6px' }} /> Refresh
           </Button>
         </div>
@@ -208,6 +177,7 @@ export const CardsPage: React.FC = () => {
 
       {error && (
         <div
+          role="alert"
           style={{
             background: 'var(--danger-subtle)',
             color: 'var(--danger)',
@@ -227,8 +197,8 @@ export const CardsPage: React.FC = () => {
         </div>
       ) : cards.length === 0 || !activeCard ? (
         <EmptyState
-          title="No Active Accounts Available"
-          description="Open and fund an active bank account in the Accounts portal to automatically receive your complimentary Platinum Virtual Card."
+          title="No card profiles available"
+          description="Card profiles are associated with eligible active accounts. Complete account setup or contact support if you expected a profile."
         />
       ) : (
         <div>
@@ -242,8 +212,9 @@ export const CardsPage: React.FC = () => {
                     key={card.id}
                     type="button"
                     onClick={() => {
+                      selectedCardIdRef.current = card.id;
                       setSelectedCardId(card.id);
-                      setDailyLimit(Number(card.dailySpendLimit || 50000));
+                      setDailyLimit(Number(card.dailySpendLimit));
                     }}
                     style={{
                       padding: '8px 16px',
@@ -261,7 +232,7 @@ export const CardsPage: React.FC = () => {
                     }}
                   >
                     <CreditCard size={14} />
-                    <span>Ending in {card.cardNumberLast4}</span>
+                    <span>Account ending in {card.accountNumber.slice(-4)}</span>
                     <Badge variant={card.status === 'ACTIVE' ? 'success' : 'danger'}>
                       {card.status}
                     </Badge>
@@ -275,7 +246,7 @@ export const CardsPage: React.FC = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))',
               gap: 'var(--spacing-8)',
               alignItems: 'start',
             }}
@@ -340,10 +311,10 @@ export const CardsPage: React.FC = () => {
                   >
                     <Lock size={36} />
                     <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      Card Temporarily Frozen
+                      Profile Marked Frozen
                     </span>
                     <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)' }}>
-                      All transactions & authorizations blocked
+                      External payment processing is not controlled here.
                     </span>
                   </div>
                 )}
@@ -355,7 +326,7 @@ export const CardsPage: React.FC = () => {
                       FINSERV
                     </span>
                     <span style={{ fontSize: '9px', display: 'block', color: 'var(--brand-accent)', letterSpacing: '0.18em', fontWeight: 700 }}>
-                      PLATINUM DEBIT
+                      VIRTUAL CARD PROFILE
                     </span>
                   </div>
 
@@ -380,11 +351,11 @@ export const CardsPage: React.FC = () => {
                   </svg>
 
                   <span style={{ fontSize: '11px', letterSpacing: '0.05em', color: 'rgba(255, 255, 255, 0.6)' }}>
-                    Acc: {activeCard.accountNumber}
+                    Account ending in {activeCard.accountNumber.slice(-4)}
                   </span>
                 </div>
 
-                {/* Card Number Row */}
+                {/* The application stores no usable card credentials. */}
                 <div style={{ zIndex: 1 }}>
                   <div
                     style={{
@@ -397,10 +368,10 @@ export const CardsPage: React.FC = () => {
                       marginBottom: '8px',
                     }}
                   >
-                    {showDetails ? activeCard.cardNumberMasked : activeCard.cardNumberMasked}
+                    FINServ profile preview
                   </div>
 
-                  {/* Bottom Row: Cardholder + Expiry + Visa */}
+                  {/* Bottom Row: Profile holder + stored expiry */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
                       <span style={{ fontSize: '8px', color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -413,16 +384,15 @@ export const CardsPage: React.FC = () => {
 
                     <div>
                       <span style={{ fontSize: '8px', color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        Valid Thru
+                        Profile Expiry
                       </span>
                       <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em' }}>
                         {String(activeCard.expiryMonth).padStart(2, '0')}/{String(activeCard.expiryYear).slice(-2)}
                       </div>
                     </div>
 
-                    {/* Visa Logo Text */}
                     <div style={{ fontStyle: 'italic', fontWeight: 900, fontSize: '18px', letterSpacing: '0.05em' }}>
-                      VISA
+                      FINServ
                     </div>
                   </div>
                 </div>
@@ -431,31 +401,13 @@ export const CardsPage: React.FC = () => {
               {/* Action Buttons under card */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--spacing-3)', maxWidth: '440px', margin: '0 auto' }}>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDetails(!showDetails)}
-                >
-                  {showDetails ? <EyeOff size={14} style={{ marginRight: '6px' }} /> : <Eye size={14} style={{ marginRight: '6px' }} />}
-                  {showDetails ? 'Hide Details' : 'Reveal Mask'}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyCard}
-                >
-                  {copied ? <Check size={14} style={{ marginRight: '6px', color: 'var(--color-emerald-500)' }} /> : <Copy size={14} style={{ marginRight: '6px' }} />}
-                  {copied ? 'Copied' : 'Copy Number'}
-                </Button>
-
-                <Button
                   variant={isFrozen ? 'primary' : 'danger'}
                   size="sm"
                   onClick={toggleFreeze}
                   disabled={savingControls}
                 >
                   {isFrozen ? <Unlock size={14} style={{ marginRight: '6px' }} /> : <Lock size={14} style={{ marginRight: '6px' }} />}
-                  {isFrozen ? 'Unfreeze Card' : 'Freeze Card'}
+                  {isFrozen ? 'Mark Profile Active' : 'Mark Profile Frozen'}
                 </Button>
               </div>
             </div>
@@ -467,10 +419,10 @@ export const CardsPage: React.FC = () => {
                   <Shield size={20} color="var(--brand-primary)" />
                   <div>
                     <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                      Security & Channel Controls
+                      Saved Profile Settings
                     </h2>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Manage real-time limits and transaction channels
+                      These settings are stored in FinServ but are not applied to external payment processing.
                     </span>
                   </div>
                 </div>
@@ -490,16 +442,17 @@ export const CardsPage: React.FC = () => {
                 >
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)' }}>
-                      {isFrozen ? 'Card Is Locked (Frozen)' : 'Instant Card Freeze'}
+                      {isFrozen ? 'Profile status: Frozen' : 'Profile status: Active'}
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Immediately block all merchant point-of-sale, online, and contactless charges.
+                      This status does not block payments processed by an external card network.
                     </span>
                   </div>
                   <Switch
                     checked={isFrozen}
                     onCheckedChange={toggleFreeze}
                     disabled={savingControls}
+                    aria-label={isFrozen ? 'Mark card profile active' : 'Mark card profile frozen'}
                   />
                 </div>
 
@@ -524,19 +477,20 @@ export const CardsPage: React.FC = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          Online & E-Commerce
+                          Online transactions setting
                         </div>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          Enable web purchases on Amazon, Flipkart, Netflix, etc.
+                          Stored on this profile; not enforced against transactions.
                         </span>
                       </div>
                     </div>
                     <Switch
                       checked={activeCard.onlineTransactionsEnabled}
+                      aria-label="Online transactions setting"
                       onCheckedChange={(val) =>
                         void handleUpdateControls(
                           { onlineTransactionsEnabled: val },
-                          `Online transactions ${val ? 'enabled' : 'disabled'}.`
+                          'Online profile setting saved.'
                         )
                       }
                       disabled={isFrozen || savingControls}
@@ -562,19 +516,20 @@ export const CardsPage: React.FC = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          Tap & Pay Contactless
+                          Contactless setting
                         </div>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          NFC point-of-sale tap up to ₹5,000 without PIN.
+                          Stored on this profile; not enforced against transactions.
                         </span>
                       </div>
                     </div>
                     <Switch
                       checked={activeCard.contactlessEnabled}
+                      aria-label="Contactless setting"
                       onCheckedChange={(val) =>
                         void handleUpdateControls(
                           { contactlessEnabled: val },
-                          `Contactless payments ${val ? 'enabled' : 'disabled'}.`
+                          'Contactless profile setting saved.'
                         )
                       }
                       disabled={isFrozen || savingControls}
@@ -600,19 +555,20 @@ export const CardsPage: React.FC = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          International Usage
+                          International usage setting
                         </div>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          Cross-border foreign currency merchant authorizations.
+                          Stored on this profile; not enforced against transactions.
                         </span>
                       </div>
                     </div>
                     <Switch
                       checked={activeCard.internationalEnabled}
+                      aria-label="International usage setting"
                       onCheckedChange={(val) =>
                         void handleUpdateControls(
                           { internationalEnabled: val },
-                          `International usage ${val ? 'enabled' : 'disabled'}.`
+                          'International profile setting saved.'
                         )
                       }
                       disabled={isFrozen || savingControls}
@@ -630,8 +586,8 @@ export const CardsPage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
                       <Sliders size={16} color="var(--brand-primary)" />
-                      <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Daily Spend Limit
+                      <label htmlFor="daily-profile-limit" style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Daily Profile Limit
                       </label>
                     </div>
                     <span style={{ fontSize: 'var(--font-size-md)', fontWeight: 800, color: 'var(--brand-primary)' }}>
@@ -640,17 +596,20 @@ export const CardsPage: React.FC = () => {
                   </div>
 
                   <input
-                    type="range"
-                    min="5000"
-                    max="500000"
-                    step="5000"
+                    id="daily-profile-limit"
+                    type="number"
+                    min="0"
+                    step="0.01"
                     value={dailyLimit}
                     onChange={(e) => setDailyLimit(Number(e.target.value))}
                     disabled={isFrozen || savingControls}
                     style={{
                       width: '100%',
-                      accentColor: 'var(--brand-primary)',
-                      cursor: isFrozen ? 'not-allowed' : 'pointer',
+                      padding: 'var(--spacing-3)',
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-lg)',
+                      background: 'var(--surface-card)',
+                      color: 'var(--text-primary)',
                       marginBottom: 'var(--spacing-4)',
                     }}
                   />
@@ -660,14 +619,20 @@ export const CardsPage: React.FC = () => {
                         variant="primary"
                         size="sm"
                         onClick={handleSaveLimit}
-                        disabled={isFrozen || savingControls || dailyLimit === Number(activeCard.dailySpendLimit)}
+                        disabled={
+                          isFrozen ||
+                          savingControls ||
+                          !Number.isFinite(dailyLimit) ||
+                          dailyLimit < 0 ||
+                          dailyLimit === Number(activeCard.dailySpendLimit)
+                        }
                       >
                         {savingControls ? (
                           <>
                             <Spinner size={14} style={{ marginRight: '6px' }} /> Saving...
                           </>
                         ) : (
-                          'Save Daily Limit'
+                          'Save Profile Limit'
                         )}
                       </Button>
                     </div>

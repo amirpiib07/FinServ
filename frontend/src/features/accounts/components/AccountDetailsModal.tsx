@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { BankAccount } from '@/types/account';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,9 @@ import {
   Building,
   ShieldCheck,
   Calendar,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface AccountDetailsModalProps {
@@ -24,6 +28,7 @@ export const AccountDetailsModal: React.FC<AccountDetailsModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const [copiedAcc, setCopiedAcc] = useState(false);
   const [copiedIfsc, setCopiedIfsc] = useState(false);
   const toast = useToast();
@@ -122,17 +127,19 @@ export const AccountDetailsModal: React.FC<AccountDetailsModalProps> = ({
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
               <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)' }}>
-                {account.ifscCode || 'FINS0001001'}
+                {account.ifscCode || '—'}
               </span>
-              <button
-                type="button"
-                onClick={handleCopyIfsc}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: copiedIfsc ? 'var(--color-success-400)' : 'var(--text-tertiary)', padding: '2px' }}
-                title="Copy IFSC"
-                aria-label="Copy IFSC"
-              >
-                {copiedIfsc ? <Check size={14} /> : <Copy size={14} />}
-              </button>
+              {account.ifscCode && (
+                <button
+                  type="button"
+                  onClick={handleCopyIfsc}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: copiedIfsc ? 'var(--color-success-400)' : 'var(--text-tertiary)', padding: '2px' }}
+                  title="Copy IFSC"
+                  aria-label="Copy IFSC"
+                >
+                  {copiedIfsc ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              )}
             </div>
             <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', display: 'block', marginTop: '4px' }}>
               RTGS / NEFT / IMPS Enabled
@@ -201,8 +208,63 @@ export const AccountDetailsModal: React.FC<AccountDetailsModalProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-2)' }}>
-          <Button variant="secondary" onClick={onClose}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-3)', paddingTop: 'var(--spacing-3)', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
+          <div style={{ display: 'flex', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate(`/app/transfers?tab=DEPOSIT&accountId=${account.id}`);
+              }}
+              style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                color: '#10B981',
+                borderColor: 'rgba(16, 185, 129, 0.3)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <ArrowDownLeft size={14} /> Deposit Funds
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate(`/app/transfers?tab=WITHDRAW&accountId=${account.id}`);
+              }}
+              style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                color: '#F59E0B',
+                borderColor: 'rgba(245, 158, 11, 0.3)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <ArrowUpRight size={14} /> Withdraw Cash
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate(`/app/transfers?tab=BENEFICIARY&accountId=${account.id}`);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <ArrowLeftRight size={14} /> Transfer
+            </Button>
+          </div>
+          <Button variant="outline" onClick={onClose}>
             Close
           </Button>
         </div>

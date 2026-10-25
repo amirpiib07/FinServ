@@ -100,15 +100,21 @@ FINSERV/
 
    DB_URL=jdbc:mysql://localhost:3306/finserv_db?useSSL=false&serverTimezone=UTC&connectionTimeZone=UTC&allowPublicKeyRetrieval=true
    DB_MIGRATION_USERNAME=finserv_migration
-   DB_MIGRATION_PASSWORD=<your_migration_password>
+   DB_MIGRATION_PASSWORD=
    DB_USERNAME=finserv_app
-   DB_PASSWORD=<your_app_password>
+   DB_PASSWORD=
 
-   APP_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+   APP_ENCRYPTION_KEY=
    ADMIN_USERNAME=superadmin
-   ADMIN_PASSWORD=<your_admin_password>
+   ADMIN_PASSWORD=
    ADMIN_EMAIL=admin@finserv.local
+   JWT_SECRET=
+   DEMO_SUPER_ADMIN_PASSWORD=
+   DEMO_OFFICER_PASSWORD=
    ```
+
+   `JWT_SECRET` is required; the backend fails startup if it is missing or shorter than 32 UTF-8 bytes. Do not use example credentials or a shared JWT secret outside local development.
+   Configure `APP_ENCRYPTION_KEY` with a local 256-bit key and keep the same key when reading data encrypted with it. Existing local data encrypted while the earlier development fallback was active requires that same prior key; do not rotate it without a data migration plan. Set the `DEMO_*_PASSWORD` values only when enabling the optional local demo profile.
 
 ---
 
@@ -136,7 +142,7 @@ FINSERV/
    cd backend
    mvn spring-boot:run
    ```
-   Flyway will automatically apply ordered migrations `V1_1` through `V1_8` and seed reference data `V2` against `finserv_db`.
+   Flyway will automatically apply the ordered migrations through `V6` and seed reference data `V2` against `finserv_db`.
    Hibernate validates the schema against the JPA entity definitions (`spring.jpa.hibernate.ddl-auto=validate`).
 
 4. **Verify Health & API Documentation**:
@@ -157,23 +163,23 @@ FINSERV/
 
 2. **Run Lint, Type-Check & Unit/A11y Tests**:
    ```bash
-   npm run lint        # ESLint 9 checks (0 errors, 0 warnings)
+   npm run lint
    npm run typecheck   # TypeScript strict checks (noUncheckedIndexedAccess)
-   npm test            # 122 Vitest unit, component, and accessibility tests
+   npm test            # Vitest unit, component, and accessibility tests
    ```
 
 3. **Start Frontend Dev Server**:
    ```bash
    npm run dev
    ```
-   - Authentication & 3-Tier Demo Access: `http://localhost:5173/login`
+   - Authentication & local staff shortcuts: `http://localhost:5173/login`
    - Customer Executive Home Dashboard: `http://localhost:5173/app/dashboard`
    - Accounts Directory & Opening: `http://localhost:5173/app/accounts`
    - Transfer Studio & Direct Deposit: `http://localhost:5173/app/transfers`
    - Beneficiary Management: `http://localhost:5173/app/beneficiaries`
    - Digital Passbook & Statements: `http://localhost:5173/app/statements`
-   - Fixed Deposits (Calculator, Instant Booking, Portfolio): `http://localhost:5173/app/deposits`
-   - Platinum Virtual Debit Card Controls: `http://localhost:5173/app/cards`
+   - Fixed Deposits (Calculator and booking): `http://localhost:5173/app/deposits`
+   - Virtual Card Profiles: `http://localhost:5173/app/cards`
    - Admin Operations Command Center: `http://localhost:5173/admin/dashboard`
    - Admin KYC Review Workbench: `http://localhost:5173/admin/kyc`
    - Admin Accounts & Freeze Control: `http://localhost:5173/admin/accounts`
@@ -181,13 +187,16 @@ FINSERV/
    - Super Admin GL Trial Balance & SHA-256 Audit Trail: `http://localhost:5173/admin/audit-ledger`
    - Living Design System: `http://localhost:5173/design-system` (Dev-only, live Actuator probe)
 
-4. **Instant 3-Tier Demo Credentials**:
+4. **Optional Local Demo Personas**:
 
-   | Role | Username | Password | Default Landing | Capabilities |
-   | :--- | :--- | :--- | :--- | :--- |
-   | **Verified Customer** | `alex.kumar` | `AlexSecureP@ss1!` | `/app/dashboard` | Net worth banner, 3D metallic card, cashflow bar, transfers, deposits, Fixed Deposits, Virtual Card controls, e-statements |
-   | **Bank Officer / Admin** | `officer.mumbai` | `OfficerSecureP@ss1!` | `/admin/dashboard` | Operational KPIs, KYC review queue (approve/reject), account approvals, account freeze/unfreeze |
-   | **Super Admin** | `amit.kumar.singh` | `AdminMasterP@ss1!` | `/admin/dashboard` | All Bank Officer features + Branch creation (IFSC), Staff/Admin user provisioning, GL Trial Balance equality, SHA-256 Audit Log explorer |
+   Demo identities are provisioned only when running with both `dev` and `demo` profiles (`SPRING_PROFILES_ACTIVE=dev,demo`). The runner creates missing staff identities and synchronizes the passwords and roles of only the two named demo staff users from `DEMO_SUPER_ADMIN_PASSWORD` and `DEMO_OFFICER_PASSWORD` at startup. It does not change other users or create accounts with fabricated balances. Never enable it against shared or production data. Vite development controls fill usernames only; passwords remain in the ignored backend environment file and must be entered manually.
+
+   | Role | Local demo username | Default Landing |
+   | :--- | :--- | :--- |
+   | **Bank Officer / Admin** | `officer.mumbai` | `/admin/dashboard` |
+   | **Super Admin** | `amit.kumar.singh` | `/admin/dashboard` |
+
+   The demo runner does not create a customer profile, bank account, or balance. Register a customer through the normal UI flow to exercise customer onboarding; use only an isolated local database for evaluation. Only the exact demo staff usernames above are synchronized; other existing demo identities and customer data remain untouched.
 
 5. **Production Build**:
    ```bash

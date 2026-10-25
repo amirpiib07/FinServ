@@ -8,7 +8,7 @@
  * - Executive luxury fintech aesthetics with Light and Obsidian Dark mode
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { startTransition, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowDownLeft,
@@ -38,13 +38,45 @@ import type {
 } from '@/features/transfers/types/transferTypes';
 import type { BankAccount } from '@/types/account';
 import { TransactionReceiptModal } from './components/TransactionReceiptModal';
+import { useToast } from '@/hooks/useToast';
+import { parseAmount } from '@/lib/money';
+
+interface TransactionFilters {
+  accountId: string;
+  type: string;
+  query: string;
+  startDate: string;
+  endDate: string;
+}
+
+function readFilters(params: URLSearchParams): TransactionFilters {
+  return {
+    accountId: params.get('accountId') || '',
+    type: params.get('type') || 'ALL',
+    query: params.get('query') || '',
+    startDate: params.get('startDate') || '',
+    endDate: params.get('endDate') || '',
+  };
+}
+
+function sameFilters(left: TransactionFilters, right: TransactionFilters): boolean {
+  return (
+    left.accountId === right.accountId &&
+    left.type === right.type &&
+    left.query === right.query &&
+    left.startDate === right.startDate &&
+    left.endDate === right.endDate
+  );
+}
 
 export const TransactionsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const toast = useToast();
 
   // Accounts state
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
 
   // Transactions state
   const [transactions, setTransactions] = useState<TransactionDto[]>([]);
@@ -64,13 +96,12 @@ export const TransactionsPage: React.FC = () => {
   const pageSize = 15;
 
   // Filter state
-  const [selectedAccount, setSelectedAccount] = useState<string>(
-    searchParams.get('accountId') || ''
-  );
-  const [filterType, setFilterType] = useState<string>(searchParams.get('type') || 'ALL');
-  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('query') || '');
-  const [startDate, setStartDate] = useState<string>(searchParams.get('startDate') || '');
-  const [endDate, setEndDate] = useState<string>(searchParams.get('endDate') || '');
+  const [selectedAccount, setSelectedAccount] = useState<string>(() => searchParams.get('accountId') || '');
+  const [filterType, setFilterType] = useState<string>(() => searchParams.get('type') || 'ALL');
+  const [searchQuery, setSearchQuery] = useState<string>(() => searchParams.get('query') || '');
+  const [startDate, setStartDate] = useState<string>(() => searchParams.get('startDate') || '');
+  const [endDate, setEndDate] = useState<string>(() => searchParams.get('endDate') || '');
+  const [appliedFilters, setAppliedFilters] = useState<TransactionFilters>(() => readFilters(searchParams));
 
   // Receipt Modal state
   const [selectedReceipt, setSelectedReceipt] = useState<TransactionReceiptDto | null>(null);
@@ -82,9 +113,17 @@ export const TransactionsPage: React.FC = () => {
     async function loadAccounts() {
       try {
         const data = await accountService.getMyAccounts();
-        if (mounted) setAccounts(data);
+        if (mounted) {
+          setAccounts(data);
+          setAccountsError(null);
+        }
       } catch (err) {
-        console.error('Failed to load accounts for filter:', err);
+        if (!mounted) return;
+        const appError = err as { userMessage?: string };
+        setAccountsError(
+          appError.userMessage ||
+            (err instanceof Error ? err.message : 'Account filters could not be loaded.')
+        );
       }
     }
     loadAccounts();
@@ -94,25 +133,29 @@ export const TransactionsPage: React.FC = () => {
   }, []);
 
   // Standalone pagination & refresh fetcher
-  const fetchTransactions = async (pageToLoad = 0) => {
+  const requestSequence = useRef(0);
+
+  const fetchTransactions = useCallback(async (pageToLoad = 0, filters = appliedFilters) => {
+    const requestId = ++requestSequence.current;
     try {
       setLoading(true);
       setError(null);
 
       const params: TransactionFilterParams = {
-        accountId: selectedAccount || undefined,
-        type: filterType !== 'ALL' ? filterType : undefined,
-        query: searchQuery.trim() || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        accountId: filters.accountId || undefined,
+        type: filters.type !== 'ALL' ? filters.type : undefined,
+        query: filters.query.trim() || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
         page: pageToLoad,
         size: pageSize,
       };
 
-      const response = selectedAccount
-        ? await transferService.getAccountTransactions(selectedAccount, params)
+      const response = params.accountId
+        ? await transferService.getAccountTransactions(params.accountId, params)
         : await transferService.getTransactions(params);
 
+      if (requestId !== requestSequence.current) return;
       setTransactions(response.items || []);
       if (response.summary) {
         setSummary(response.summary);
@@ -121,63 +164,39 @@ export const TransactionsPage: React.FC = () => {
       setTotalPages(response.totalPages || 1);
       setTotalElements(response.totalElements || 0);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Unable to retrieve transaction statements. Please try again.';
-      setError(errorMsg);
+      if (requestId !== requestSequence.current) return;
+      const appError = err as { userMessage?: string };
+      setError(
+        appError.userMessage ||
+          (err instanceof Error ? err.message : 'Unable to retrieve transaction statements. Please try again.')
+      );
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
-  };
+  }, [appliedFilters]);
 
   useEffect(() => {
-    let ignore = false;
-    async function loadInitial() {
-      try {
-        const params: TransactionFilterParams = {
-          accountId: selectedAccount || undefined,
-          type: filterType !== 'ALL' ? filterType : undefined,
-          query: searchQuery.trim() || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          page: 0,
-          size: pageSize,
-        };
-
-        const response = selectedAccount
-          ? await transferService.getAccountTransactions(selectedAccount, params)
-          : await transferService.getTransactions(params);
-
-        if (!ignore) {
-          setTransactions(response.items || []);
-          if (response.summary) {
-            setSummary(response.summary);
-          }
-          setCurrentPage(response.page || 0);
-          setTotalPages(response.totalPages || 1);
-          setTotalElements(response.totalElements || 0);
-        }
-      } catch (err) {
-        if (!ignore) {
-          const errorMsg =
-            err instanceof Error
-              ? err.message
-              : 'Unable to retrieve transaction statements. Please try again.';
-          setError(errorMsg);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadInitial();
+    let mounted = true;
+    void Promise.resolve().then(() => {
+      if (mounted) void fetchTransactions(0);
+    });
     return () => {
-      ignore = true;
+      mounted = false;
+      requestSequence.current += 1;
     };
-  }, [selectedAccount, filterType, searchQuery, startDate, endDate]);
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    const nextFilters = readFilters(searchParams);
+    startTransition(() => {
+      setSelectedAccount(nextFilters.accountId);
+      setFilterType(nextFilters.type);
+      setSearchQuery(nextFilters.query);
+      setStartDate(nextFilters.startDate);
+      setEndDate(nextFilters.endDate);
+      setAppliedFilters((current) => sameFilters(current, nextFilters) ? current : nextFilters);
+    });
+  }, [searchParams]);
 
   // Open Receipt Modal
   const handleViewReceipt = async (transaction: TransactionDto) => {
@@ -185,28 +204,12 @@ export const TransactionsPage: React.FC = () => {
       const receiptData = await transferService.getTransactionReceipt(transaction.id);
       setSelectedReceipt(receiptData);
       setIsReceiptModalOpen(true);
-    } catch {
-      // Fallback: build receipt from transaction DTO
-      setSelectedReceipt({
-        id: transaction.id,
-        transactionReference: transaction.transactionReference,
-        status: transaction.status,
-        transactionType: transaction.transactionType,
-        transferMode: transaction.transferMode,
-        amount: transaction.amount,
-        feeAmount: transaction.feeAmount,
-        currency: transaction.currency,
-        fromAccountId: transaction.fromAccountId,
-        fromAccountNumber: transaction.fromAccountNumber,
-        toAccountId: transaction.toAccountId,
-        toAccountNumber: transaction.toAccountNumber,
-        counterpartyName: transaction.counterpartyName,
-        runningBalance: transaction.runningBalance,
-        description: transaction.description,
-        channel: transaction.channel,
-        createdAt: transaction.createdAt,
-      } as TransactionReceiptDto);
-      setIsReceiptModalOpen(true);
+    } catch (err) {
+      const appError = err as { userMessage?: string };
+      toast.error(
+        appError.userMessage ||
+          (err instanceof Error ? err.message : 'Unable to load the official transaction receipt.')
+      );
     }
   };
 
@@ -216,6 +219,7 @@ export const TransactionsPage: React.FC = () => {
     setSearchQuery('');
     setStartDate('');
     setEndDate('');
+    setAppliedFilters({ accountId: '', type: 'ALL', query: '', startDate: '', endDate: '' });
     setSearchParams({});
   };
 
@@ -228,13 +232,16 @@ export const TransactionsPage: React.FC = () => {
     if (startDate) newParams.startDate = startDate;
     if (endDate) newParams.endDate = endDate;
     setSearchParams(newParams);
-    fetchTransactions(0);
+    setAppliedFilters({
+      accountId: selectedAccount,
+      type: filterType,
+      query: searchQuery,
+      startDate,
+      endDate,
+    });
   };
 
-  const netCashflowNum = typeof summary.netCashflow === 'string'
-    ? parseFloat(summary.netCashflow)
-    : Number(summary.netCashflow);
-  const isNetPositive = netCashflowNum >= 0;
+  const isNetPositive = parseAmount(summary.netCashflow).gte(0);
 
   return (
     <div className="transfers-container">
@@ -575,6 +582,11 @@ export const TransactionsPage: React.FC = () => {
                 </option>
               ))}
             </select>
+            {accountsError && (
+              <p className="form-error" role="status">
+                {accountsError} Transactions remain available without account filtering.
+              </p>
+            )}
           </div>
 
           {/* Type Segmented Buttons */}
@@ -1216,6 +1228,7 @@ export const TransactionsPage: React.FC = () => {
                 disabled={currentPage === 0 || loading}
                 onClick={() => fetchTransactions(currentPage - 1)}
                 aria-label="Previous Page"
+                title="Previous page"
                 style={{ width: '32px', height: '32px', padding: 0 }}
               >
                 <ChevronLeft size={16} />
@@ -1236,6 +1249,7 @@ export const TransactionsPage: React.FC = () => {
                 disabled={currentPage >= totalPages - 1 || loading}
                 onClick={() => fetchTransactions(currentPage + 1)}
                 aria-label="Next Page"
+                title="Next page"
                 style={{ width: '32px', height: '32px', padding: 0 }}
               >
                 <ChevronRight size={16} />

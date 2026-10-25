@@ -179,11 +179,24 @@ describe('DepositsPage', () => {
       expect(depositService.bookFixedDeposit).toHaveBeenCalledWith(
         expect.objectContaining({
           sourceAccountId: 'acc-uuid-1',
-          principalAmount: 100000,
+          principalAmount: '100000.00',
           tenureMonths: 12,
         })
       );
       expect(screen.getByText('Fixed Deposit Booked Successfully!')).toBeInTheDocument();
     });
+  });
+
+  it('shows a failure state instead of substituting local rates when rates cannot be loaded', async () => {
+    vi.mocked(depositService.getRateSlabs).mockRejectedValueOnce(new Error('Rate service unavailable'));
+
+    render(
+      <MemoryRouter>
+        <DepositsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Rate service unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Book New FD/i })).toBeDisabled();
   });
 });

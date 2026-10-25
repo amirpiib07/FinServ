@@ -60,6 +60,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
             className="btn-icon btn-ghost"
             style={{ width: 22, height: 22 }}
             aria-label="Copy reference ID"
+            title="Copy reference ID"
             onClick={copyCorrelationId}
           >
             {copied ? <Check size={12} color="var(--color-success)" /> : <Copy size={12} />}

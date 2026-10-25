@@ -25,14 +25,42 @@ html {
 body {
   background-color: var(--surface-canvas);
   color: var(--text-primary);
-  transition: background-color var(--duration-normal) var(--ease-default),
-              color var(--duration-normal) var(--ease-default);
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+svg.lucide {
+  flex-shrink: 0;
+  stroke-width: 1.75;
+  vertical-align: -0.15em;
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-greeting-title {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.app-greeting-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-greeting-sparkle {
+  color: var(--brand-gold);
 }
 
 ::-webkit-scrollbar {
@@ -146,5 +174,11 @@ body {
 @media (min-width: 1280px) {
   .container {
     max-width: 1280px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+      scroll-behavior: auto;
+    }
   }
 }

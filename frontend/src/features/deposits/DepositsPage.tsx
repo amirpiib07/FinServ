@@ -3,7 +3,8 @@ import { depositService } from './depositService';
 import { accountService } from '@/features/accounts/accountService';
 import type { FixedDeposit, FdRateSlab } from '@/types/deposit';
 import type { BankAccount } from '@/types/account';
-import { formatINR } from '@/lib/money';
+import { addMoney, compareMoney, formatINR, parseAmount, subtractMoney } from '@/lib/money';
+import Decimal from 'decimal.js';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -23,7 +24,7 @@ import {
   Award,
 } from 'lucide-react';
 
-const PRESET_AMOUNTS = [10000, 50000, 100000, 500000, 1000000];
+const PRESET_AMOUNTS = ['10000', '50000', '100000', '500000', '1000000'];
 
 export const DepositsPage: React.FC = () => {
   // Data state
@@ -34,7 +35,7 @@ export const DepositsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Calculator state
-  const [principal, setPrincipal] = useState<number>(100000);
+  const [principal, setPrincipal] = useState<string>('100000');
   const [selectedTenure, setSelectedTenure] = useState<number>(12);
 
   // Booking Modal state
@@ -47,98 +48,73 @@ export const DepositsPage: React.FC = () => {
   // Certificate Modal state
   const [selectedCertificate, setSelectedCertificate] = useState<FixedDeposit | null>(null);
 
-  const loadData = useCallback(async () => {
-    try {
+  const loadData = useCallback(async (showLoading = false, isActive: () => boolean = () => true) => {
+    if (showLoading) {
+      setLoading(true);
       setError(null);
+    }
+    try {
       const [slabsRes, depositsRes, accountsRes] = await Promise.all([
-        depositService.getRateSlabs().catch(() => [
-          { tenureMonths: 6, interestRatePercentage: 6.5, displayLabel: '6 Months', description: 'Short term liquidity' },
-          { tenureMonths: 12, interestRatePercentage: 7.25, displayLabel: '1 Year', description: 'Annual wealth lock' },
-          { tenureMonths: 24, interestRatePercentage: 7.5, displayLabel: '2 Years', description: 'Medium term growth' },
-          { tenureMonths: 36, interestRatePercentage: 7.75, displayLabel: '3 Years', description: 'Maximum guaranteed yield' },
-        ]),
-        depositService.getCustomerDeposits().catch(() => []),
-        accountService.getMyAccounts().catch(() => []),
+        depositService.getRateSlabs(),
+        depositService.getCustomerDeposits(),
+        accountService.getMyAccounts(),
       ]);
 
+      if (!isActive()) return;
+      if (slabsRes.length === 0) {
+        throw new Error('Official fixed-deposit rates are currently unavailable. Please try again later.');
+      }
       setRateSlabs(slabsRes);
       setDeposits(depositsRes);
       const activeAccs = accountsRes.filter((a) => a.status === 'ACTIVE');
       setAccounts(activeAccs);
-      if (activeAccs.length > 0 && !selectedAccountId && activeAccs[0]) {
-        setSelectedAccountId(activeAccs[0].id);
-      }
+      setSelectedAccountId((current) => current || activeAccs[0]?.id || '');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unable to load Fixed Deposit details.';
-      setError(msg);
+      if (!isActive()) return;
+      setRateSlabs([]);
+      const appError = err as { userMessage?: string };
+      setError(appError.userMessage || (err instanceof Error ? err.message : 'Unable to load Fixed Deposit details.'));
     } finally {
-      setLoading(false);
+      if (isActive()) setLoading(false);
     }
-  }, [selectedAccountId]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
-    void (async () => {
-      try {
-        const [slabsRes, depositsRes, accountsRes] = await Promise.all([
-          depositService.getRateSlabs().catch(() => [
-            { tenureMonths: 6, interestRatePercentage: 6.5, displayLabel: '6 Months', description: 'Short term liquidity' },
-            { tenureMonths: 12, interestRatePercentage: 7.25, displayLabel: '1 Year', description: 'Annual wealth lock' },
-            { tenureMonths: 24, interestRatePercentage: 7.5, displayLabel: '2 Years', description: 'Medium term growth' },
-            { tenureMonths: 36, interestRatePercentage: 7.75, displayLabel: '3 Years', description: 'Maximum guaranteed yield' },
-          ]),
-          depositService.getCustomerDeposits().catch(() => []),
-          accountService.getMyAccounts().catch(() => []),
-        ]);
-        if (!mounted) return;
-        setRateSlabs(slabsRes);
-        setDeposits(depositsRes);
-        const activeAccs = accountsRes.filter((a) => a.status === 'ACTIVE');
-        setAccounts(activeAccs);
-        if (activeAccs.length > 0 && !selectedAccountId && activeAccs[0]) {
-          setSelectedAccountId(activeAccs[0].id);
-        }
-      } catch (err: unknown) {
-        if (!mounted) return;
-        const msg = err instanceof Error ? err.message : 'Unable to load Fixed Deposit details.';
-        setError(msg);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    })();
+    void Promise.resolve().then(() => {
+      if (mounted) void loadData(false, () => mounted);
+    });
     return () => {
       mounted = false;
     };
-  }, [selectedAccountId]);
+  }, [loadData]);
 
   // Current rate based on chosen tenure
   const currentRate = useMemo(() => {
     const found = rateSlabs.find((s) => s.tenureMonths === selectedTenure);
-    if (found) return found.interestRatePercentage;
-    if (selectedTenure <= 6) return 6.5;
-    if (selectedTenure <= 12) return 7.25;
-    if (selectedTenure <= 24) return 7.5;
-    return 7.75;
+    return found?.interestRatePercentage ?? 0;
   }, [rateSlabs, selectedTenure]);
 
   // Exact interest calculation: I = (P * r * t) / (12 * 100)
   const calculation = useMemo(() => {
-    const p = Math.max(1000, Number(principal) || 0);
-    const r = currentRate;
+    const p = Decimal.max(parseAmount(principal), new Decimal('1000'));
+    const r = parseAmount(String(currentRate));
     const t = selectedTenure;
-    const interest = Math.round(((p * r * t) / 1200) * 100) / 100;
-    const maturity = p + interest;
+    const interest = p
+      .mul(r)
+      .mul(t)
+      .div(1200)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const maturity = p.add(interest);
 
     const maturityDate = new Date();
     maturityDate.setMonth(maturityDate.getMonth() + t);
 
     return {
-      principal: p,
-      interestEarned: interest,
-      maturityAmount: maturity,
-      interestPercentage: Math.round((interest / p) * 10000) / 100,
+      principal: p.toFixed(2),
+      interestEarned: interest.toFixed(2),
+      maturityAmount: maturity.toFixed(2),
+      interestPercentage: interest.div(p).mul(100).toFixed(2),
       maturityDateFormatted: maturityDate.toLocaleDateString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -149,13 +125,19 @@ export const DepositsPage: React.FC = () => {
 
   // Total portfolio stats
   const portfolioStats = useMemo(() => {
-    const totalPrincipal = deposits.reduce((sum, d) => sum + Number(d.principalAmount || 0), 0);
-    const totalMaturity = deposits.reduce((sum, d) => sum + Number(d.maturityAmount || 0), 0);
+    const totalPrincipal = deposits.reduce(
+      (sum, deposit) => addMoney(sum, String(deposit.principalAmount || 0)),
+      '0.00'
+    );
+    const totalMaturity = deposits.reduce(
+      (sum, deposit) => addMoney(sum, String(deposit.maturityAmount || 0)),
+      '0.00'
+    );
     return {
       count: deposits.length,
       totalPrincipal,
       totalMaturity,
-      totalReturns: totalMaturity - totalPrincipal,
+      totalReturns: subtractMoney(totalMaturity, totalPrincipal),
     };
   }, [deposits]);
 
@@ -169,6 +151,10 @@ export const DepositsPage: React.FC = () => {
   };
 
   const handleConfirmBooking = async () => {
+    if (loading || !currentRate) {
+      setBookingError('Official fixed-deposit rates are unavailable. Refresh the rates before booking.');
+      return;
+    }
     if (!selectedAccountId) {
       setBookingError('Please select a funding account.');
       return;
@@ -178,7 +164,7 @@ export const DepositsPage: React.FC = () => {
       setBookingError('Selected funding account is not valid.');
       return;
     }
-    if (Number(fundingAcc.availableBalance) < calculation.principal) {
+    if (compareMoney(String(fundingAcc.availableBalance), calculation.principal) < 0) {
       setBookingError(`Insufficient available balance in account (${formatINR(fundingAcc.availableBalance)}).`);
       return;
     }
@@ -194,7 +180,10 @@ export const DepositsPage: React.FC = () => {
       setBookingSuccess(booked);
       void loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to book Fixed Deposit. Please try again.';
+      const appError = err as { userMessage?: string };
+      const msg =
+        appError.userMessage ||
+        (err instanceof Error ? err.message : 'Failed to book Fixed Deposit. Please try again.');
       setBookingError(msg);
     } finally {
       setBookingLoading(false);
@@ -229,10 +218,10 @@ export const DepositsPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--spacing-3)' }}>
-          <Button variant="outline" size="sm" onClick={() => void loadData()}>
+          <Button variant="outline" size="sm" onClick={() => void loadData(true)}>
             <RefreshCw size={14} style={{ marginRight: '6px' }} /> Refresh
           </Button>
-          <Button variant="primary" size="sm" onClick={handleOpenBookModal}>
+          <Button variant="primary" size="sm" onClick={handleOpenBookModal} disabled={!currentRate || loading}>
             <Sparkles size={14} style={{ marginRight: '6px' }} /> Book New FD
           </Button>
         </div>
@@ -395,8 +384,8 @@ export const DepositsPage: React.FC = () => {
               min="1000"
               max="5000000"
               step="5000"
-              value={principal}
-              onChange={(e) => setPrincipal(Number(e.target.value))}
+              value={parseAmount(principal).toNumber()}
+              onChange={(e) => setPrincipal(e.target.value)}
               style={{
                 width: '100%',
                 accentColor: 'var(--brand-primary)',
@@ -935,7 +924,7 @@ export const DepositsPage: React.FC = () => {
               <Button
                 variant="primary"
                 onClick={() => void handleConfirmBooking()}
-                disabled={bookingLoading}
+                disabled={bookingLoading || loading || !currentRate}
               >
                 {bookingLoading ? (
                   <>

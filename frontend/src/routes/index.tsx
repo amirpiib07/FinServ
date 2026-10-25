@@ -8,127 +8,127 @@
  * - Dev-only /design-system route (accessible strictly via direct URL in DEV mode)
  */
 
-import { lazy, Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootRedirect } from './RootRedirect';
-import { AppLayout } from '@/layouts/AppLayout';
 import { NotFoundPage } from '@/components/common/NotFoundPage';
+import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
 import { ProtectedRoute } from './ProtectedRoute';
+import { DesignSystemPage } from './lazyDesignSystemPage';
+import {
+  AccountsPage,
+  AuditLedgerPage,
+  AdminAccountsPage,
+  AdminDashboardPage,
+  AdminLayout,
+  AppLayout,
+  BeneficiariesPage,
+  BranchesStaffPage,
+  CardsPage,
+  CustomerDashboardPage,
+  DepositsPage,
+  KycReviewPage,
+  LoginPage,
+  OnboardingPage,
+  RegisterPage,
+  TransactionsPage,
+  TransfersPage,
+} from './lazyScreens';
 
 import { Navigate } from 'react-router-dom';
-import { LoginPage } from '@/features/auth/LoginPage';
-import { RegisterPage } from '@/features/auth/RegisterPage';
-import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
-import { AccountsPage } from '@/features/accounts/AccountsPage';
-import { BeneficiariesPage } from '@/features/beneficiaries/BeneficiariesPage';
-import { TransfersPage } from '@/features/transfers/TransfersPage';
-import { TransactionsPage } from '@/features/transactions/TransactionsPage';
-import { CustomerDashboardPage } from '@/features/dashboard/CustomerDashboardPage';
-import { DepositsPage } from '@/features/deposits/DepositsPage';
-import { CardsPage } from '@/features/cards/CardsPage';
+const lazyScreen = (screen: ReactNode) => (
+  <Suspense fallback={<LoadingFallback message="Loading FINServ..." />}>{screen}</Suspense>
+);
 
-// Admin Command Center Pages & Layout
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { AdminDashboardPage } from '@/features/admin/AdminDashboardPage';
-import { KycReviewPage } from '@/features/admin/KycReviewPage';
-import { AdminAccountsPage } from '@/features/admin/AdminAccountsPage';
-import { BranchesStaffPage } from '@/features/admin/BranchesStaffPage';
-import { AuditLedgerPage } from '@/features/admin/AuditLedgerPage';
-
-// Lazy-load DesignSystemPage conditionally in development only (direct URL only)
-const LazyDesignSystemPage = import.meta.env.DEV
-  ? lazy(() =>
-      import('@/features/design-system/DesignSystemPage').then((module) => ({
-        default: module.DesignSystemPage,
-      }))
-    )
-  : null;
-
-export const router = createBrowserRouter([
+export const routes = [
   // Entry Route: Redirect unauthenticated -> /login, unverified -> /onboarding, verified -> /app/accounts
   {
     path: '/',
     element: <RootRedirect />,
-    errorElement: <NotFoundPage />,
+    errorElement: <RouteErrorBoundary />,
   },
 
   // Auth Routes
   {
     path: '/login',
-    element: <LoginPage />,
-    errorElement: <NotFoundPage />,
+    element: lazyScreen(<LoginPage />),
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/register',
-    element: <RegisterPage />,
-    errorElement: <NotFoundPage />,
+    element: lazyScreen(<RegisterPage />),
+    errorElement: <RouteErrorBoundary />,
   },
 
   // Progressive Onboarding & KYC (Requires authenticated session)
   {
     path: '/onboarding',
     element: (
-      <ProtectedRoute>
-        <OnboardingPage />
-      </ProtectedRoute>
+      lazyScreen(
+        <ProtectedRoute>
+          <OnboardingPage />
+        </ProtectedRoute>
+      )
     ),
-    errorElement: <NotFoundPage />,
+    errorElement: <RouteErrorBoundary />,
   },
 
   // Core Banking Application Routes (Requires authenticated session & verified customer)
   {
     path: '/app',
     element: (
-      <ProtectedRoute requireVerifiedCustomer={true}>
-        <AppLayout />
-      </ProtectedRoute>
+      lazyScreen(
+        <ProtectedRoute requireVerifiedCustomer={true}>
+          <AppLayout />
+        </ProtectedRoute>
+      )
     ),
-    errorElement: <NotFoundPage />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,
-        element: <CustomerDashboardPage />,
+        element: lazyScreen(<CustomerDashboardPage />),
       },
       {
         path: 'dashboard',
-        element: <CustomerDashboardPage />,
+        element: lazyScreen(<CustomerDashboardPage />),
       },
       {
         path: 'accounts',
-        element: <AccountsPage />,
+        element: lazyScreen(<AccountsPage />),
       },
       {
         path: 'accounts/:id',
-        element: <AccountsPage />,
+        element: lazyScreen(<AccountsPage />),
       },
       {
         path: 'beneficiaries',
-        element: <BeneficiariesPage />,
+        element: lazyScreen(<BeneficiariesPage />),
       },
       {
         path: 'transfers',
-        element: <TransfersPage />,
+        element: lazyScreen(<TransfersPage />),
       },
       {
         path: 'transactions',
-        element: <TransactionsPage />,
+        element: lazyScreen(<TransactionsPage />),
       },
       {
         path: 'deposits',
-        element: <DepositsPage />,
+        element: lazyScreen(<DepositsPage />),
       },
       {
         path: 'cards',
-        element: <CardsPage />,
+        element: lazyScreen(<CardsPage />),
       },
       {
         path: 'statements',
-        element: <TransactionsPage />,
+        element: lazyScreen(<TransactionsPage />),
       },
       {
-        path: 'audit',
-        element: <AuditLedgerPage />,
+        path: '*',
+        element: <NotFoundPage />,
       },
     ],
   },
@@ -137,11 +137,13 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE']}>
-        <AdminLayout />
-      </ProtectedRoute>
+      lazyScreen(
+        <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      )
     ),
-    errorElement: <NotFoundPage />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,
@@ -149,42 +151,46 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <AdminDashboardPage />,
+        element: lazyScreen(<AdminDashboardPage />),
       },
       {
         path: 'kyc',
-        element: <KycReviewPage />,
+        element: lazyScreen(<KycReviewPage />),
       },
       {
         path: 'accounts',
-        element: <AdminAccountsPage />,
+        element: lazyScreen(<AdminAccountsPage />),
       },
       {
         path: 'branches-staff',
         element: (
-          <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}>
-            <BranchesStaffPage />
-          </ProtectedRoute>
+          lazyScreen(
+            <ProtectedRoute allowedRoles={['ROLE_SUPER_ADMIN']}>
+              <BranchesStaffPage />
+            </ProtectedRoute>
+          )
         ),
       },
       {
         path: 'audit-ledger',
-        element: <AuditLedgerPage />,
+        element: lazyScreen(<AuditLedgerPage />),
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
       },
     ],
   },
 
   // Development Only Route: Living Design System Catalog (Direct URL access only)
-  ...(import.meta.env.DEV && LazyDesignSystemPage
+  ...(import.meta.env.DEV && DesignSystemPage
     ? [
         {
           path: '/design-system',
           element: (
-            <Suspense fallback={<LoadingFallback message="Loading design system catalog..." />}>
-              <LazyDesignSystemPage />
-            </Suspense>
+            lazyScreen(<DesignSystemPage />)
           ),
-          errorElement: <NotFoundPage />,
+          errorElement: <RouteErrorBoundary />,
         },
       ]
     : []),
@@ -194,4 +200,7 @@ export const router = createBrowserRouter([
     path: '*',
     element: <NotFoundPage />,
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);
+

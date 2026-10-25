@@ -672,4 +672,130 @@ Executed a comprehensive luxury fintech upgrade inspired by Revolut, Mercury, an
   - `npm run typecheck`: 0 errors.
   - `npm run build`: clean production build in 1.02s (`dist/index.html` 1.14 kB, `dist/assets/index-DRh5OX1K.js` 895 kB).
 
+## UI Polish Pass — Review
 
+- Refined the shared brand tokens and standardized Lucide icon stroke weight and baseline alignment. Icon-only actions now receive native tooltips from the shared icon-button component or explicit titles. The login experience has a branded split layout, inline validation, keyboard-accessible password visibility, caps-lock feedback, processing/error states, and a confirmed-login-only transition with a reduced-motion skip.
+- Added customer first/last name fields to the existing authenticated profile summary. The UI composes the customer name, falls back to username when missing, derives initials, and selects the greeting in `Asia/Kolkata`; no employee-name source was present in the existing API.
+- Added user identity menus with avatar initials and text-labeled logout, responsive dashboard greeting and activity actions, removed an invented IFSC fallback from account details, shared transform/opacity motion, staggered/skeleton/chart effects, and zero-duration reduced-motion overrides.
+- Lazy-loaded customer, admin, auth, and onboarding route screens. No animation dependency was added. The production entry JavaScript reduced from 1,084.81 kB (300.27 kB gzip) to 356.23 kB (112.15 kB gzip); route screens are emitted as separate chunks.
+- Browser evidence captured in `docs/evidence/ui-polish/`: light-theme login at 360/768/1280 px, dark-theme login at 1280 px, and the registration form at 1280 px. Login showed no horizontal overflow at all three widths. Chrome keyboard verification reached password visibility with Tab and activated it with Space. Axe reported zero WCAG 2.1 A/AA violations on login in both themes and on registration. Reduced-motion browser inspection confirmed `0s` animation and transition durations.
+- Dashboard browser audit and screenshots remain blocked: direct navigation to `/app/dashboard` redirects to `/login` without a real authenticated session. No mock customer data was used.
+- Frontend verification: `npm run lint` passed; `npm run type-check` passed; `npm test` passed all 141 tests; `npm run build` passed with lazy route chunks.
+- Backend verification: All 97 automated tests passing (`BUILD SUCCESS`, 0 failures, 0 errors, 0 skipped).
+
+---
+
+## 8. Full Error Rectification, Initial Balance Default & Deposit/Withdraw Features
+
+### 1. Error Rectifications
+1. **Flyway Migration & DB Connection Failure (`application-test.yml`)**:
+   - Fixed database URL pointing to uninitialized `finserv_test_db`; restored correct configuration `jdbc:mysql://localhost:3306/finserv_test`.
+   - Verified clean schema migration and validation across all 13 Flyway scripts.
+2. **GlobalExceptionHandler RFC 7807 Format**:
+   - Fixed `handleGenericException` in `GlobalExceptionHandler.java` to output safe message and include lowercase `"correlationId"` adhering to the expected RFC 7807 problem details schema.
+3. **Vault Cash UUID Syntax Malformation**:
+   - Corrected Vault Cash UUID string from malformed 4-segment string `00000000-0000-0001-000000010100` to standard RFC 4122 5-segment format `00000000-0000-0000-0001-000000010100`.
+
+### 2. Initial Account Opening Balance (₹5,000 INR)
+1. **Backend Application Default**:
+   - `CreateAccountApplicationRequest.java`: Defaulted `initialDepositAmount` field to `new BigDecimal("5000.00")`.
+   - `AccountService.java`: Guaranteed that if `initialDepositAmount` is null or $\le 0$, it defaults to `5000.00`. Auto-activated accounts trigger double-entry GL ledger posting (`ACCOUNT_OPENING_DEPOSIT`: debiting Vault Cash `10100` and crediting product liability GL).
+   - `AdminService.java`: Updated `autoOpenDefaultSavingsAccount` and `decideAccountApplication` to enforce ₹5,000 initial balance with double-entry GL vouchers.
+   - Added automated integration test `shouldDefaultInitialDepositTo5000WhenUnspecified` in `AccountIntegrationTest.java`.
+2. **Frontend Opening Form & UX**:
+   - `OpenAccountModal.tsx`: Defaulted initial deposit state to `5000.00`, added ₹5,000 welcome credit badge, and added quick preset chips (`[₹5,000 (Default), ₹10,000, ₹25,000, ₹50,000]`).
+
+### 3. Deposits & Withdrawals Feature Integration
+1. **Deep Linking & Parameter Reactive State**:
+   - `TransfersPage.tsx`: Integrated `useSearchParams` to reactively read `?tab=` / `?mode=` (`DEPOSIT`, `WITHDRAW`, `SELF`, `BENEFICIARY`) and preselect `?accountId=` and `?beneficiaryId=`.
+2. **Omnipresent 1-Click Action Launchers**:
+   - `AccountCard.tsx`: Added direct "Deposit" (`ArrowDownLeft`, green badge) and "Withdraw" (`ArrowUpRight`, amber badge) action buttons.
+   - `AccountDetailsModal.tsx`: Added "Deposit Funds" and "Withdraw Cash" modal action triggers.
+   - `AccountsPage.tsx`: Added "Deposit Money" and "Withdraw Cash" quick buttons in the Consolidated Net Available Funds ribbon.
+   - `CustomerDashboardPage.tsx`: Added "Withdraw Cash" button alongside "Add Funds (Deposit)" in the quick action bar.
+
+### 4. Verification & Quality Gates
+- **Backend Tests**: `mvn test` executed against MySQL `finserv_test`: **97 tests run, 0 failures, 0 errors, 0 skipped**.
+- **Frontend Tests**: `npm test -- --run` executed via Vitest: **141 tests run, 29 test files, 141 passed (0 failures)**.
+- **Frontend Build**: `npm run build` executed: **TypeScript compilation (`tsc -b`) and Vite production bundle passed cleanly with 0 errors**.
+
+---
+
+## 9. 404 Error Rectification & Multi-Superadmin / Bank Officer Provisioning
+
+### 1. Root Cause Analysis & Resolution of "404 — Page Not Found"
+- **Issue**: Navigating to `/app/dashboard` (or other subpaths) was displaying the full-page 404 message: `"404 — Page Not Found: The banking resource, account view, or service page you requested does not exist or has been moved."`
+- **Root Cause**: In `src/routes/index.tsx`, every top-level route (including `/`, `/login`, `/register`, `/onboarding`, `/app`, `/admin`) was hardcoded with `errorElement: <NotFoundPage />`. In React Router v7 (`createBrowserRouter`), when any runtime JavaScript exception, dynamic module evaluation error, or chunk load failure occurred inside a route component, React Router intercepted it and rendered the `errorElement`. Because `errorElement` was `<NotFoundPage />`, real runtime/chunk load issues masqueraded as "404 Not Found". Furthermore, the child route trees under `/app` and `/admin` lacked a nested catch-all, causing any unmatched nested subpaths to bubble to the root layout and discard the shell.
+- **Resolution**:
+  1. Created `RouteErrorBoundary.tsx` (`src/components/common/RouteErrorBoundary.tsx`) which uses `useRouteError` and `isRouteErrorResponse` to strictly differentiate true HTTP 404 errors from runtime application exceptions and chunk load failures. Runtime errors present real diagnostic feedback, a "Reload Page" button, and a "Return to Home" button.
+  2. Replaced `errorElement: <NotFoundPage />` with `errorElement: <RouteErrorBoundary />` across all route trees in `src/routes/index.tsx`.
+  3. Added nested `{ path: '*', element: <NotFoundPage /> }` catch-alls inside `/app` and `/admin` children, preserving the layout navigation frame when an invalid subpath is visited.
+
+### 2. Multi-Superadmin & Bank Officer Provisioning
+- **Backend Enhancements**:
+  1. `CreateStaffRequest.java`: Extended `@Pattern` constraint to accept `^(EMPLOYEE|ADMIN|SUPER_ADMIN)$`, permitting executive-level staff creation.
+  2. `AdminService.java`: Enhanced `createStaffUser` logic so that provisioning a `SUPER_ADMIN` hierarchically assigns all three requisite governance roles (`ROLE_SUPER_ADMIN`, `ROLE_ADMIN`, and `ROLE_EMPLOYEE`), allowing the new Super Admin full access to branch management, KYC review desks, and transaction auditing.
+  3. `AdminIntegrationTest.java`: Added integration test `shouldAllowSuperAdminToProvisionAnotherSuperAdmin` verifying that an existing Super Admin can provision another Super Admin, receiving 201 Created and immediate Super Admin privileges.
+- **Frontend Enhancements**:
+  1. `types/admin.ts`: Updated `CreateStaffRequest.role` to `'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN'`.
+  2. `BranchesStaffPage.tsx`:
+     - **Security Role Selector**: Added `SUPER_ADMIN (Executive Super Administrator)` option alongside `ADMIN` and `EMPLOYEE`. Switching roles automatically populates executive default departments and designations (`Executive Leadership` / `Executive Super Administrator`).
+     - **Customizable Department & Designation**: Added explicit, accessible input fields for Department and Designation in the modal.
+     - **Executive KPI Summary Cards**: Added 4 real-time KPI counter cards at the top of the Staff tab:
+       - Total Provisioned Staff (`staffList.length`)
+       - Super Administrators (Gold Sparkles card, `#D4AF37`)
+       - Branch Administrators (Electric Blue ShieldCheck card, `var(--brand-accent)`)
+       - Bank Officers (Emerald UserCheck card, `#10B981`)
+     - **Live Role Filter & Search Bar**: Integrated a real-time role filter dropdown (`All Roles`, `Super Admins`, `Branch Admins`, `Bank Officers`) and a search input for filtering staff by username, email, department, or branch.
+     - **Distinct Role Badges**: Rendered distinctive styled badges with Lucide icons in the staff directory table (`Sparkles` for Super Admin, `ShieldCheck` for Branch Admin, and `UserCheck` for Bank Officer).
+     - **Accessibility**: Added explicit `htmlFor` and `id` bindings across all staff provisioning form inputs.
+
+### 3. Verification & Quality Gates
+- **Backend Integration Tests**:
+  - `mvn test` in `backend/`: **98 tests run, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS**.
+  - `AdminIntegrationTest` (6 tests including `shouldAllowSuperAdminToProvisionAnotherSuperAdmin`): **6 passed, 0 failures**.
+- **Frontend Vitest Suite**:
+  - `npm test -- --run` in `frontend/`: **146 tests run across 31 test files, 146 passed (0 failures)**.
+  - `BranchesStaffPage.test.tsx` (3 tests): **3 passed** (verifying branch creation, Super Admin provisioning with executive defaults, KPI counters, and role filtering).
+  - `RouteErrorBoundary.test.tsx` (2 tests): **2 passed** (verifying 404 display and runtime error diagnostics with reload action).
+  - `RouterDashboard.test.tsx`: **1 passed** (verifying `/app/dashboard` renders without 404).
+- **Frontend Production Build**:
+  - `npm run build` in `frontend/`: **0 TypeScript errors (`tsc -b`), production bundle built in 434ms**.
+
+
+
+---
+
+## 10. Dashboard Date Parsing Error Rectification & Timestamp Resiliency
+
+### 1. Root Cause Analysis of "Banking Application Error: Invalid date/time value: undefined"
+- **User Symptom**: Upon accessing `/app/dashboard`, the newly installed `RouteErrorBoundary` intercepted an uncaught exception and displayed:
+  `Banking Application Error: Invalid date/time value: undefined`
+- **Root Cause Tracing**:
+  1. In `src/features/dashboard/CustomerDashboardPage.tsx` (line 823), recent activity items were rendered with:
+     `<span>{formatDateTimeIST(tx.initiatedAt)}</span>`
+  2. The backend `TransactionDto` returned by `transactionService.getTransactions(...)` in `CustomerDashboardService.java` populates `createdAt` and `completedAt`, but does **not** have an `initiatedAt` field. Consequently, `tx.initiatedAt` was `undefined`.
+  3. In `src/lib/dates.ts`, `toDate` was implemented with a rigid check:
+     `if (isNaN(d.getTime())) throw new Error('Invalid date/time value: ${instant}');`
+     Calling `formatDateTimeIST(undefined)` threw an uncaught Error, instantly crashing the dashboard view.
+
+### 2. Implementation & Resiliency Fix
+1. **Resilient Date Utilities (`src/lib/dates.ts`)**:
+   - Refactored `toDate` to safely handle `null`, `undefined`, empty strings, and malformed date strings, returning `null` instead of throwing unhandled exceptions.
+   - Refactored `formatDateIST`, `formatTimeIST`, `formatDateTimeIST`, and `formatRelativeIST` to return a safe fallback string (`'—'` or caller-provided custom fallback) when input timestamps are missing or unparseable.
+   - Added unit test suite in `src/lib/__tests__/dates.test.ts` verifying that `null`, `undefined`, and invalid dates return fallback strings without throwing.
+2. **Dashboard Transaction Mapping (`CustomerDashboardPage.tsx`)**:
+   - Updated transaction timestamp selector:
+     `const txnTimestamp = (tx as any).createdAt || tx.initiatedAt || (tx as any).completedAt;`
+   - Updated transaction direction check:
+     `const isCredit = (tx as any).direction === 'CREDIT' || tx.transactionType === 'DEPOSIT';`
+   - Updated transaction balance:
+     `Bal: {formatINR(tx.balanceAfter ?? (tx as any).runningBalance ?? (tx as any).fromAccountBalanceAfter ?? 0)}`
+3. **Dashboard Types Resiliency (`src/types/dashboard.ts`)**:
+   - Updated `DashboardRecentTransactionDto` to include optional `createdAt`, `completedAt`, `direction`, `runningBalance`, `fromAccountBalanceAfter`, and `toAccountBalanceAfter`.
+4. **Vite Concurrency Configuration (`vite.config.ts`)**:
+   - Added `testTimeout: 15000` to prevent timeouts when all 30 JSDOM test suites execute concurrently in parallel worker threads on Windows.
+
+### 3. Verification
+- **Frontend Vitest Suite**: `npm test -- --run` passed with **30 test files passed, 149 tests passed (0 failures)**.
+- **Frontend Production Build**: `npm run build` compiled with **0 TypeScript errors in 1.24s**.

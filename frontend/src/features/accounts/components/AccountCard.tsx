@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { BankAccount } from '@/types/account';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +15,7 @@ import {
   CreditCard,
   ShieldAlert,
   ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 
 interface AccountCardProps {
@@ -27,6 +29,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
   onEditControls,
   onViewDetails,
 }) => {
+  const navigate = useNavigate();
   const [revealed, setRevealed] = useState(false);
   const [copiedAcc, setCopiedAcc] = useState(false);
   const [copiedIfsc, setCopiedIfsc] = useState(false);
@@ -370,15 +373,51 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           gap: 'var(--spacing-2)',
           paddingTop: 'var(--spacing-2)',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          flexWrap: 'wrap',
         }}
       >
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => navigate(`/app/transfers?tab=DEPOSIT&accountId=${account.id}`)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            color: '#34D399',
+            borderColor: 'rgba(52, 211, 153, 0.35)',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+          }}
+        >
+          <ArrowDownLeft size={14} /> Deposit
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => navigate(`/app/transfers?tab=WITHDRAW&accountId=${account.id}`)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+            color: '#FBBF24',
+            borderColor: 'rgba(251, 191, 36, 0.35)',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+          }}
+        >
+          <ArrowUpRight size={14} /> Withdraw
+        </Button>
         {onViewDetails && (
           <Button
             variant="secondary"
             size="sm"
             onClick={() => onViewDetails(account)}
             style={{
-              flex: 1,
               backgroundColor: 'rgba(255, 255, 255, 0.12)',
               color: '#FFFFFF',
               borderColor: 'rgba(255, 255, 255, 0.18)',
@@ -386,7 +425,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               fontWeight: 500,
             }}
           >
-            Details <ArrowUpRight size={13} style={{ marginLeft: '4px' }} />
+            Details
           </Button>
         )}
         {onEditControls && (

@@ -2,21 +2,25 @@
  * FINServ Date & Time Formatting Utilities
  * Standardizes all UTC timestamps from the backend into Asia/Kolkata (IST = UTC+5:30).
  * Handles midnight rollover boundary edge cases deterministically.
+ * Resilient against null, undefined, and unparseable date values.
  */
 
 const IST_TIMEZONE = 'Asia/Kolkata';
 
 /**
- * Parses any ISO instant string, Date object, or millisecond timestamp safely
+ * Parses any ISO instant string, Date object, or millisecond timestamp safely.
+ * Returns null if the instant is null, undefined, empty, or unparseable.
  */
-function toDate(instant: string | Date | number): Date {
+function toDate(instant: string | Date | number | null | undefined): Date | null {
+  if (instant == null || instant === '') {
+    return null;
+  }
   if (instant instanceof Date) {
-    if (isNaN(instant.getTime())) throw new Error('Invalid Date object');
-    return instant;
+    return isNaN(instant.getTime()) ? null : instant;
   }
   const d = new Date(instant);
   if (isNaN(d.getTime())) {
-    throw new Error(`Invalid date/time value: ${instant}`);
+    return null;
   }
   return d;
 }
@@ -26,10 +30,12 @@ function toDate(instant: string | Date | number): Date {
  * Example: "15 Oct 2026" or "15/10/2026"
  */
 export function formatDateIST(
-  instant: string | Date | number,
-  formatStyle: 'short' | 'medium' | 'long' = 'medium'
+  instant: string | Date | number | null | undefined,
+  formatStyle: 'short' | 'medium' | 'long' = 'medium',
+  fallback = '—'
 ): string {
   const date = toDate(instant);
+  if (!date) return fallback;
 
   if (formatStyle === 'short') {
     // DD/MM/YYYY
@@ -68,10 +74,13 @@ export function formatDateIST(
  * Example: "05:30 AM" or "05:30:00 AM"
  */
 export function formatTimeIST(
-  instant: string | Date | number,
-  includeSeconds = false
+  instant: string | Date | number | null | undefined,
+  includeSeconds = false,
+  fallback = '—'
 ): string {
   const date = toDate(instant);
+  if (!date) return fallback;
+
   const formatter = new Intl.DateTimeFormat('en-IN', {
     timeZone: IST_TIMEZONE,
     hour: '2-digit',
@@ -87,11 +96,15 @@ export function formatTimeIST(
  * Example: "16 Oct 2026, 12:00:00 am IST"
  */
 export function formatDateTimeIST(
-  instant: string | Date | number,
-  includeSeconds = true
+  instant: string | Date | number | null | undefined,
+  includeSeconds = true,
+  fallback = '—'
 ): string {
-  const dateStr = formatDateIST(instant, 'medium');
-  const timeStr = formatTimeIST(instant, includeSeconds);
+  const date = toDate(instant);
+  if (!date) return fallback;
+
+  const dateStr = formatDateIST(date, 'medium', fallback);
+  const timeStr = formatTimeIST(date, includeSeconds, fallback);
   return `${dateStr}, ${timeStr} IST`;
 }
 
@@ -100,10 +113,13 @@ export function formatDateTimeIST(
  * Example: "Just now", "5 mins ago", "Yesterday at 11:30 PM", "3 days ago"
  */
 export function formatRelativeIST(
-  instant: string | Date | number,
-  baseDate: Date = new Date()
+  instant: string | Date | number | null | undefined,
+  baseDate: Date = new Date(),
+  fallback = '—'
 ): string {
   const date = toDate(instant);
+  if (!date) return fallback;
+
   const diffMs = baseDate.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
 
@@ -127,5 +143,5 @@ export function formatRelativeIST(
   }
 
   // Beyond a week, return absolute IST date
-  return formatDateIST(date, 'medium');
+  return formatDateIST(date, 'medium', fallback);
 }

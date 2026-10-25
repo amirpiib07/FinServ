@@ -3,7 +3,9 @@ package com.finserv.common.security;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.HexFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,8 +16,8 @@ class FieldEncryptionServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockEnvironment env = new MockEnvironment();
-        encryptionService = new FieldEncryptionService(env);
+        encryptionService = new FieldEncryptionService();
+        ReflectionTestUtils.setField(encryptionService, "configuredKey", HexFormat.of().formatHex(new byte[32]));
         encryptionService.init();
     }
 
@@ -74,14 +76,23 @@ class FieldEncryptionServiceTest {
     }
 
     @Test
-    @DisplayName("Should fail fast in prod profile if key is missing")
-    void shouldFailFastInProdIfKeyMissing() {
-        MockEnvironment prodEnv = new MockEnvironment();
-        prodEnv.setActiveProfiles("prod");
+    @DisplayName("Should fail fast in every profile if key is missing")
+    void shouldFailFastIfKeyMissing() {
+        FieldEncryptionService service = new FieldEncryptionService();
 
-        FieldEncryptionService prodService = new FieldEncryptionService(prodEnv);
-        assertThatThrownBy(prodService::init)
+        assertThatThrownBy(service::init)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("APP_ENCRYPTION_KEY is required in production");
+                .hasMessageContaining("APP_ENCRYPTION_KEY is required");
+    }
+
+    @Test
+    @DisplayName("Should reject invalid encryption keys instead of falling back")
+    void shouldRejectInvalidKey() {
+        FieldEncryptionService service = new FieldEncryptionService();
+        ReflectionTestUtils.setField(service, "configuredKey", "invalid");
+
+        assertThatThrownBy(service::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Invalid APP_ENCRYPTION_KEY");
     }
 }

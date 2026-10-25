@@ -30,21 +30,12 @@ const mockCards: VirtualCard[] = [
 ];
 
 describe('CardsPage', () => {
-  const writeTextMock = vi.fn().mockResolvedValue(undefined);
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(cardService.getCustomerCards).mockResolvedValue(mockCards);
-    Object.defineProperty(navigator, 'clipboard', {
-      value: {
-        writeText: writeTextMock,
-      },
-      writable: true,
-      configurable: true,
-    });
   });
 
-  it('renders 3D metallic virtual debit card with details', async () => {
+  it('renders a clearly labeled virtual card profile preview', async () => {
     render(
       <MemoryRouter>
         <CardsPage />
@@ -52,18 +43,21 @@ describe('CardsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Virtual Debit Cards & Controls')).toBeInTheDocument();
-      expect(screen.getByText('4532 •••• •••• 0018')).toBeInTheDocument();
+      expect(screen.getByText('Virtual Card Profiles')).toBeInTheDocument();
+      expect(screen.getByText('Account ending in 0018')).toBeInTheDocument();
       expect(screen.getByText('AMIT KUMAR SINGH')).toBeInTheDocument();
       expect(screen.getByText('10/31')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Daily Spend Limit')).toBeInTheDocument();
-    expect(screen.getByText('Online & E-Commerce')).toBeInTheDocument();
-    expect(screen.getByText('Tap & Pay Contactless')).toBeInTheDocument();
+    expect(screen.getByText('Daily Profile Limit')).toBeInTheDocument();
+    expect(screen.getByText('Online transactions setting')).toBeInTheDocument();
+    expect(screen.getByText('Contactless setting')).toBeInTheDocument();
+    expect(screen.getByText(/No external payment processor is connected/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Reveal Mask|Copy Number/i })).not.toBeInTheDocument();
+    expect(cardService.getCustomerCards).toHaveBeenCalledTimes(1);
   });
 
-  it('allows customer to freeze and unfreeze card', async () => {
+  it('persists profile status changes without claiming payment-network enforcement', async () => {
     const user = userEvent.setup();
     const frozenCard: VirtualCard = {
       ...mockCards[0]!,
@@ -78,10 +72,10 @@ describe('CardsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Freeze Card')).toBeInTheDocument();
+      expect(screen.getByText('Mark Profile Frozen')).toBeInTheDocument();
     });
 
-    const freezeBtn = screen.getByRole('button', { name: /Freeze Card/i });
+    const freezeBtn = screen.getByRole('button', { name: /Mark Profile Frozen/i });
     await user.click(freezeBtn);
 
     await waitFor(() => {
@@ -89,28 +83,8 @@ describe('CardsPage', () => {
         'card-uuid-1',
         expect.objectContaining({ status: 'FROZEN' })
       );
-      expect(screen.getByText('Card Temporarily Frozen')).toBeInTheDocument();
-    });
-  });
-
-  it('allows copying card number to clipboard', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <MemoryRouter>
-        <CardsPage />
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Copy Number')).toBeInTheDocument();
-    });
-
-    const copyBtn = screen.getByRole('button', { name: /Copy Number/i });
-    await user.click(copyBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('Copied')).toBeInTheDocument();
+      expect(screen.getByText('Profile Marked Frozen')).toBeInTheDocument();
+      expect(screen.getByText(/does not block payments processed by an external card network/i)).toBeInTheDocument();
     });
   });
 
@@ -129,14 +103,14 @@ describe('CardsPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('International Usage')).toBeInTheDocument();
+      expect(screen.getByText('International usage setting')).toBeInTheDocument();
     });
 
     const switches = screen.getAllByRole('switch');
-    // Switch 0: Instant Card Freeze
-    // Switch 1: Online & E-Commerce
-    // Switch 2: Tap & Pay Contactless
-    // Switch 3: International Usage
+    // Switch 0: Profile status
+    // Switch 1: Online profile setting
+    // Switch 2: Contactless profile setting
+    // Switch 3: International profile setting
     const intlSwitch = switches[3]!;
     await user.click(intlSwitch);
 

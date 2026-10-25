@@ -50,6 +50,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         aria-busy={isLoading || undefined}
         onClick={handleClick}
         {...props}
+        title={props.title ?? ariaLabel}
       >
         {isLoading ? <Spinner size={size === 'lg' ? 20 : 16} /> : icon}
       </button>

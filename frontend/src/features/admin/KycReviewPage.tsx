@@ -24,6 +24,13 @@ import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Textarea } from '@/components/ui/Textarea';
 
+function getApplicantName(application: AdminKycApplicationDto): string {
+  const fullName = [application.firstName, application.lastName]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join(' ');
+  return fullName || application.applicantUsername || 'Applicant';
+}
+
 export const KycReviewPage: React.FC = () => {
   const [applications, setApplications] = useState<AdminKycApplicationDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +111,7 @@ export const KycReviewPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await adminService.decideKycApplication(selectedApp.applicationId, {
+      await adminService.decideKycApplication(selectedApp.id, {
         decision: decisionType,
         remarks: remarks.trim(),
       });
@@ -268,7 +275,7 @@ export const KycReviewPage: React.FC = () => {
               ) : Array.isArray(applications) && applications.length > 0 ? (
                 applications.map((app) => (
                   <tr
-                    key={app.applicationId}
+                    key={app.id}
                     style={{
                       borderBottom: '1px solid var(--border-subtle)',
                       transition: 'background-color 0.15s',
@@ -282,20 +289,20 @@ export const KycReviewPage: React.FC = () => {
                     {/* Customer Info */}
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {app.fullName}
+                        {getApplicantName(app)}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                        CIF: {app.customerNumber} • {app.email}
+                        {app.applicantUsername || 'Username unavailable'} • {app.applicantEmail || 'Email unavailable'}
                       </div>
                     </td>
 
                     {/* PAN & IDs */}
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontFamily: 'var(--font-family-mono)', fontSize: '12px', color: 'var(--text-primary)' }}>
-                        PAN: {app.panNumberMasked || '••••••••••'}
+                        PAN: {app.maskedPan || 'Not provided'}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                        {app.kycDocuments.length} KYC Document(s)
+                        {app.idType ? `${app.idType.replace(/_/g, ' ')} details provided` : 'Identity details unavailable'}
                       </div>
                     </td>
 
@@ -403,10 +410,10 @@ export const KycReviewPage: React.FC = () => {
                       KYC DOSSIER INSPECTION
                     </span>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                      {selectedApp.fullName}
+                      {getApplicantName(selectedApp)}
                     </h2>
                     <div style={{ fontSize: '12px', fontFamily: 'var(--font-family-mono)', color: 'var(--text-tertiary)' }}>
-                      Ref: {selectedApp.applicationReference} • CIF: {selectedApp.customerNumber}
+                      Ref: {selectedApp.applicationReference} • User: {selectedApp.applicantUsername || selectedApp.userId}
                     </div>
                   </div>
                   <Dialog.Close asChild>
@@ -422,10 +429,10 @@ export const KycReviewPage: React.FC = () => {
                     Status: {selectedApp.status}
                   </Badge>
                   <Badge variant="neutral">
-                    FATCA: {selectedApp.fatcaDeclared ? 'Declared Tax Resident of India' : 'Pending'}
+                    FATCA: {selectedApp.declarationsAccepted.includes('FATCA') ? 'Declaration received' : 'Not recorded'}
                   </Badge>
                   <Badge variant="neutral">
-                    PEP: {selectedApp.pepDeclared ? 'Politically Exposed' : 'Non-PEP Clean'}
+                    PEP: {selectedApp.declarationsAccepted.includes('PEP') ? 'Declaration received' : 'Not recorded'}
                   </Badge>
                 </div>
 
@@ -438,7 +445,7 @@ export const KycReviewPage: React.FC = () => {
                     <div>
                       <div style={{ color: 'var(--text-tertiary)' }}>Permanent Account Number (PAN)</div>
                       <div style={{ fontWeight: 600, fontFamily: 'var(--font-family-mono)', color: 'var(--text-primary)', marginTop: '2px' }}>
-                        {selectedApp.panNumberMasked || '••••••••••'}
+                        {selectedApp.maskedPan || 'Not provided'}
                       </div>
                     </div>
                     <div>
@@ -450,13 +457,13 @@ export const KycReviewPage: React.FC = () => {
                     <div>
                       <div style={{ color: 'var(--text-tertiary)' }}>Contact Email</div>
                       <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginTop: '2px' }}>
-                        {selectedApp.email}
+                        {selectedApp.applicantEmail || 'Not provided'}
                       </div>
                     </div>
                     <div>
                       <div style={{ color: 'var(--text-tertiary)' }}>Contact Mobile</div>
                       <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginTop: '2px' }}>
-                        {selectedApp.phoneNumber}
+                        {selectedApp.applicantPhone || 'Not provided'}
                       </div>
                     </div>
                   </div>
@@ -469,60 +476,45 @@ export const KycReviewPage: React.FC = () => {
                   </h3>
                   <div style={{ backgroundColor: 'var(--surface-sunken)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-lg)', fontSize: '12px', color: 'var(--text-primary)' }}>
                     {selectedApp.residentialAddress ? (
-                      <>
-                        <div>{selectedApp.residentialAddress.line1}</div>
-                        {selectedApp.residentialAddress.line2 && <div>{selectedApp.residentialAddress.line2}</div>}
-                        <div>
-                          {selectedApp.residentialAddress.city}, {selectedApp.residentialAddress.state} - {selectedApp.residentialAddress.postalCode}
-                        </div>
-                        <div>{selectedApp.residentialAddress.country || 'India'}</div>
-                      </>
+                      <div>{selectedApp.residentialAddress}</div>
                     ) : (
                       <span style={{ color: 'var(--text-tertiary)' }}>Address recorded via e-KYC validation.</span>
                     )}
                   </div>
                 </div>
 
-                {/* KYC Documents Attached */}
+                {/* KYC identity details */}
                 <div style={{ marginBottom: 'var(--spacing-5)' }}>
                   <h3 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--spacing-2)' }}>
-                    Attached KYC Documents
+                    Identity Details
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
-                    {selectedApp.kycDocuments && selectedApp.kycDocuments.length > 0 ? (
-                      selectedApp.kycDocuments.map((doc) => (
-                        <div
-                          key={doc.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--surface-sunken)',
-                            border: '1px solid var(--border-subtle)',
-                            fontSize: '12px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FileText size={16} color="var(--brand-accent)" />
-                            <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                {doc.documentType.replace(/_/g, ' ')}
-                              </div>
-                              <div style={{ fontFamily: 'var(--font-family-mono)', color: 'var(--text-tertiary)', fontSize: '11px' }}>
-                                ID Number: {doc.documentNumberMasked}
-                              </div>
-                            </div>
+                    {selectedApp.idType || selectedApp.maskedIdNumber ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: 'var(--surface-sunken)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <FileText size={16} color="var(--brand-accent)" />
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {(selectedApp.idType || 'Identity document').replace(/_/g, ' ')}
                           </div>
-                          <Badge variant={doc.verificationStatus === 'VERIFIED' ? 'success' : 'neutral'}>
-                            {doc.verificationStatus}
-                          </Badge>
+                          <div style={{ fontFamily: 'var(--font-family-mono)', color: 'var(--text-tertiary)', fontSize: '11px' }}>
+                            ID Number: {selectedApp.maskedIdNumber || 'Not provided'}
+                          </div>
                         </div>
-                      ))
+                      </div>
                     ) : (
                       <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                        No physical document uploads required for instant digital KYC.
+                        No identity document details were returned for this application.
                       </div>
                     )}
                   </div>

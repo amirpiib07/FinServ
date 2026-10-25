@@ -4,8 +4,8 @@
  * Features live balance validation, quick chips, review confirmation modal, and success animations.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { accountService } from '@/features/accounts/accountService';
 import { beneficiaryService } from '@/features/beneficiaries/beneficiaryService';
 import { transferService } from './services/transferService';
@@ -18,6 +18,7 @@ import { generateIdempotencyKey } from '@/lib/idempotency';
 import type { BankAccount } from '@/types/account';
 import type { Beneficiary } from '@/types/beneficiary';
 import type { TransactionDto } from './types/transferTypes';
+import './transfers.css';
 import {
   ArrowLeftRight,
   Send,
@@ -38,6 +39,7 @@ type TransferTab = 'BENEFICIARY' | 'SELF' | 'DEPOSIT' | 'WITHDRAW';
 
 export const TransfersPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Data state
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -46,8 +48,18 @@ export const TransfersPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
-  const [activeTab, setActiveTab] = useState<TransferTab>('BENEFICIARY');
+  // Form state - parse tab from URL query if provided
+  const tabParam = (searchParams.get('tab') || searchParams.get('mode') || '').toUpperCase();
+  const initialTab: TransferTab =
+    tabParam === 'DEPOSIT'
+      ? 'DEPOSIT'
+      : tabParam === 'WITHDRAW'
+      ? 'WITHDRAW'
+      : tabParam === 'SELF'
+      ? 'SELF'
+      : 'BENEFICIARY';
+
+  const [activeTab, setActiveTab] = useState<TransferTab>(initialTab);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [selectedBeneficiaryId, setSelectedBeneficiaryId] = useState<string>('');
   const [destinationAccountNumber, setDestinationAccountNumber] = useState<string>('');
@@ -67,66 +79,90 @@ export const TransfersPage: React.FC = () => {
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
   const [receiptTxnId, setReceiptTxnId] = useState<string | null>(null);
 
-  const loadData = async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    else setIsRefreshing(true);
+  const loadData = useCallback(async (refresh = false, isActive: () => boolean = () => true) => {
+    if (refresh) setIsRefreshing(true);
+    else setIsLoading(true);
     setError(null);
 
     try {
       const [accs, bens] = await Promise.all([
         accountService.getMyAccounts(),
-        beneficiaryService.getBeneficiaries().catch(() => [] as Beneficiary[]),
+        beneficiaryService.getBeneficiaries(),
       ]);
+      if (!isActive()) return;
       setAccounts(accs);
       setBeneficiaries(bens);
 
-      // Default selected source account if not set
-      if (!selectedAccountId && accs.length > 0) {
+      // Account preselection from URL or default active
+      const urlAccountId = searchParams.get('accountId');
+      if (urlAccountId && accs.some((a) => a.id === urlAccountId)) {
+        setSelectedAccountId(urlAccountId);
+      } else if (accs.length > 0) {
         const active = accs.find((a) => a.status === 'ACTIVE') || accs[0];
-        if (active) setSelectedAccountId(active.id);
+        if (active) {
+          setSelectedAccountId((current) =>
+            accs.some((account) => account.id === current) ? current : active.id
+          );
+        }
+      } else {
+        setSelectedAccountId('');
+      }
+
+      const urlBenId = searchParams.get('beneficiaryId');
+      if (urlBenId && bens.some((b) => b.id === urlBenId)) {
+        setSelectedBeneficiaryId(urlBenId);
+      } else {
+        setSelectedBeneficiaryId((current) =>
+          bens.some(
+            (beneficiary) =>
+              beneficiary.id === current &&
+              beneficiary.isActive &&
+              beneficiary.verificationStatus === 'VERIFIED'
+          )
+            ? current
+            : ''
+        );
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load banking data';
-      setError(msg);
+      if (!isActive()) return;
+      const appError = err as { userMessage?: string };
+      setError(
+        appError.userMessage ||
+          (err instanceof Error ? err.message : 'Failed to load banking data. Please try again.')
+      );
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (isActive()) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
-  };
+  }, [searchParams]);
 
   useEffect(() => {
     let ignore = false;
-    async function init() {
-      try {
-        const [accs, bens] = await Promise.all([
-          accountService.getMyAccounts(),
-          beneficiaryService.getBeneficiaries().catch(() => [] as Beneficiary[]),
-        ]);
-        if (!ignore) {
-          setAccounts(accs);
-          setBeneficiaries(bens);
-          if (accs.length > 0) {
-            const active = accs.find((a) => a.status === 'ACTIVE') || accs[0];
-            if (active) setSelectedAccountId(active.id);
-          }
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          const msg = err instanceof Error ? err.message : 'Failed to load banking data';
-          setError(msg);
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void init();
+    void Promise.resolve().then(() => {
+      if (!ignore) void loadData(false, () => !ignore);
+    });
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [loadData]);
+
+  // Synchronize activeTab, account, and beneficiary if searchParams change dynamically
+  useEffect(() => {
+    const rawTab = (searchParams.get('tab') || searchParams.get('mode') || '').toUpperCase();
+    if (rawTab === 'DEPOSIT' || rawTab === 'WITHDRAW' || rawTab === 'SELF' || rawTab === 'BENEFICIARY') {
+      setActiveTab(rawTab as TransferTab);
+    }
+    const accParam = searchParams.get('accountId');
+    if (accParam && accounts.some((a) => a.id === accParam)) {
+      setSelectedAccountId(accParam);
+    }
+    const benParam = searchParams.get('beneficiaryId');
+    if (benParam && beneficiaries.some((b) => b.id === benParam)) {
+      setSelectedBeneficiaryId(benParam);
+    }
+  }, [searchParams, accounts, beneficiaries]);
 
   const selectedAccount = useMemo(() => {
     return accounts.find((a) => a.id === selectedAccountId);
@@ -164,7 +200,8 @@ export const TransfersPage: React.FC = () => {
     return enteredAmount.gt(availableBalance);
   }, [activeTab, enteredAmount, availableBalance]);
 
-  const isValidAmount = enteredAmount.gt(0) && !isInsufficientBalance;
+  const hasInvalidAmountPrecision = enteredAmount.decimalPlaces() > 2;
+  const isValidAmount = enteredAmount.gte(1) && !hasInvalidAmountPrecision && !isInsufficientBalance;
 
   // Handle Quick Amount Chips
   const handleQuickAmount = (increment: number) => {
@@ -187,6 +224,15 @@ export const TransfersPage: React.FC = () => {
   const handleInitiateReview = () => {
     if (!selectedAccount) return;
     if (!isValidAmount) return;
+    if (
+      activeTab === 'SELF' &&
+      (!/^\d{14}$/.test(destinationAccountNumber.trim()) ||
+        destinationAccountNumber.trim() === selectedAccount.accountNumber)
+    ) {
+      setError('Enter a valid 14-digit destination account number that differs from the source account.');
+      return;
+    }
+    setError(null);
 
     let toName = '';
     let toAccNum = '';
@@ -285,9 +331,11 @@ export const TransfersPage: React.FC = () => {
       // Refresh accounts silently to reflect newly updated balances
       loadData(true);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Transaction could not be completed';
-      setError(msg);
-      setReviewOpen(false);
+      const appError = err as { userMessage?: string };
+      setError(
+        appError.userMessage ||
+          (err instanceof Error ? err.message : 'Transaction could not be completed. Please retry.')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -303,9 +351,14 @@ export const TransfersPage: React.FC = () => {
     setError(null);
   };
 
+  const handleReviewOpenChange = (open: boolean) => {
+    setReviewOpen(open);
+    if (!open && !isSubmitting) setError(null);
+  };
+
   if (isLoading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto space-y-6">
+      <div className="transfer-page transfer-page--loading" aria-busy="true">
         <div className="h-10 w-48 bg-surface-subtle animate-pulse rounded-xl" />
         <div className="h-64 bg-surface-subtle animate-pulse rounded-3xl" />
       </div>
@@ -313,9 +366,9 @@ export const TransfersPage: React.FC = () => {
   }
 
   // Render Post-Execution Celebratory Success Receipt
-  if (confirmedTransaction) {
+  if (confirmedTransaction?.status === 'COMPLETED') {
     return (
-      <div className="p-6 md:p-10 max-w-4xl mx-auto">
+      <div className="transfer-page transfer-page--receipt">
         <TransferSuccessReceipt
           transaction={confirmedTransaction}
           onReset={handleResetStudio}
@@ -337,12 +390,77 @@ export const TransfersPage: React.FC = () => {
     );
   }
 
+  if (confirmedTransaction) {
+    const statusTitle =
+      confirmedTransaction.status === 'PENDING'
+        ? 'Transfer pending'
+        : confirmedTransaction.status === 'FAILED'
+          ? 'Transfer failed'
+          : 'Transaction reversed';
+    const statusMessage =
+      confirmedTransaction.failureReason ||
+      (confirmedTransaction.status === 'PENDING'
+        ? 'FinServ has not confirmed completion yet. Check your transaction history for updates.'
+        : 'The transaction was not completed. Review the status before trying again.');
+
+    return (
+      <div className="transfer-page p-6 md:p-10 max-w-4xl mx-auto">
+        <section className="transfer-outcome-card" aria-live="polite">
+          <AlertCircle size={28} aria-hidden="true" />
+          <h1>{statusTitle}</h1>
+          <p>{statusMessage}</p>
+          <dl>
+            <div>
+              <dt>Amount</dt>
+              <dd>{formatINR(confirmedTransaction.amount)}</dd>
+            </div>
+            <div>
+              <dt>Reference</dt>
+              <dd>{confirmedTransaction.transactionReference}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{confirmedTransaction.status}</dd>
+            </div>
+          </dl>
+          <div className="transfer-outcome-actions">
+            <Button type="button" variant="secondary" onClick={() => navigate('/app/transactions')}>
+              View transactions
+            </Button>
+            {confirmedTransaction.status !== 'PENDING' && (
+              <Button type="button" onClick={handleResetStudio}>
+                Start another transfer
+              </Button>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (error && accounts.length === 0 && beneficiaries.length === 0) {
+    return (
+      <div className="transfer-page transfer-page--error">
+        <div className="transfer-load-error" role="alert">
+          <AlertCircle size={20} aria-hidden="true" />
+          <div>
+            <h1>Banking data could not be loaded</h1>
+            <p>{error}</p>
+            <Button type="button" onClick={() => void loadData(false)} isLoading={isLoading}>
+              Try again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
+    <div className="transfer-page">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="transfer-header">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+          <div className="transfer-eyebrow">
             <Sparkles size={14} />
             <span>Core Financial Movement Engine</span>
           </div>
@@ -350,11 +468,11 @@ export const TransfersPage: React.FC = () => {
             Fund Transfers & Payments
           </h1>
           <p className="text-sm text-text-muted mt-0.5">
-            Real-time inter-bank clearing, instant internal routing, and account deposits.
+            Move funds between your accounts or send money to verified payees.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="transfer-header-actions">
           <Button
             type="button"
             variant="secondary"
@@ -381,23 +499,24 @@ export const TransfersPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center gap-3 text-sm">
+        <div className="transfer-alert" role="alert">
           <AlertCircle size={18} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Main Studio Card */}
-      <div className="rounded-3xl bg-surface border border-border/60 shadow-xl overflow-hidden">
+      <div className="transfer-studio">
         {/* Segmented Mode Selector Bar */}
-        <div className="p-2 border-b border-border/40 bg-surface-raised flex flex-wrap gap-2">
+        <div className="transfer-mode-selector" role="group" aria-label="Transaction type">
           <button
             type="button"
+            aria-pressed={activeTab === 'BENEFICIARY'}
             onClick={() => {
               setActiveTab('BENEFICIARY');
               setAmountInput('');
             }}
-            className={`flex-1 min-w-[140px] py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`transfer-mode-button ${
               activeTab === 'BENEFICIARY'
                 ? 'bg-primary text-primary-foreground shadow-md'
                 : 'text-text-muted hover:text-text-primary hover:bg-surface'
@@ -409,11 +528,12 @@ export const TransfersPage: React.FC = () => {
 
           <button
             type="button"
+            aria-pressed={activeTab === 'SELF'}
             onClick={() => {
               setActiveTab('SELF');
               setAmountInput('');
             }}
-            className={`flex-1 min-w-[140px] py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`transfer-mode-button ${
               activeTab === 'SELF'
                 ? 'bg-primary text-primary-foreground shadow-md'
                 : 'text-text-muted hover:text-text-primary hover:bg-surface'
@@ -425,11 +545,12 @@ export const TransfersPage: React.FC = () => {
 
           <button
             type="button"
+            aria-pressed={activeTab === 'DEPOSIT'}
             onClick={() => {
               setActiveTab('DEPOSIT');
               setAmountInput('');
             }}
-            className={`flex-1 min-w-[140px] py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`transfer-mode-button ${
               activeTab === 'DEPOSIT'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-text-muted hover:text-text-primary hover:bg-surface'
@@ -441,11 +562,12 @@ export const TransfersPage: React.FC = () => {
 
           <button
             type="button"
+            aria-pressed={activeTab === 'WITHDRAW'}
             onClick={() => {
               setActiveTab('WITHDRAW');
               setAmountInput('');
             }}
-            className={`flex-1 min-w-[140px] py-3 px-4 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`transfer-mode-button ${
               activeTab === 'WITHDRAW'
                 ? 'bg-amber-600 text-white shadow-md'
                 : 'text-text-muted hover:text-text-primary hover:bg-surface'
@@ -457,10 +579,10 @@ export const TransfersPage: React.FC = () => {
         </div>
 
         {/* Studio Form Body */}
-        <div className="p-6 md:p-8 space-y-8">
+        <div className="transfer-form-body">
           {/* 1. Source Account Selector */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="transfer-section">
+            <div className="transfer-form-heading">
               <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
                 {activeTab === 'DEPOSIT' ? 'Destination Account (Credit)' : 'Source Account (Debit)'}
               </label>
@@ -475,22 +597,23 @@ export const TransfersPage: React.FC = () => {
             </div>
 
             {accounts.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-surface-subtle border border-dashed border-border text-center space-y-2">
+              <div className="transfer-empty-state">
                 <p className="text-sm text-text-muted">You do not have any active accounts to transact from.</p>
                 <Button size="sm" onClick={() => navigate('/app/accounts')}>
                   Open an Account
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="transfer-account-grid">
                 {accounts.map((acc) => {
                   const isSelected = acc.id === selectedAccountId;
                   return (
                     <button
                       key={acc.id}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => setSelectedAccountId(acc.id)}
-                      className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                      className={`transfer-option ${
                         isSelected
                           ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
                           : 'border-border/50 bg-surface-subtle hover:border-border hover:bg-surface-raised'
@@ -531,8 +654,8 @@ export const TransfersPage: React.FC = () => {
 
           {/* 2. Destination / Recipient Selection */}
           {activeTab === 'BENEFICIARY' && (
-            <div className="space-y-3 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between">
+            <div className="transfer-section transfer-section--divided">
+              <div className="transfer-form-heading">
                 <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
                   Select Verified Payee
                 </label>
@@ -547,22 +670,23 @@ export const TransfersPage: React.FC = () => {
               </div>
 
               {verifiedBeneficiaries.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-surface-subtle border border-dashed border-border text-center space-y-2">
+                <div className="transfer-empty-state">
                   <p className="text-sm text-text-muted">No verified payees found.</p>
                   <Button size="sm" onClick={() => navigate('/app/beneficiaries')}>
                     Add & Verify Payee
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="transfer-beneficiary-grid">
                   {verifiedBeneficiaries.map((b) => {
                     const isSelected = b.id === selectedBeneficiaryId;
                     return (
                       <button
                         key={b.id}
                         type="button"
+                        aria-pressed={isSelected}
                         onClick={() => setSelectedBeneficiaryId(b.id)}
-                        className={`p-4 rounded-2xl border text-left transition-all ${
+                        className={`transfer-option ${
                           isSelected
                             ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
                             : 'border-border/50 bg-surface-subtle hover:border-border hover:bg-surface-raised'
@@ -594,21 +718,22 @@ export const TransfersPage: React.FC = () => {
           )}
 
           {activeTab === 'SELF' && (
-            <div className="space-y-3 pt-4 border-t border-border/40">
+            <div className="transfer-section transfer-section--divided">
               <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
                 Destination FinServ Account
               </label>
 
               {otherAccounts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="transfer-destination-grid">
                   {otherAccounts.map((acc) => {
                     const isSelected = acc.accountNumber === destinationAccountNumber;
                     return (
                       <button
                         key={acc.id}
                         type="button"
+                        aria-pressed={isSelected}
                         onClick={() => setDestinationAccountNumber(acc.accountNumber)}
-                        className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                        className={`transfer-option ${
                           isSelected
                             ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
                             : 'border-border/50 bg-surface-subtle hover:border-border hover:bg-surface-raised'
@@ -639,10 +764,13 @@ export const TransfersPage: React.FC = () => {
                     value={destinationAccountNumber}
                     onChange={(e) => setDestinationAccountNumber(e.target.value)}
                     placeholder="Enter 14-digit FinServ Account Number"
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-text-primary font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    maxLength={14}
+                    inputMode="numeric"
+                    aria-label="Destination FinServ account number"
+                    className="transfer-text-input"
                   />
                   <p className="text-xs text-text-muted">
-                    Transfer instantly to any other verified FinServ customer account.
+                    Enter the account number exactly as provided by the recipient.
                   </p>
                 </div>
               )}
@@ -651,40 +779,42 @@ export const TransfersPage: React.FC = () => {
 
           {/* 3. Transfer Mode (for Beneficiary transfers) */}
           {activeTab === 'BENEFICIARY' && (
-            <div className="space-y-2 pt-2">
-              <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
+            <div className="transfer-section">
+              <label htmlFor="transfer-amount" className="text-xs uppercase tracking-wider font-semibold text-text-muted">
                 Payment Network / Rail
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="transfer-rail-options">
                 <button
                   type="button"
+                  aria-pressed={transferMode === 'IMPS'}
                   onClick={() => setTransferMode('IMPS')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                  className={`transfer-rail-button ${
                     transferMode === 'IMPS'
                       ? 'bg-primary/10 border-primary text-primary'
                       : 'border-border/60 bg-surface-subtle text-text-muted hover:border-border'
                   }`}
                 >
-                  ⚡ IMPS — Real-Time 24x7 Settlement
+                  IMPS
                 </button>
                 <button
                   type="button"
+                  aria-pressed={transferMode === 'NEFT'}
                   onClick={() => setTransferMode('NEFT')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                  className={`transfer-rail-button ${
                     transferMode === 'NEFT'
                       ? 'bg-primary/10 border-primary text-primary'
                       : 'border-border/60 bg-surface-subtle text-text-muted hover:border-border'
                   }`}
                 >
-                  🏦 NEFT — National Clearing Batch
+                  NEFT
                 </button>
               </div>
             </div>
           )}
 
           {/* 4. Amount Input Studio & Quick Chips */}
-          <div className="space-y-4 pt-4 border-t border-border/40">
-            <div className="flex items-center justify-between">
+          <div className="transfer-amount-section">
+            <div className="transfer-form-heading">
               <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
                 {activeTab === 'DEPOSIT'
                   ? 'Deposit Amount (INR)'
@@ -696,7 +826,7 @@ export const TransfersPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleMaxAmount}
-                  className="text-xs font-semibold text-primary hover:underline"
+                  className="transfer-inline-action"
                 >
                   Use Max Available
                 </button>
@@ -704,63 +834,73 @@ export const TransfersPage: React.FC = () => {
             </div>
 
             {/* Large Tabular Amount Input */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-2xl font-bold text-text-muted">
+            <div className="transfer-amount-field">
+              <div className="transfer-amount-currency" aria-hidden="true">
                 ₹
               </div>
               <input
+                id="transfer-amount"
                 type="number"
                 step="0.01"
                 min="1.00"
+                aria-invalid={isInsufficientBalance || hasInvalidAmountPrecision}
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
                 placeholder="0.00"
-                className={`w-full pl-12 pr-6 py-4 rounded-2xl border text-3xl font-extrabold font-mono tracking-tight bg-surface focus:outline-none transition-all ${
-                  isInsufficientBalance
-                    ? 'border-rose-500 ring-2 ring-rose-500/20 text-rose-500'
-                    : 'border-border focus:ring-2 focus:ring-primary/20 text-text-primary'
-                }`}
+                className="transfer-amount-input"
               />
             </div>
 
             {/* Real-time Inline Balance Guard Warning */}
             {isInsufficientBalance && (
-              <div className="flex items-center gap-2 text-xs font-medium text-rose-500 animate-shake">
+              <div className="transfer-field-warning" role="alert">
                 <AlertCircle size={14} />
                 <span>
                   Insufficient balance! Your available balance is {formatINR(availableBalance)}.
                 </span>
               </div>
             )}
+            {amountInput && enteredAmount.lt(1) && (
+              <div className="transfer-field-warning" role="alert">
+                <AlertCircle size={14} aria-hidden="true" />
+                <span>The minimum transaction amount is ₹1.00.</span>
+              </div>
+            )}
+            {amountInput && hasInvalidAmountPrecision && (
+              <div className="transfer-field-warning" role="alert">
+                <AlertCircle size={14} aria-hidden="true" />
+                <span>Enter an amount with no more than two decimal places.</span>
+              </div>
+            )}
 
             {/* Quick Amount Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="transfer-quick-amounts">
               <span className="text-xs text-text-muted mr-1">Quick Add:</span>
               <button
                 type="button"
                 onClick={() => handleQuickAmount(500)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-surface-subtle border border-border/60 hover:bg-surface-raised hover:border-border text-text-primary transition-colors"
+                className="transfer-quick-amount"
               >
                 +₹500
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAmount(2000)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-surface-subtle border border-border/60 hover:bg-surface-raised hover:border-border text-text-primary transition-colors"
+                className="transfer-quick-amount"
               >
                 +₹2,000
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAmount(10000)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-surface-subtle border border-border/60 hover:bg-surface-raised hover:border-border text-text-primary transition-colors"
+                className="transfer-quick-amount"
               >
                 +₹10,000
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAmount(25000)}
-                className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-surface-subtle border border-border/60 hover:bg-surface-raised hover:border-border text-text-primary transition-colors"
+                className="transfer-quick-amount"
               >
                 +₹25,000
               </button>
@@ -768,7 +908,7 @@ export const TransfersPage: React.FC = () => {
           </div>
 
           {/* 5. Remarks / Narration */}
-          <div className="space-y-2 pt-2">
+          <div className="transfer-section transfer-remarks">
             <label className="text-xs uppercase tracking-wider font-semibold text-text-muted">
               Remarks / Narration (Optional)
             </label>
@@ -778,14 +918,14 @@ export const TransfersPage: React.FC = () => {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Monthly rent, Client consultation, Account funding"
               maxLength={150}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="transfer-text-input"
             />
           </div>
 
           {/* 6. Execution CTA */}
-          <div className="pt-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="transfer-actions">
             <div className="text-xs text-text-muted">
-              Zero transaction fees • Instant ledger confirmation
+              Review the details carefully before confirming your transfer.
             </div>
 
             <Button
@@ -800,7 +940,7 @@ export const TransfersPage: React.FC = () => {
               }
               className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold"
             >
-              Review & Authorize
+              Review transfer
             </Button>
           </div>
         </div>
@@ -809,10 +949,11 @@ export const TransfersPage: React.FC = () => {
       {/* Review Modal */}
       <TransferReviewModal
         open={reviewOpen}
-        onOpenChange={setReviewOpen}
+        onOpenChange={handleReviewOpenChange}
         data={reviewData}
         onConfirm={handleConfirmTransaction}
         isSubmitting={isSubmitting}
+        error={error}
       />
 
       {/* Receipt Modal (if requested) */}

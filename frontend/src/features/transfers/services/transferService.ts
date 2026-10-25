@@ -14,6 +14,14 @@ import type {
   TransactionFilterParams,
 } from '../types/transferTypes';
 
+function toDateTimeBoundary(value: string, endOfDay: boolean): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  return `${value}T${endOfDay ? '23:59:59.999999' : '00:00:00'}+05:30`;
+}
+
 export const transferService = {
   /**
    * Cash / self-service deposit into active customer account.
@@ -58,8 +66,8 @@ export const transferService = {
     const query = new URLSearchParams();
     if (params.accountId) query.set('accountId', params.accountId);
     if (params.type && params.type !== 'ALL') query.set('type', params.type);
-    if (params.startDate) query.set('startDate', params.startDate);
-    if (params.endDate) query.set('endDate', params.endDate);
+    if (params.startDate) query.set('startDate', toDateTimeBoundary(params.startDate, false));
+    if (params.endDate) query.set('endDate', toDateTimeBoundary(params.endDate, true));
     if (params.query) query.set('query', params.query);
     if (params.page !== undefined) query.set('page', params.page.toString());
     if (params.size !== undefined) query.set('size', params.size.toString());
@@ -78,8 +86,8 @@ export const transferService = {
   ): Promise<TransactionPageResponse> {
     const query = new URLSearchParams();
     if (params.type && params.type !== 'ALL') query.set('type', params.type);
-    if (params.startDate) query.set('startDate', params.startDate);
-    if (params.endDate) query.set('endDate', params.endDate);
+    if (params.startDate) query.set('startDate', toDateTimeBoundary(params.startDate, false));
+    if (params.endDate) query.set('endDate', toDateTimeBoundary(params.endDate, true));
     if (params.query) query.set('query', params.query);
     if (params.page !== undefined) query.set('page', params.page.toString());
     if (params.size !== undefined) query.set('size', params.size.toString());

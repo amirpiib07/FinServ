@@ -337,16 +337,32 @@ public class AdminService {
             account.setBranchId(branch.getId());
             account.setProductId(savingsProduct.getId());
             account.setAccountNumber(accountNumber);
-            account.setCurrency("INR");
-            account.setCurrentBalance(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-            account.setAvailableBalance(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            BigDecimal initialDeposit = new BigDecimal("5000.00");
+            account.setCurrentBalance(initialDeposit);
+            account.setAvailableBalance(initialDeposit);
             account.setHoldBalance(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
             account.setStatus("ACTIVE");
             account.setNickname("Primary Savings");
             account.setOpenedAt(Instant.now());
 
             accountRepository.save(account);
-            log.info("Auto-opened initial account {} for approved customer {}", accountNumber, customer.getCustomerNumber());
+
+            try {
+                UUID cashGlId = UUID.fromString("00000000-0000-0000-0001-000000010100"); // 10100 Vault Cash
+                ledgerPostingService.recordJournalEntry(
+                        "ACCOUNT_OPENING_DEPOSIT",
+                        "Initial welcome funding of ₹5000 for " + accountNumber,
+                        officerId,
+                        List.of(
+                                new PostingInstruction(cashGlId, null, "DEBIT", initialDeposit),
+                                new PostingInstruction(savingsProduct.getGlAccountId(), account.getId(), "CREDIT", initialDeposit)
+                        )
+                );
+            } catch (Exception e) {
+                log.warn("Could not post GL voucher for initial deposit: {}", e.getMessage());
+            }
+
+            log.info("Auto-opened initial account {} with ₹5000 initial balance for approved customer {}", accountNumber, customer.getCustomerNumber());
         } catch (Exception e) {
             log.error("Failed to auto-open default account for customer {}: {}", customer.getId(), e.getMessage());
         }
@@ -457,7 +473,9 @@ public class AdminService {
             account.setNickname(product.getProductName());
             account.setOpenedAt(Instant.now());
 
-            BigDecimal initialDeposit = app.getInitialDepositAmount();
+            BigDecimal initialDeposit = (app.getInitialDepositAmount() != null && app.getInitialDepositAmount().compareTo(BigDecimal.ZERO) > 0)
+                    ? app.getInitialDepositAmount()
+                    : new BigDecimal("5000.00");
             account.setCurrentBalance(initialDeposit);
             account.setAvailableBalance(initialDeposit);
             account.setHoldBalance(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
@@ -704,12 +722,20 @@ public class AdminService {
         user = userRepository.save(user);
         userRoleRepository.save(new UserRole(userId, role.getId()));
 
-        // Also assign ROLE_EMPLOYEE if ADMIN so they have standard counter operations
-        if ("ROLE_ADMIN".equals(requestedRole)) {
+        // Also assign hierarchical roles for comprehensive operations
+        if ("ROLE_SUPER_ADMIN".equals(requestedRole)) {
+            roleRepository.findByName("ROLE_ADMIN").ifPresent(admRole -> {
+                userRoleRepository.save(new UserRole(userId, admRole.getId()));
+            });
+            roleRepository.findByName("ROLE_EMPLOYEE").ifPresent(empRole -> {
+                userRoleRepository.save(new UserRole(userId, empRole.getId()));
+            });
+        } else if ("ROLE_ADMIN".equals(requestedRole)) {
             roleRepository.findByName("ROLE_EMPLOYEE").ifPresent(empRole -> {
                 userRoleRepository.save(new UserRole(userId, empRole.getId()));
             });
         }
+
 
         // Create Employee Profile
         String empCode = "EMP" + branch.getBranchCode() + String.format("%04d", (int)(Math.random() * 9000 + 1000));

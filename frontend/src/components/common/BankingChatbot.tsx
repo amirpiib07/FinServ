@@ -197,6 +197,7 @@ const generateBotResponse = (query: string, msgId: string, time: string): ChatMe
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Open FINServ Banking Assistant"
+            title="Open FINServ Banking Assistant"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -517,6 +518,7 @@ const generateBotResponse = (query: string, msgId: string, time: string): ChatMe
               type="submit"
               disabled={!input.trim()}
               aria-label="Send Message"
+              title="Send message"
               style={{
                 width: '34px',
                 height: '34px',

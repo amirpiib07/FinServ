@@ -186,7 +186,7 @@ export const RegisterPage: React.FC = () => {
                   display: 'inline-block',
                 }}
               />
-              <span>RBI PILOT • INSTANT ONBOARDING</span>
+              <span>FINServ Digital Banking</span>
             </div>
           </div>
 
@@ -208,7 +208,7 @@ export const RegisterPage: React.FC = () => {
               }}
             >
               <ShieldCheck size={14} />
-              Instant Bank Account Opening
+              Start your account application
             </span>
 
             <h2
@@ -221,7 +221,7 @@ export const RegisterPage: React.FC = () => {
                 letterSpacing: '-0.02em',
               }}
             >
-              Open Your High-Yield Account in Minutes.
+              Begin your banking relationship.
             </h2>
             <p
               style={{
@@ -231,12 +231,12 @@ export const RegisterPage: React.FC = () => {
                 margin: '0 0 var(--spacing-6) 0',
               }}
             >
-              Create your secure credentials, verify contact ownership with OTP, complete regulatory KYC, and receive your 14-digit ISO 7064 account number.
+              Create your sign-in, verify your contact details, and submit the required profile information for review.
             </p>
 
-            {/* Stylized Platinum Card Preview */}
             <div
               className="finserv-account-card"
+              aria-label="Illustrative FINServ card design. It does not represent an issued card."
               style={{
                 maxWidth: '380px',
                 borderRadius: 'var(--radius-xl)',
@@ -259,7 +259,7 @@ export const RegisterPage: React.FC = () => {
                   <Wifi size={16} color="rgba(255, 255, 255, 0.7)" style={{ transform: 'rotate(90deg)' }} />
                 </div>
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', color: '#F59E0B', textTransform: 'uppercase' }}>
-                  FINSERV PRIVILEGE
+                  FINServ
                 </div>
               </div>
 
@@ -272,7 +272,7 @@ export const RegisterPage: React.FC = () => {
                   margin: 'var(--spacing-3) 0',
                 }}
               >
-                •••• &nbsp;•••• &nbsp;•••• &nbsp;9042
+                •••• &nbsp;•••• &nbsp;•••• &nbsp;••••
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'var(--spacing-3)' }}>
@@ -281,15 +281,15 @@ export const RegisterPage: React.FC = () => {
                     Customer
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: '#FFFFFF' }}>
-                    NEW RELATIONSHIP
+                    FINServ customer
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    Protected
+                    Status
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: '#34D399' }}>
-                    DICGC COVERED
+                    Application pending
                   </div>
                 </div>
               </div>
@@ -299,22 +299,22 @@ export const RegisterPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
                 <CheckCircle2 size={16} color="#34D399" />
-                <span>Zero minimum balance deposit options available</span>
+                <span>Account options are shown during the application process</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
                 <CheckCircle2 size={16} color="#34D399" />
-                <span>Instant NEFT, RTGS & IMPS payment rails</span>
+                <span>Manage accounts, cards, and transfers after verification</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'rgba(255, 255, 255, 0.9)' }}>
                 <CheckCircle2 size={16} color="#34D399" />
-                <span>DICGC deposit insurance protection up to ₹5,00,000</span>
+                <span>Track your application and its review status</span>
               </div>
             </div>
           </div>
         </div>
 
         <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 'var(--spacing-4)' }}>
-          Mandatory KYC verified under Prevention of Money Laundering Act (PMLA).
+          Account access is provided after the required verification steps are completed.
         </div>
       </div>
 
@@ -425,7 +425,7 @@ export const RegisterPage: React.FC = () => {
               <FormField
                 label="Email Address"
                 error={errors.email?.message}
-                hint="For account statements, transaction alerts, and e-receipts."
+                hint="For account communications and application updates."
                 required
                 htmlFor="email"
               >
@@ -443,7 +443,7 @@ export const RegisterPage: React.FC = () => {
               <FormField
                 label="Mobile Phone Number"
                 error={errors.phoneNumber?.message}
-                hint="For instant OTP verification and high-value transfer authorization."
+                hint="For contact verification and account communications."
                 required
                 htmlFor="phoneNumber"
               >
@@ -536,7 +536,7 @@ export const RegisterPage: React.FC = () => {
                 disabled={isSubmitting}
                 style={{ height: '44px', fontWeight: 600, marginTop: 'var(--spacing-2)' }}
               >
-                {isSubmitting ? 'Creating Secure Account...' : 'Continue to Digital Verification'}
+                {isSubmitting ? 'Creating Account...' : 'Continue to Digital Verification'}
               </Button>
             </form>
 

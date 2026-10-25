@@ -44,6 +44,7 @@ export const Modal: React.FC<ModalProps> = ({
                 type="button"
                 className="btn-icon btn-ghost"
                 aria-label="Close dialog"
+                title="Close dialog"
                 style={{ width: 32, height: 32 }}
               >
                 <X size={18} aria-hidden="true" />

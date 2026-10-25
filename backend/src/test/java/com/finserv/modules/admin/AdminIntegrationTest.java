@@ -303,4 +303,30 @@ class AdminIntegrationTest {
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.totalElements").isNumber());
     }
+
+    @Test
+    @DisplayName("Super Admin should be able to provision multiple Super Admins and Bank Officers")
+    void shouldAllowSuperAdminToProvisionAnotherSuperAdmin() throws Exception {
+        Branch branch = branchRepository.findByBranchCode("1001").orElseThrow();
+        String superAdminUser = "superadmin_" + System.currentTimeMillis();
+        CreateStaffRequest staffReq = new CreateStaffRequest(
+                superAdminUser,
+                superAdminUser + "@finserv.local",
+                "+9193" + (long)(Math.random() * 90000000L + 10000000L),
+                "SuperAdminPass123!",
+                "SUPER_ADMIN",
+                branch.getId(),
+                "Executive",
+                "Chief Risk Officer"
+        );
+
+        mockMvc.perform(post("/api/v1/admin/staff")
+                        .header("Authorization", "Bearer " + superAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(staffReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value(superAdminUser))
+                .andExpect(jsonPath("$.role").value("ROLE_SUPER_ADMIN"));
+    }
 }
+

@@ -15,7 +15,6 @@ import {
   Lock,
   Building2,
   Wallet,
-  Zap,
 } from 'lucide-react';
 
 export interface TransferReviewData {
@@ -39,6 +38,7 @@ interface TransferReviewModalProps {
   data: TransferReviewData | null;
   onConfirm: () => void;
   isSubmitting: boolean;
+  error?: string | null;
 }
 
 export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
@@ -47,6 +47,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
   data,
   onConfirm,
   isSubmitting,
+  error,
 }) => {
   if (!data) return null;
 
@@ -72,11 +73,11 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
-          className="dialog-content max-w-lg p-0 overflow-hidden"
+          className="dialog-content transfer-review-dialog max-w-lg p-0 overflow-hidden"
           aria-describedby="transfer-review-description"
         >
           {/* Header */}
-          <div className="p-6 border-b border-border/40 bg-surface-raised flex items-center justify-between">
+          <div className="transfer-review-header">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
                 <ShieldCheck size={20} />
@@ -86,7 +87,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
                   {actionTitle}
                 </Dialog.Title>
                 <Dialog.Description id="transfer-review-description" className="text-xs text-text-muted">
-                  Double-entry verified • Instant settlement
+                  Review the recipient and amount before confirming.
                 </Dialog.Description>
               </div>
             </div>
@@ -97,6 +98,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
                   type="button"
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface transition-colors"
                   aria-label="Close review dialog"
+                  title="Close review dialog"
                 >
                   <X size={18} />
                 </button>
@@ -104,9 +106,9 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
             )}
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="transfer-review-body">
             {/* Amount Banner */}
-            <div className="text-center p-5 rounded-2xl bg-surface-subtle border border-border/50">
+            <div className="transfer-review-amount">
               <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
                 {isDeposit ? 'Deposit Amount' : isWithdraw ? 'Withdrawal Amount' : 'Transfer Amount'}
               </span>
@@ -114,19 +116,23 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
                 {formatINR(data.amount)}
               </div>
               <div className="flex items-center justify-center gap-2 mt-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  <Zap size={12} /> Fee: ₹0.00 Free
-                </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface text-text-muted border border-border/60">
                   {data.mode}
                 </span>
               </div>
             </div>
 
+            {error && (
+              <div className="transfer-review-error" role="alert">
+                {error}
+                <span>Retrying here reuses the same idempotency key.</span>
+              </div>
+            )}
+
             {/* Account Routing Details */}
-            <div className="space-y-3">
+            <div className="transfer-review-details">
               {/* From Account */}
-              <div className="p-3.5 rounded-xl bg-surface border border-border/40 flex items-center justify-between">
+              <div className="transfer-review-route">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-surface-raised flex items-center justify-center text-text-muted">
                     <Wallet size={16} />
@@ -136,7 +142,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
                       {isDeposit ? 'Funding Source' : 'From Account'}
                     </div>
                     <div className="text-sm font-semibold text-text-primary">
-                      {isDeposit ? 'Direct Bank Cashier / Card' : data.fromAccountNickname || 'FinServ Account'}
+                      {isDeposit ? 'Deposit to account' : data.fromAccountNickname || 'FinServ Account'}
                     </div>
                   </div>
                 </div>
@@ -164,7 +170,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
               )}
 
               {/* To Account */}
-              <div className="p-3.5 rounded-xl bg-surface border border-border/40 flex items-center justify-between">
+              <div className="transfer-review-route">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-surface-raised flex items-center justify-center text-text-muted">
                     <Building2 size={16} />
@@ -174,7 +180,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
                       {isWithdraw ? 'Payout Channel' : 'To Beneficiary / Destination'}
                     </div>
                     <div className="text-sm font-semibold text-text-primary">
-                      {isWithdraw ? 'Counter Cash Disbursement' : data.toName || 'FinServ Account'}
+                      {isWithdraw ? 'Account withdrawal' : data.toName || 'FinServ Account'}
                     </div>
                   </div>
                 </div>
@@ -195,16 +201,16 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
 
             {/* Narration */}
             {data.description && (
-              <div className="text-xs text-text-muted bg-surface-subtle p-3 rounded-lg border border-border/40">
+              <div className="transfer-review-note">
                 <span className="font-medium text-text-primary">Note / Remarks:</span> {data.description}
               </div>
             )}
 
             {/* Financial Safety Footnote & Idempotency Key */}
-            <div className="pt-2 border-t border-border/40 flex flex-col gap-2">
+            <div className="transfer-review-footnote">
               <div className="flex items-center gap-2 text-xs text-text-muted">
                 <Lock size={12} className="text-emerald-500" />
-                <span>Protected by 256-bit bank encryption and deterministic lock ordering</span>
+                <span>The transaction result will be confirmed by FinServ after submission.</span>
               </div>
               <div className="flex items-center justify-between text-[11px] text-text-muted font-mono">
                 <span>Idempotency-Key:</span>
@@ -216,7 +222,7 @@ export const TransferReviewModal: React.FC<TransferReviewModalProps> = ({
           </div>
 
           {/* Action Footer */}
-          <div className="p-6 bg-surface-raised border-t border-border/40 flex items-center justify-end gap-3">
+          <div className="transfer-review-footer">
             <Button
               type="button"
               variant="secondary"

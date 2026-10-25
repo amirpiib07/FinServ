@@ -24,6 +24,6 @@ export interface FixedDeposit {
 
 export interface BookFixedDepositRequest {
   sourceAccountId: string;
-  principalAmount: number;
+  principalAmount: string;
   tenureMonths: number;
 }
